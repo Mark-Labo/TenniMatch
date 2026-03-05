@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>テニス組合せ＆ランキング管理 v2.1.2 (room対応)</title>
+  <title>🎾TenniMatch v2.2.0 — 組合せ生成（テンプレート固定 / シャッフルP割り当て）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
@@ -36,12 +36,16 @@
     .guest-slot { display:inline-block; border:1px solid #ccc; border-radius:8px; padding:10px; margin:6px; min-width:90px; text-align:center; cursor:pointer; background:#eeeeee; transition:0.2s; }
     .guest-slot.selected { margin:4px; background:#4caf50 !important; color:white !important; border:none; }
     .small { font-size:12px; padding:6px 10px; }
+    #shuffleList { margin-top:12px; padding:10px; border-radius:8px; background:#f7f7f7; }
+    #shuffleList .map-item { margin:6px 0; }
+    .muted { color:#666; font-size:13px; }
   </style>
 </head>
 <body>
 
 <header>
-  <div id="appTitle">🎾TenniMatch🎾テニス組合せ＆ランキング管理 v2.1.2</div>
+  <div id="appTitle">🎾TenniMatch🎾 
+  組合せ＆ランキング管理 v2.2.0</div>
   <div id="roomInfo">部屋: <span id="roomIdDisplay">---</span> &nbsp; <button class="small" onclick="copyRoomLink()">リンクをコピー</button></div>
 </header>
 
@@ -81,6 +85,15 @@
   <h3>登録者リスト</h3>
   <div id="memberButtons"></div>
 
+  <!-- ここにシャッフル後リストを表示 -->
+  <div id="shuffleList" class="hidden card">
+    <h3 style="margin-top:0;">参加者シャッフル後リスト（P割当）</h3>
+    <div id="shuffleMap" class="muted"></div>
+    <div style="margin-top:8px;">
+      <button onclick="clearShuffle()" class="small">シャッフルリストを消す</button>
+    </div>
+  </div>
+
   <br>
   <button onclick="generate()">生成</button>
   <button onclick="backMenu()">戻る</button>
@@ -111,26 +124,29 @@
   })();
 </script>
 
-<!-- ---- メイン UI / ロジック ---- -->
+<!-- ---- メイン UI / ロジック (v2.2.0) ---- -->
 <script>
   let members = [];
 
-  // Firebaseから来るロード用（モジュール側に合わせる）
+  // loadFromFirebase はモジュール側から呼ばれる（互換性のため存在）
   function loadFromFirebase(state){
     members = state.members || [];
     players = state.players || [];
     schedule = state.schedule || [];
-    showingRounds = state.showingRounds || 10;
-
+    showingRounds = state.showingRounds || 5;
+    maxRounds = state.maxRounds || schedule.length || 5;
     renderMembers();
     render();
     updateRanking();
+    if(window.updateRoomDisplay) window.updateRoomDisplay();
   }
   window.loadFromFirebase = loadFromFirebase;
 
-  let players = [];
-  let schedule = [];
-  let showingRounds = 10;
+  // プレイヤー / スケジュール / 表示制御
+  let players = []; // { name, pos }
+  let schedule = []; // { matches:[ { team1:[{name,pos}], team2:[...] , score:[null,null] } ] }
+  let showingRounds = 5;
+  let maxRounds = 5;
 
   function loadMembers(){
     members = [];
@@ -139,7 +155,7 @@
 
   function saveMembers(){
     if(window.saveStateToFirebase){
-      window.saveStateToFirebase({ members, players, schedule, showingRounds });
+      window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds });
     }
   }
 
@@ -179,6 +195,8 @@
     document.getElementById("menu").classList.add("hidden");
     document.getElementById("main").classList.remove("hidden");
     setupGuests();
+    // hide shuffle list until generate
+    document.getElementById("shuffleList").classList.add("hidden");
   }
   function backMenu(){
     document.getElementById("register").classList.add("hidden");
@@ -243,78 +261,153 @@
     }
   }
 
-  const template4 = [
-    [[1,2],[3,4]],
-    [[1,3],[2,4]],
-    [[1,4],[2,3]]
-  ];
-  const template8 = [
-    [[1,2],[3,4],[5,6],[7,8]],
-    [[1,3],[2,4],[5,7],[6,8]],
-    [[1,4],[2,3],[5,8],[6,7]],
-    [[1,5],[2,6],[3,7],[4,8]],
-    [[1,6],[2,5],[3,8],[4,7]],
-    [[1,7],[2,8],[3,5],[4,6]],
-    [[1,8],[2,7],[3,6],[4,5]]
-  ];
+  // --- 固定テンプレート群 ---
+  // 9人・2面 のテンプレート（テニスベアから取得したパターン、先頭15回分を上限に使用）
+  const templates = {
+    "9_2": [
+      // round1..15 (1-indexed player numbers)
+      { matches: [ [[1,2],[3,4]], [[5,6],[7,8]] ] },
+      { matches: [ [[9,1],[2,5]], [[3,7],[4,8]] ] },
+      { matches: [ [[6,9],[1,3]], [[2,4],[5,8]] ] },
+      { matches: [ [[7,6],[9,2]], [[1,5],[3,8]] ] },
+      { matches: [ [[4,6],[7,9]], [[1,8],[2,3]] ] },
+      { matches: [ [[5,9],[4,7]], [[6,1],[2,8]] ] },
+      { matches: [ [[3,6],[4,5]], [[7,1],[9,8]] ] },
+      { matches: [ [[2,7],[3,5]], [[4,9],[6,8]] ] },
+      { matches: [ [[1,4],[5,7]], [[2,6],[3,9]] ] },
+      { matches: [ [[1,2],[4,7]], [[8,5],[6,9]] ] },
+      { matches: [ [[3,8],[7,9]], [[1,5],[2,6]] ] },
+      { matches: [ [[4,9],[3,2]], [[1,8],[5,7]] ] },
+      { matches: [ [[6,8],[3,4]], [[1,7],[2,9]] ] },
+      { matches: [ [[5,4],[3,6]], [[1,9],[7,8]] ] },
+      { matches: [ [[2,5],[4,6]], [[3,1],[8,9]] ] }
+    ],
+    // 8人・2面 用（既存 template8 を活用。ラウンド数は template の長さ分）
+    "8_2": [
+      { matches:[[ [1,2],[3,4] ], [ [5,6],[7,8] ]] },
+      { matches:[[ [1,3],[2,4] ], [ [5,7],[6,8] ]] },
+      { matches:[[ [1,4],[2,3] ], [ [5,8],[6,7] ]] },
+      { matches:[[ [1,5],[2,6] ], [ [3,7],[4,8] ]] },
+      { matches:[[ [1,6],[2,5] ], [ [3,8],[4,7] ]] },
+      { matches:[[ [1,7],[2,8] ], [ [3,5],[4,6] ]] },
+      { matches:[[ [1,8],[2,7] ], [ [3,6],[4,5] ]] }
+    ],
+    // 4人・1面 用（基本パターン）
+    "4_1": [
+      { matches:[[ [1,2],[3,4] ]] },
+      { matches:[[ [1,3],[2,4] ]] },
+      { matches:[[ [1,4],[2,3] ]] }
+    ]
+  };
 
-  function generate(){
-    players = [];
-    const count = parseInt(document.getElementById("playerCount").value);
-    for(let i=1;i<=count;i++){
-      const name = document.getElementById("guest"+i).textContent;
-      players.push({ name, restCount:0, restStreak:0, total:0, match:0 });
-    }
-    shuffle(players);
-
-    schedule = [];
-    showingRounds = 10;
-    const court = parseInt(document.getElementById("courtCount").value);
-    const restNeeded = players.length - court*4;
-
-    for(let r=0;r<20;r++){
-      const sorted = [...players].sort((a,b) => {
-        if(a.restCount !== b.restCount) return a.restCount - b.restCount;
-        if(a.restStreak !== b.restStreak) return a.restStreak - b.restStreak;
-        return Math.random()-0.5;
-      });
-      const rest = sorted.slice(0, restNeeded);
-      const play = players.filter(p => !rest.includes(p));
-
-      players.forEach(p => {
-        if(rest.includes(p)){ p.restCount++; p.restStreak++; }
-        else { p.restStreak = 0; }
-      });
-
-      shuffle(play);
-      const matches = [];
-      const template = (court===1 ? template4 : template8);
-      const pattern = template[r % template.length];
-
+  // フォールバック：簡易ローテーションでテンプレートを作る（人数と面数に応じて）
+  function buildRotationalTemplate(count, court){
+    const rounds = [];
+    const playersIdx = Array.from({length:count}, (_,i)=>i+1);
+    // シンプルに count rounds (or up to 15) of rotating opponents
+    const maxR = Math.min(15, Math.max(5, Math.floor(15)));
+    for(let r=0;r<Math.min(15, count); r++){
+      const roundMatches = [];
+      // rotate array
+      const arr = playersIdx.slice(r).concat(playersIdx.slice(0,r));
+      // pair sequentially into court*2 players
       for(let c=0;c<court;c++){
-        const baseIndex = c*2;
-        const tA = pattern[baseIndex];
-        const tB = pattern[baseIndex+1];
-        if(!tA || !tB) break;
-        const team1 = [ play[tA[0]-1], play[tA[1]-1] ];
-        const team2 = [ play[tB[0]-1], play[tB[1]-1] ];
-        // 初期は null（未入力）にする
-        matches.push({ team1, team2, score:[null,null] });
+        // each court needs two pairs = 4 players
+        const base = c*4;
+        if(base+3 >= arr.length) break;
+        const a1 = arr[base], a2 = arr[base+1], b1 = arr[base+2], b2 = arr[base+3];
+        roundMatches.push([[a1,a2],[b1,b2]]);
       }
-      schedule.push({ matches });
+      rounds.push({ matches: roundMatches });
+    }
+    return rounds;
+  }
+
+  // --- 生成処理 ---
+  function generate(){
+    // collect guest slot names (in order)
+    const count = parseInt(document.getElementById("playerCount").value);
+    const guestNames = [];
+    for(let i=1;i<=count;i++){
+      const slot = document.getElementById("guest"+i);
+      guestNames.push(slot ? slot.textContent : ("ゲスト"+i));
+    }
+
+    // create randomized P1..PN mapping (シャッフル)
+    const shuffled = guestNames.slice();
+    shuffle(shuffled);
+    // players array keeps name + pos (pos=1..N) to be used by ranking logic
+    players = shuffled.map((name, idx)=>({ name, pos: idx+1 }));
+
+    // show shuffle mapping in UI
+    showShuffleMap(players);
+
+    // select template based on count and court
+    const court = parseInt(document.getElementById("courtCount").value);
+    const key = `${count}_${court}`;
+    let templateRounds = templates[key];
+    if(!templateRounds){
+      // fallback: try 8_2 or 4_1 where reasonable, otherwise build rotation
+      if(key === "8_2" && templates["8_2"]) templateRounds = templates["8_2"];
+      else if(key === "4_1" && templates["4_1"]) templateRounds = templates["4_1"];
+      else templateRounds = buildRotationalTemplate(count, court);
+    }
+
+    // limit to max 15 rounds (user request)
+    const roundsToUse = templateRounds.slice(0, 15);
+
+    // Build schedule: map template indices -> actual players (pos index in template is 1-based)
+    schedule = roundsToUse.map(r => {
+      const matches = r.matches.map(pair => {
+        // pair: [[a,b],[c,d]] (each entry are index numbers)
+        const t1 = pair[0].map(idx => {
+          const name = (idx <= players.length) ? players[idx-1].name : ("空き"+idx);
+          return { name, pos: idx };
+        });
+        const t2 = pair[1].map(idx => {
+          const name = (idx <= players.length) ? players[idx-1].name : ("空き"+idx);
+          return { name, pos: idx };
+        });
+        return { team1: t1, team2: t2, score: [null, null] };
+      });
+      return { matches };
+    });
+
+    // schedule fully created (最大15試合) — 表示は最初5試合
+    maxRounds = schedule.length;
+    showingRounds = Math.min(5, maxRounds);
+
+    // save state to Firebase (members 必須)
+    if(window.saveStateToFirebase){
+      window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds }).catch(e => console.warn("save error", e));
     }
 
     render();
-
-    if(window.saveStateToFirebase) {
-      // members を必ず含める（上書きされるので）
-      window.saveStateToFirebase({ members, players, schedule, showingRounds }).catch(e => console.warn("save error", e));
-    }
   }
 
+  // 表示：シャッフルマップ
+  function showShuffleMap(playersArr){
+    const wrap = document.getElementById("shuffleList");
+    const mapDiv = document.getElementById("shuffleMap");
+    mapDiv.innerHTML = "";
+    playersArr.forEach(p => {
+      const el = document.createElement("div");
+      el.className = "map-item";
+      el.textContent = `P${p.pos} → ${p.name}`;
+      mapDiv.appendChild(el);
+    });
+    wrap.classList.remove("hidden");
+  }
+  function clearShuffle(){
+    document.getElementById("shuffleMap").innerHTML = "";
+    document.getElementById("shuffleList").classList.add("hidden");
+  }
+
+  // レンダリング（スコア入力欄や P表示に注意）
   function render(){
     const matchesDiv = document.getElementById("matches");
     matchesDiv.innerHTML = "";
+
     schedule.forEach((round, i) => {
       if(i >= showingRounds) return;
       const card = document.createElement('div');
@@ -322,84 +415,71 @@
       const bgColors = ["#e3f2fd","#fff3e0","#e8f5e9","#fce4ec"];
       card.style.background = bgColors[i % bgColors.length];
       card.innerHTML = `<div class="match-title">🏆 MATCH ${(i+1).toString().padStart(2,'0')}</div>`;
-      card.innerHTML += `<div class="court-name">【コートA】</div>`;
+
       const m = round.matches;
-      // --- コートA ---
-      if(m[0]){
+      // For each court in this round, label courts generically A, B, C...
+      m.forEach((mm, ci) => {
+        const courtLabel = ["【コートA】","【コートB】","【コートC】"][ci] || `【コート${String.fromCharCode(65+ci)}】`;
+        card.innerHTML += `<div class="court-name">${courtLabel}</div>`;
+
+        // team1
+        const t1p0 = mm.team1[0] ? `P${mm.team1[0].pos}` : '';
+        const t1p1 = mm.team1[1] ? `P${mm.team1[1].pos}` : '';
+        const t2p0 = mm.team2[0] ? `P${mm.team2[0].pos}` : '';
+        const t2p1 = mm.team2[1] ? `P${mm.team2[1].pos}` : '';
+
         card.innerHTML += `
           <div class="pair-row">
-            <div class="pair">${m[0].team1[0].name} ＆ ${m[0].team1[1].name}</div>
+            <div class="pair">${t1p0} ＆ ${t1p1}</div>
             <div style="display:flex; gap:8px; align-items:center;">
-              <div class="score-display" id="disp-${i}-0-0">${renderScoreText(m[0].score && m[0].score[0])}</div>
-              <input class="score-input" id="input-${i}-0-0" type="number" min="0" max="99" value="${renderScoreValue(m[0].score && m[0].score[0])}" onchange="setScore(${i},0,0,this.value)">
-              <button class="delete-score" onclick="deleteScore(${i},0,0)">削除</button>
+              <div class="score-display" id="disp-${i}-${ci}-0">${renderScoreText(mm.score && mm.score[0])}</div>
+              <input class="score-input" id="input-${i}-${ci}-0" type="number" min="0" max="99" value="${renderScoreValue(mm.score && mm.score[0])}" onchange="setScore(${i},${ci},0,this.value)">
+              <button class="delete-score" onclick="deleteScore(${i},${ci},0)">削除</button>
             </div>
           </div>
           <div class="vs">vs</div>
           <div class="pair-row">
-            <div class="pair">${m[0].team2[0].name} ＆ ${m[0].team2[1].name}</div>
+            <div class="pair">${t2p0} ＆ ${t2p1}</div>
             <div style="display:flex; gap:8px; align-items:center;">
-              <div class="score-display" id="disp-${i}-0-1">${renderScoreText(m[0].score && m[0].score[1])}</div>
-              <input class="score-input" id="input-${i}-0-1" type="number" min="0" max="99" value="${renderScoreValue(m[0].score && m[0].score[1])}" onchange="setScore(${i},0,1,this.value)">
-              <button class="delete-score" onclick="deleteScore(${i},0,1)">削除</button>
+              <div class="score-display" id="disp-${i}-${ci}-1">${renderScoreText(mm.score && mm.score[1])}</div>
+              <input class="score-input" id="input-${i}-${ci}-1" type="number" min="0" max="99" value="${renderScoreValue(mm.score && mm.score[1])}" onchange="setScore(${i},${ci},1,this.value)">
+              <button class="delete-score" onclick="deleteScore(${i},${ci},1)">削除</button>
             </div>
           </div>
         `;
-      }
-
-      card.innerHTML += `<hr>`;
-
-      // --- コートB （ある場合） ---
-      if(m.length > 1 && m[1]){
-        card.innerHTML += `<div class="court-name">【コートB】</div>`;
-        card.innerHTML += `
-          <div class="pair-row">
-            <div class="pair">${m[1].team1[0].name} ＆ ${m[1].team1[1].name}</div>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <div class="score-display" id="disp-${i}-1-0">${renderScoreText(m[1].score && m[1].score[0])}</div>
-              <input class="score-input" id="input-${i}-1-0" type="number" min="0" max="99" value="${renderScoreValue(m[1].score && m[1].score[0])}" onchange="setScore(${i},1,0,this.value)">
-              <button class="delete-score" onclick="deleteScore(${i},1,0)">削除</button>
-            </div>
-          </div>
-          <div class="vs">vs</div>
-          <div class="pair-row">
-            <div class="pair">${m[1].team2[0].name} ＆ ${m[1].team2[1].name}</div>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <div class="score-display" id="disp-${i}-1-1">${renderScoreText(m[1].score && m[1].score[1])}</div>
-              <input class="score-input" id="input-${i}-1-1" type="number" min="0" max="99" value="${renderScoreValue(m[1].score && m[1].score[1])}" onchange="setScore(${i},1,1,this.value)">
-              <button class="delete-score" onclick="deleteScore(${i},1,1)">削除</button>
-            </div>
-          </div>
-        `;
-      }
+      });
 
       matchesDiv.appendChild(card);
     });
 
-    if(showingRounds === 10){
+    // 追加ボタン（+5ずつ表示、最大 maxRounds）
+    if(showingRounds < maxRounds){
       const btn = document.createElement("button");
-      btn.textContent = "試合追加";
-      btn.onclick = ()=>{ showingRounds = 20; render(); };
+      btn.textContent = `試合追加 +5（現在 ${showingRounds}/${maxRounds}）`;
+      btn.onclick = ()=>{
+        showingRounds = Math.min(maxRounds, showingRounds + 5);
+        render();
+        if(window.saveStateToFirebase){
+          window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds }).catch(e => console.warn("save error", e));
+        }
+      };
       matchesDiv.appendChild(btn);
     }
 
     updateRanking();
   }
 
-  // ユーティリティ：表示テキスト（nullは空文字）
+  // スコア系ユーティリティ
   function renderScoreText(val){
     if(val === null || val === undefined) return '';
     return String(val);
   }
-  // input value（null -> empty string）
   function renderScoreValue(val){
     if(val === null || val === undefined) return '';
     return String(val);
   }
 
-  // 入力でスコアをセット（上書き）
   function setScore(roundIndex, matchIndex, team, rawVal){
-    // rawVal is string from input
     const match = schedule[roundIndex].matches[matchIndex];
     if(!match) return;
     const trimmed = String(rawVal).trim();
@@ -408,52 +488,44 @@
       const n = parseInt(trimmed, 10);
       if(Number.isFinite(n) && n >= 0){
         newVal = n;
-      } else {
-        // invalid -> ignore
-        return;
-      }
+      } else { return; }
     } else {
       newVal = null;
     }
     if(!match.score) match.score = [null,null];
     match.score[team] = newVal;
 
-    // 保存して再レンダリング（表示欄を更新）
     updateRanking();
     if(window.saveStateToFirebase){
-      window.saveStateToFirebase({ members, players, schedule, showingRounds }).catch(e => console.warn("save error", e));
+      window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds }).catch(e => console.warn("save error", e));
     }
     render();
   }
 
-  // 削除ボタン（スコアを空にする）
   function deleteScore(roundIndex, matchIndex, team){
     const match = schedule[roundIndex].matches[matchIndex];
     if(!match || !match.score) return;
     match.score[team] = null;
-
     updateRanking();
     if(window.saveStateToFirebase){
-      window.saveStateToFirebase({ members, players, schedule, showingRounds }).catch(e => console.warn("save error", e));
+      window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds }).catch(e => console.warn("save error", e));
     }
     render();
   }
 
+  // ランキング集計（内部は氏名で集計するため変更なし）
   function updateRanking(){
-    // 集計先マップを players から作る
     const map = {};
     players.forEach(p=>{
       map[p.name] = { total:0, match:0 };
     });
 
-    // schedule の score を見て集計
     schedule.forEach(round=>{
       round.matches.forEach(match=>{
         if(!match.score) return;
         const s0 = (match.score[0] !== null && match.score[0] !== undefined) ? match.score[0] : null;
         const s1 = (match.score[1] !== null && match.score[1] !== undefined) ? match.score[1] : null;
 
-        // Aチームが入力されているなら加算（入力されてない＝nullのときは無視）
         if(s0 !== null){
           match.team1.forEach(p=>{
             if(map[p.name]){ map[p.name].total += s0; map[p.name].match++; }
@@ -487,6 +559,7 @@
     document.getElementById("ranking").innerHTML = html;
   }
 
+  // Fisher-Yates シャッフル
   function shuffle(arr){
     for(let i=arr.length-1;i>0;i--){
       const j = Math.floor(Math.random()*(i+1));
@@ -511,7 +584,8 @@
     if(window.setRoom) window.setRoom(newId);
     players = [];
     schedule = [];
-    showingRounds = 10;
+    showingRounds = 5;
+    maxRounds = 5;
     loadMembers();
     setupGuests();
     render();
@@ -540,7 +614,7 @@
   window.updateRoomDisplay = updateRoomDisplay;
 </script>
 
-<!-- ---- Firebase module (Firestore) ---- -->
+<!-- ---- Firebase module（既存） ---- -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
   import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
@@ -602,7 +676,8 @@
     window.loadFromFirebase = function(state){
       players = state.players || [];
       schedule = state.schedule || [];
-      showingRounds = state.showingRounds || 0;
+      showingRounds = state.showingRounds || 5;
+      maxRounds = state.maxRounds || schedule.length || 5;
       if(window.updateRoomDisplay) window.updateRoomDisplay();
       render();
       updateRanking();
