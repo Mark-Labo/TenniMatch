@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>🎾TenniMatch v2.2.1</title>
+  <title>🎾TenniMatch v2.2.0 — 組合せ生成（テンプレート固定 / シャッフルP割り当て）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
@@ -11,7 +11,7 @@
     #roomInfo { font-size: 12px; margin-top:6px; color: #fff; }
     .card { background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin: 16px; padding: 16px; }
     .hidden { display: none; }
-    button { background: linear-gradient(135deg,#ff9966,#ff5e62); border: none; padding: 10px 14px; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; margin: 8px 4px; }
+    button { background: linear-gradient(135deg,#ff9966,#ff5e62); border: none; padding: 10px 16px; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; margin: 8px 4px; }
     button:hover { opacity:0.9; }
     #register input { padding:6px; width: 180px; margin-right:8px; }
     #register .member-item { margin:8px 0; }
@@ -39,17 +39,17 @@
     #shuffleList { margin-top:12px; padding:10px; border-radius:8px; background:#f7f7f7; }
     #shuffleList .map-item { margin:6px 0; }
     .muted { color:#666; font-size:13px; }
-    .note { font-size:13px; color:#555; margin-top:8px; }
-    #templateControls { margin-top:8px; }
   </style>
 </head>
 <body>
 
 <header>
-  <div id="appTitle">🎾TenniMatch🎾 組合せ＆ランキング管理 v2.2.1</div>
+  <div id="appTitle">🎾TenniMatch🎾 
+  組合せ＆ランキング管理 v2.2.0</div>
   <div id="roomInfo">部屋: <span id="roomIdDisplay">---</span> &nbsp; <button class="small" onclick="copyRoomLink()">リンクをコピー</button></div>
 </header>
 
+<!-- メニュー画面 -->
 <div id="menu" class="card">
   <h2>メニュー</h2>
   <button onclick="showRegister()">メンバー登録</button>
@@ -57,6 +57,7 @@
   <button onclick="createRoom()">新しい部屋を作る</button>
 </div>
 
+<!-- メンバー登録 -->
 <div id="register" class="card hidden">
   <h2>メンバー登録</h2>
   <input id="newMember" type="text" placeholder="名前を入力">
@@ -66,6 +67,7 @@
   <button onclick="backMenu()">戻る</button>
 </div>
 
+<!-- 組合せ＆ランキング -->
 <div id="main" class="card hidden">
   <h2>参加者選択</h2>
 
@@ -83,6 +85,7 @@
   <h3>登録者リスト</h3>
   <div id="memberButtons"></div>
 
+  <!-- ここにシャッフル後リストを表示 -->
   <div id="shuffleList" class="hidden card">
     <h3 style="margin-top:0;">参加者シャッフル後リスト（P割当）</h3>
     <div id="shuffleMap" class="muted"></div>
@@ -91,19 +94,15 @@
     </div>
   </div>
 
-  <div id="templateControls" class="note">
-    <div>テンプレート取得: <button onclick="preloadAllTemplates()">4〜16人 × 1〜2面 を一括取得</button>
-    （取得できない場合はブラウザの CORS 制限の可能性あり。取得成功時は localStorage に保存されます）</div>
-  </div>
-
   <br>
   <button onclick="generate()">生成</button>
   <button onclick="backMenu()">戻る</button>
 
-  <div id="matches"></div>
-  <div id="ranking"></div>
+  <div id="matches"></div>  <!-- 組合せカード -->
+  <div id="ranking"></div>  <!-- ランキング表 -->
 </div>
 
+<!-- ---- 先に roomId を用意（非 module） ---- -->
 <script>
   (function(){
     function randomId(len = 8){
@@ -125,51 +124,40 @@
   })();
 </script>
 
+<!-- ---- メイン UI / ロジック (v2.2.0) ---- -->
 <script>
-  // data
-  let members = []; // 登録者（未配置のもののみ保持） — assignすると配列から削除、unassignで戻る
-  let players = []; // 参加者スロットに入った順番で {name, pos}
-  let schedule = [];
-  let showingRounds = 5;
-  let maxRounds = 5;
+  let members = [];
 
-  // テンプレートキャッシュ（localStorage 経由）
-  // key: `${count}_${court}` -> array of rounds: each round: { matches: [ [[a,b],[c,d]], ... ] }
-  let templateCache = loadTemplateCache();
-
-  function loadTemplateCache(){
-    try{
-      const raw = localStorage.getItem("tennimatch_templates_v2");
-      if(raw) return JSON.parse(raw);
-    }catch(e){}
-    return {};
-  }
-  function saveTemplateCache(){
-    try{ localStorage.setItem("tennimatch_templates_v2", JSON.stringify(templateCache)); }catch(e){}
-  }
-
-  // firebaseから読み込み用（互換）
+  // loadFromFirebase はモジュール側から呼ばれる（互換性のため存在）
   function loadFromFirebase(state){
-    members = state.members || members || [];
-    players = state.players || players || [];
-    schedule = state.schedule || schedule || [];
-    showingRounds = state.showingRounds || showingRounds || 5;
-    maxRounds = state.maxRounds || maxRounds || schedule.length || 5;
+    members = state.members || [];
+    players = state.players || [];
+    schedule = state.schedule || [];
+    showingRounds = state.showingRounds || 5;
+    maxRounds = state.maxRounds || schedule.length || 5;
     renderMembers();
     render();
     updateRanking();
+    if(window.updateRoomDisplay) window.updateRoomDisplay();
   }
   window.loadFromFirebase = loadFromFirebase;
 
-  // UI 初期化
-  for(let i=4;i<=20;i++){
-    const opt = document.createElement("option");
-    opt.value = i; opt.text = i+"人";
-    document.getElementById("playerCount").appendChild(opt);
+  // プレイヤー / スケジュール / 表示制御
+  let players = []; // { name, pos }
+  let schedule = []; // { matches:[ { team1:[{name,pos}], team2:[...] , score:[null,null] } ] }
+  let showingRounds = 5;
+  let maxRounds = 5;
+
+  function loadMembers(){
+    members = [];
+    renderMembers();
   }
-  document.getElementById("playerCount").value = 9;
-  document.getElementById("playerCount").onchange = setupGuests;
-  document.getElementById("courtCount").onchange = setupGuests;
+
+  function saveMembers(){
+    if(window.saveStateToFirebase){
+      window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds });
+    }
+  }
 
   function renderMembers(){
     const list = document.getElementById("memberList");
@@ -187,17 +175,15 @@
   function addMember(){
     const name = document.getElementById("newMember").value.trim();
     if(!name) return;
-    // prevent duplicates
-    if(members.includes(name) || players.some(p=>p.name===name)) return alert("同じ名前が既にあります");
     members.push(name);
     document.getElementById("newMember").value = "";
-    saveStateToFirebaseIfReady();
+    saveMembers();
     renderMembers();
   }
 
   function deleteMember(i){
     members.splice(i,1);
-    saveStateToFirebaseIfReady();
+    saveMembers();
     renderMembers();
   }
 
@@ -209,6 +195,7 @@
     document.getElementById("menu").classList.add("hidden");
     document.getElementById("main").classList.remove("hidden");
     setupGuests();
+    // hide shuffle list until generate
     document.getElementById("shuffleList").classList.add("hidden");
   }
   function backMenu(){
@@ -216,6 +203,14 @@
     document.getElementById("main").classList.add("hidden");
     document.getElementById("menu").classList.remove("hidden");
   }
+
+  for(let i=4;i<=20;i++){
+    const opt = document.createElement("option");
+    opt.value = i; opt.text = i+"人";
+    document.getElementById("playerCount").appendChild(opt);
+  }
+  document.getElementById("playerCount").value = 8;
+  document.getElementById("playerCount").onchange = setupGuests;
 
   function setupGuests(){
     const count = parseInt(document.getElementById("playerCount").value);
@@ -228,17 +223,11 @@
       div.textContent = "ゲスト"+i;
       div.onclick = function(){
         if(div.classList.contains("selected")){
-          // unassign: put back into members (if name not already present)
-          const name = div.getAttribute("data-name");
+          const name = div.textContent;
           div.textContent = "ゲスト"+i;
           div.classList.remove("selected");
-          div.removeAttribute("data-name");
-          if(name && !members.includes(name)){
-            members.push(name);
-            // sort or keep order? append is fine
-          }
-          saveStateToFirebaseIfReady();
-          renderMembers();
+          const btn = document.querySelector(`[data-name="${name}"]`);
+          if(btn) btn.style.display = "inline-block";
         }
       };
       area.appendChild(div);
@@ -258,218 +247,145 @@
       btnArea.appendChild(btn);
     });
   }
-
   function assignGuest(name){
-    // find first empty slot
     const count = parseInt(document.getElementById("playerCount").value);
-    for(let i=1;i<=count;i++){
+    for(let i=count;i>=1;i--){
       const slot = document.getElementById("guest"+i);
-      if(slot && slot.textContent.startsWith("ゲスト")){
+      if(slot.textContent.startsWith("ゲスト")){
         slot.textContent = name;
         slot.classList.add("selected");
-        slot.setAttribute("data-name", name);
-        // remove from members (so it does not reappear on generate)
-        const idx = members.indexOf(name);
-        if(idx !== -1) members.splice(idx,1);
-        saveStateToFirebaseIfReady();
-        renderMembers();
-        return;
+        const btn = document.querySelector(`[data-name="${name}"]`);
+        if(btn) btn.style.display = "none";
+        break;
       }
-    }
-    alert("空きスロットがありません");
-  }
-
-  // --- テンプレート関連 ---
-  // tennisbear は最大16人程度の対応（サイト側の仕様参照）。そのため 17-20 は取得できない場合あり。
-  // 一括プリロード（4〜16人 × 1〜2面）を試行する関数
-  async function preloadAllTemplates(){
-    const results = { ok:[], fail:[] };
-    // tennisbear が対応する可能性の高い上限は 16 人（サイトに記載の情報に基づき）。fetchはCORSに左右されます。
-    for(let count=4; count<=16; count++){
-      for(let court=1; court<=2; court++){
-        try{
-          const key = `${count}_${court}`;
-          const tpl = await fetchTemplateFromTennisBear(count, court);
-          if(tpl && tpl.length>0){
-            templateCache[key] = tpl.slice(0,15); // 上限15
-            results.ok.push(key);
-            saveTemplateCache();
-          } else {
-            results.fail.push(key);
-          }
-        }catch(e){
-          results.fail.push(`${count}_${court}`);
-        }
-      }
-    }
-    alert(`プリロード完了。\n取得成功: ${results.ok.length}\n取得失敗: ${results.fail.length} (詳細はコンソール)`);
-    console.log("preload results", results);
-  }
-
-  // fetch and parse tennisbear page for given count & court
-  // returns array of rounds: each round { matches: [ [[a,b],[c,d]], ... ] }
-  async function fetchTemplateFromTennisBear(count, court){
-    const url = `https://www.tennisbear.net/ransu/doubles/${court}/${count}`;
-    console.log("fetching template:", url);
-    try{
-      const res = await fetch(url, { method: "GET", mode: "cors" });
-      const txt = await res.text();
-      // Attempt to parse patterns from HTML text.
-      // Strategy: find sequences of pairs like "1-2 vs 3-4" or arrays "[[1,2],[3,4]]"
-      // We'll try multiple regex patterns to be robust.
-
-      const rounds = [];
-
-      // 1) Try to find JS-like array patterns: [[1,2],[3,4]]
-      const arrRegex = /\[\s*\[\s*\d+\s*,\s*\d+\s*\]\s*,\s*\[\s*\d+\s*,\s*\d+\s*\]\s*\]/g;
-      const arrMatches = txt.match(arrRegex);
-      if(arrMatches && arrMatches.length>0){
-        // Group every (court*?) two pairs per round depending on html structure.
-        // We'll parse sequentially and group by pairs-per-round = Math.floor( (arrMatches.length) / (/*approx rounds*/1) )
-        // Better approach: try to extract larger patterns: \[\s*\[ \[\d+,\d+\],\s*\[\d+,\d+\]\s*(,\s*\[\d+,\d+\],\s*\[\d+,\d+\]\s*)*\]
-        const bigRoundRegex = /\[\s*(\[\s*\[\s*\d+\s*,\s*\d+\s*\]\s*,\s*\[\s*\d+\s*,\s*\d+\s*\]\s*(?:,\s*\[\s*\d+\s*,\s*\d+\s*\]\s*,\s*\[\s*\d+\s*,\s*\d+\s*\]\s*)*)\s*)\]/g;
-        let m;
-        while((m = bigRoundRegex.exec(txt)) !== null){
-          const group = m[1];
-          // find inner pairs
-          const pairRegex = /\[\s*(\d+)\s*,\s*(\d+)\s*\]\s*,\s*\[\s*(\d+)\s*,\s*(\d+)\s*\]/g;
-          const matchesInGroup = [];
-          let mm;
-          while((mm = pairRegex.exec(group)) !== null){
-            matchesInGroup.push([[parseInt(mm[1],10),parseInt(mm[2],10)],[parseInt(mm[3],10),parseInt(mm[4],10)]]);
-          }
-          if(matchesInGroup.length>0) rounds.push({ matches: matchesInGroup });
-        }
-        if(rounds.length>0) return rounds.slice(0,15);
-      }
-
-      // 2) Try to find textual "1-2 vs 3-4" style patterns
-      const textPairRegex = /(\d+)[\s\-–〜〜\u2013]*?(\d+)\s*(?:vs|VS|vs\.|対|と|vs|v)\s*(\d+)[\s\-–〜〜\u2013]*?(\d+)/g;
-      const textMatches = [];
-      while((m = textPairRegex.exec(txt)) !== null){
-        textMatches.push([[parseInt(m[1],10),parseInt(m[2],10)],[parseInt(m[3],10),parseInt(m[4],10)]]);
-      }
-      if(textMatches.length>0){
-        // Group by number of courts * 1 match-per-court per round (we assume 1 or 2 courts)
-        // Heuristic: for court=2, group every 2 pairs as a round; for court=1, 1 pair per round
-        const perRound = (court===2?2:1);
-        const grouped = [];
-        for(let i=0;i<textMatches.length;i+=perRound){
-          grouped.push({ matches: textMatches.slice(i,i+perRound) });
-        }
-        if(grouped.length>0) return grouped.slice(0,15);
-      }
-
-      // 3) Fallback: attempt to parse any two-number pairs sequentially
-      const anyPairRegex = /\b(\d+)[\s\-\—\u2013]?[,\/\s]?(\d+)\b/g;
-      const anyPairs = [];
-      while((m = anyPairRegex.exec(txt)) !== null){
-        anyPairs.push([parseInt(m[1],10), parseInt(m[2],10)]);
-      }
-      if(anyPairs.length >= 2){
-        // group consecutive pairs into matches: every 2 pairs -> 1 match
-        const matches = [];
-        for(let i=0;i+1<anyPairs.length;i+=2){
-          matches.push([anyPairs[i], anyPairs[i+1]]);
-        }
-        // group matches into rounds per court
-        const perRound = (court===2?2:1);
-        const rounds2 = [];
-        for(let i=0;i<matches.length;i+=perRound){
-          rounds2.push({ matches: matches.slice(i, i+perRound) });
-        }
-        if(rounds2.length>0) return rounds2.slice(0,15);
-      }
-
-      // If parsing failed, return empty
-      return [];
-    }catch(e){
-      console.warn("fetchTemplateFromTennisBear error", e);
-      return [];
     }
   }
 
-  // small helper: fallback template builder (rotational)
+  // --- 固定テンプレート群 ---
+  // 9人・2面 のテンプレート（テニスベアから取得したパターン、先頭15回分を上限に使用）
+  const templates = {
+    "9_2": [
+      // round1..15 (1-indexed player numbers)
+      { matches: [ [[1,2],[3,4]], [[5,6],[7,8]] ] },
+      { matches: [ [[9,1],[2,5]], [[3,7],[4,8]] ] },
+      { matches: [ [[6,9],[1,3]], [[2,4],[5,8]] ] },
+      { matches: [ [[7,6],[9,2]], [[1,5],[3,8]] ] },
+      { matches: [ [[4,6],[7,9]], [[1,8],[2,3]] ] },
+      { matches: [ [[5,9],[4,7]], [[6,1],[2,8]] ] },
+      { matches: [ [[3,6],[4,5]], [[7,1],[9,8]] ] },
+      { matches: [ [[2,7],[3,5]], [[4,9],[6,8]] ] },
+      { matches: [ [[1,4],[5,7]], [[2,6],[3,9]] ] },
+      { matches: [ [[1,2],[4,7]], [[8,5],[6,9]] ] },
+      { matches: [ [[3,8],[7,9]], [[1,5],[2,6]] ] },
+      { matches: [ [[4,9],[3,2]], [[1,8],[5,7]] ] },
+      { matches: [ [[6,8],[3,4]], [[1,7],[2,9]] ] },
+      { matches: [ [[5,4],[3,6]], [[1,9],[7,8]] ] },
+      { matches: [ [[2,5],[4,6]], [[3,1],[8,9]] ] }
+    ],
+    // 8人・2面 用（既存 template8 を活用。ラウンド数は template の長さ分）
+    "8_2": [
+      { matches:[[ [1,2],[3,4] ], [ [5,6],[7,8] ]] },
+      { matches:[[ [1,3],[2,4] ], [ [5,7],[6,8] ]] },
+      { matches:[[ [1,4],[2,3] ], [ [5,8],[6,7] ]] },
+      { matches:[[ [1,5],[2,6] ], [ [3,7],[4,8] ]] },
+      { matches:[[ [1,6],[2,5] ], [ [3,8],[4,7] ]] },
+      { matches:[[ [1,7],[2,8] ], [ [3,5],[4,6] ]] },
+      { matches:[[ [1,8],[2,7] ], [ [3,6],[4,5] ]] }
+    ],
+    // 4人・1面 用（基本パターン）
+    "4_1": [
+      { matches:[[ [1,2],[3,4] ]] },
+      { matches:[[ [1,3],[2,4] ]] },
+      { matches:[[ [1,4],[2,3] ]] }
+    ]
+  };
+
+  // フォールバック：簡易ローテーションでテンプレートを作る（人数と面数に応じて）
   function buildRotationalTemplate(count, court){
     const rounds = [];
     const playersIdx = Array.from({length:count}, (_,i)=>i+1);
-    const maxR = Math.min(15, count); // sensible upper bound
-    for(let r=0;r<maxR;r++){
-      const arr = playersIdx.slice(r).concat(playersIdx.slice(0,r));
+    // シンプルに count rounds (or up to 15) of rotating opponents
+    const maxR = Math.min(15, Math.max(5, Math.floor(15)));
+    for(let r=0;r<Math.min(15, count); r++){
       const roundMatches = [];
+      // rotate array
+      const arr = playersIdx.slice(r).concat(playersIdx.slice(0,r));
+      // pair sequentially into court*2 players
       for(let c=0;c<court;c++){
+        // each court needs two pairs = 4 players
         const base = c*4;
         if(base+3 >= arr.length) break;
         const a1 = arr[base], a2 = arr[base+1], b1 = arr[base+2], b2 = arr[base+3];
         roundMatches.push([[a1,a2],[b1,b2]]);
       }
-      if(roundMatches.length>0) rounds.push({ matches: roundMatches });
+      rounds.push({ matches: roundMatches });
     }
     return rounds;
   }
 
-  // main generate: tries to use cache -> fetch -> fallback
-  async function generate(){
-    // collect guest slot names
+  // --- 生成処理 ---
+  function generate(){
+    // collect guest slot names (in order)
     const count = parseInt(document.getElementById("playerCount").value);
-    players = [];
+    const guestNames = [];
     for(let i=1;i<=count;i++){
       const slot = document.getElementById("guest"+i);
-      const name = slot && slot.classList.contains("selected") ? slot.getAttribute("data-name") : slot.textContent;
-      players.push({ name: name || ("ゲスト"+i), pos: i });
+      guestNames.push(slot ? slot.textContent : ("ゲスト"+i));
     }
 
-    // shuffle players for P1..PN mapping (user asked: P割り当てはランダム)
-    const shuffled = players.map(p=>p.name).slice();
+    // create randomized P1..PN mapping (シャッフル)
+    const shuffled = guestNames.slice();
     shuffle(shuffled);
+    // players array keeps name + pos (pos=1..N) to be used by ranking logic
     players = shuffled.map((name, idx)=>({ name, pos: idx+1 }));
+
+    // show shuffle mapping in UI
     showShuffleMap(players);
 
+    // select template based on count and court
     const court = parseInt(document.getElementById("courtCount").value);
     const key = `${count}_${court}`;
-
-    // try cached template
-    let rounds = templateCache[key];
-    if(!rounds || rounds.length === 0){
-      // try fetch for count up to 16 (tennisbear likely supports up to 16)
-      if(count <= 16){
-        rounds = await fetchTemplateFromTennisBear(count, court);
-        if(rounds && rounds.length>0){
-          // cache and limit to 15
-          templateCache[key] = rounds.slice(0,15);
-          saveTemplateCache();
-          console.log("fetched template from tennisbear for", key);
-        } else {
-          // fallback
-          rounds = buildRotationalTemplate(count, court);
-          console.warn("fetch failed or parse failed, using rotational fallback for", key);
-        }
-      } else {
-        // count > 16 -> tennisbear likely doesn't support; use fallback
-        rounds = buildRotationalTemplate(count, court);
-        console.warn("count > 16: using fallback template for", key);
-      }
+    let templateRounds = templates[key];
+    if(!templateRounds){
+      // fallback: try 8_2 or 4_1 where reasonable, otherwise build rotation
+      if(key === "8_2" && templates["8_2"]) templateRounds = templates["8_2"];
+      else if(key === "4_1" && templates["4_1"]) templateRounds = templates["4_1"];
+      else templateRounds = buildRotationalTemplate(count, court);
     }
 
-    // enforce max 15
-    rounds = rounds.slice(0,15);
-    schedule = rounds.map(r => {
-      // map numeric indices to players (players array is indexed by pos 1..N)
+    // limit to max 15 rounds (user request)
+    const roundsToUse = templateRounds.slice(0, 15);
+
+    // Build schedule: map template indices -> actual players (pos index in template is 1-based)
+    schedule = roundsToUse.map(r => {
       const matches = r.matches.map(pair => {
-        const t1 = pair[0].map(idx => ({ name: (idx <= players.length ? players[idx-1].name : ("空き"+idx)), pos: idx }));
-        const t2 = pair[1].map(idx => ({ name: (idx <= players.length ? players[idx-1].name : ("空き"+idx)), pos: idx }));
+        // pair: [[a,b],[c,d]] (each entry are index numbers)
+        const t1 = pair[0].map(idx => {
+          const name = (idx <= players.length) ? players[idx-1].name : ("空き"+idx);
+          return { name, pos: idx };
+        });
+        const t2 = pair[1].map(idx => {
+          const name = (idx <= players.length) ? players[idx-1].name : ("空き"+idx);
+          return { name, pos: idx };
+        });
         return { team1: t1, team2: t2, score: [null, null] };
       });
       return { matches };
     });
 
+    // schedule fully created (最大15試合) — 表示は最初5試合
     maxRounds = schedule.length;
     showingRounds = Math.min(5, maxRounds);
 
-    saveStateToFirebaseIfReady();
+    // save state to Firebase (members 必須)
+    if(window.saveStateToFirebase){
+      window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds }).catch(e => console.warn("save error", e));
+    }
+
     render();
   }
 
+  // 表示：シャッフルマップ
   function showShuffleMap(playersArr){
     const wrap = document.getElementById("shuffleList");
     const mapDiv = document.getElementById("shuffleMap");
@@ -482,12 +398,12 @@
     });
     wrap.classList.remove("hidden");
   }
-
   function clearShuffle(){
     document.getElementById("shuffleMap").innerHTML = "";
     document.getElementById("shuffleList").classList.add("hidden");
   }
 
+  // レンダリング（スコア入力欄や P表示に注意）
   function render(){
     const matchesDiv = document.getElementById("matches");
     matchesDiv.innerHTML = "";
@@ -501,10 +417,12 @@
       card.innerHTML = `<div class="match-title">🏆 MATCH ${(i+1).toString().padStart(2,'0')}</div>`;
 
       const m = round.matches;
+      // For each court in this round, label courts generically A, B, C...
       m.forEach((mm, ci) => {
         const courtLabel = ["【コートA】","【コートB】","【コートC】"][ci] || `【コート${String.fromCharCode(65+ci)}】`;
         card.innerHTML += `<div class="court-name">${courtLabel}</div>`;
 
+        // team1
         const t1p0 = mm.team1[0] ? `P${mm.team1[0].pos}` : '';
         const t1p1 = mm.team1[1] ? `P${mm.team1[1].pos}` : '';
         const t2p0 = mm.team2[0] ? `P${mm.team2[0].pos}` : '';
@@ -534,13 +452,16 @@
       matchesDiv.appendChild(card);
     });
 
+    // 追加ボタン（+5ずつ表示、最大 maxRounds）
     if(showingRounds < maxRounds){
       const btn = document.createElement("button");
       btn.textContent = `試合追加 +5（現在 ${showingRounds}/${maxRounds}）`;
       btn.onclick = ()=>{
         showingRounds = Math.min(maxRounds, showingRounds + 5);
         render();
-        saveStateToFirebaseIfReady();
+        if(window.saveStateToFirebase){
+          window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds }).catch(e => console.warn("save error", e));
+        }
       };
       matchesDiv.appendChild(btn);
     }
@@ -548,6 +469,7 @@
     updateRanking();
   }
 
+  // スコア系ユーティリティ
   function renderScoreText(val){
     if(val === null || val === undefined) return '';
     return String(val);
@@ -567,11 +489,16 @@
       if(Number.isFinite(n) && n >= 0){
         newVal = n;
       } else { return; }
-    } else { newVal = null; }
+    } else {
+      newVal = null;
+    }
     if(!match.score) match.score = [null,null];
     match.score[team] = newVal;
+
     updateRanking();
-    saveStateToFirebaseIfReady();
+    if(window.saveStateToFirebase){
+      window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds }).catch(e => console.warn("save error", e));
+    }
     render();
   }
 
@@ -580,10 +507,13 @@
     if(!match || !match.score) return;
     match.score[team] = null;
     updateRanking();
-    saveStateToFirebaseIfReady();
+    if(window.saveStateToFirebase){
+      window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds }).catch(e => console.warn("save error", e));
+    }
     render();
   }
 
+  // ランキング集計（内部は氏名で集計するため変更なし）
   function updateRanking(){
     const map = {};
     players.forEach(p=>{
@@ -629,21 +559,11 @@
     document.getElementById("ranking").innerHTML = html;
   }
 
+  // Fisher-Yates シャッフル
   function shuffle(arr){
     for(let i=arr.length-1;i>0;i--){
       const j = Math.floor(Math.random()*(i+1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-  }
-
-  // Firebase helpers
-  function saveStateToFirebaseIfReady(){
-    if(window.saveStateToFirebase){
-      try{
-        window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds }).catch(e => console.warn("save error", e));
-      }catch(e){
-        console.warn("saveStateToFirebase call error", e);
-      }
     }
   }
 
@@ -653,7 +573,6 @@
     for(let i=0;i<len;i++) s += chars.charAt(Math.floor(Math.random()*chars.length));
     return s;
   }
-
   function createRoom(){
     const newId = "r-" + randomId(6);
     const params = new URLSearchParams(window.location.search);
@@ -686,12 +605,6 @@
     if(el) el.textContent = window.roomId || "—";
   }
 
-  function loadMembers(){
-    // preserve members if already set by Firebase; otherwise empty
-    if(!members) members = [];
-    renderMembers();
-  }
-
   updateRoomDisplay();
   loadMembers();
   setupGuests();
@@ -699,10 +612,9 @@
   window.createRoom = createRoom;
   window.copyRoomLink = copyRoomLink;
   window.updateRoomDisplay = updateRoomDisplay;
-  window.preloadAllTemplates = preloadAllTemplates;
 </script>
 
-<!-- firebase module (as before) -->
+<!-- ---- Firebase module（既存） ---- -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
   import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
@@ -734,7 +646,9 @@
       if(snapshot.exists()){
         const state = snapshot.data();
         console.log("Firebase同期:", state);
-        if(window.loadFromFirebase) window.loadFromFirebase(state);
+        if(window.loadFromFirebase){
+          window.loadFromFirebase(state);
+        }
       } else {
         console.log("Firebase: room empty / not exists yet");
       }
@@ -758,19 +672,15 @@
 
   window.saveStateToFirebase = saveStateToFirebase;
 
-  // provide fallback loadFromFirebase if not present
   if(!window.loadFromFirebase){
     window.loadFromFirebase = function(state){
-      members = state.members || members || [];
-      players = state.players || players || [];
-      schedule = state.schedule || schedule || [];
-      showingRounds = state.showingRounds || showingRounds || 5;
-      maxRounds = state.maxRounds || maxRounds || schedule.length || 5;
+      players = state.players || [];
+      schedule = state.schedule || [];
+      showingRounds = state.showingRounds || 5;
+      maxRounds = state.maxRounds || schedule.length || 5;
       if(window.updateRoomDisplay) window.updateRoomDisplay();
-      // update UI
-      const renderMembersFunc = window.renderMembers || function(){};
-      try{ renderMembers(); }catch(e){}
-      try{ render(); updateRanking(); }catch(e){}
+      render();
+      updateRanking();
     };
   }
 
