@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>WTC テニス組合せ＆ランキング v2.2.8</title>
+
+<style>
+body{
+font-family:sans-serif;
+background:#f0f4f8;
+margin:0;
+padding:20px;
+}
+
+h1{
+text-align:center;
+}
+
+.screen{
+display:none;
+}
+
+button{
+padding:10px 20px;
+margin:5px;
+font-size:16px;
+}
+
+.match{
+background:white;
+padding:10px;
+margin:10px 0;
+border-radius:8px;
+}
+
+.score{
+font-size:18px;
+margin-top:5px;
+}
+
+table{
+border-collapse:collapse;
+width:100%;
+background:white;
+margin-top:10px;
+}
+
+th,td{
+border:1px solid #ccc;
+padding:5px;
+text-align:center;
+}
+
+input[type=number]{
+width:40px;
+}
+
+.memberRow{
+margin:5px 0;
+}
+
+.leave{
+margin-left:10px;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>WTC v2.2.5</h1>
+
+<div id="menu" class="screen">
+
+<h2>メニュー</h2>
+
+<button onclick="openScreen('member')">メンバー登録</button>
+<button onclick="openScreen('match')">組合せ生成</button>
+
+</div>
+
+
+<div id="member" class="screen">
+
+<h2>メンバー登録</h2>
+
+<div id="memberList"></div>
+
+<button onclick="addMember()">追加</button>
+<button onclick="saveMembers()">保存</button>
+
+<br><br>
+
+<button onclick="openScreen('menu')">戻る</button>
+
+</div>
+
+
+
+<div id="match" class="screen">
+
+<h2>組合せ</h2>
+
+<button onclick="generate()">組合せ生成</button>
+
+<div id="matches"></div>
+
+<h2>ランキング</h2>
+
+ランキング方式
+
+<select id="rankType" onchange="updateRanking()">
+<option value="rate">勝率</option>
+<option value="game">平均ゲーム</option>
+</select>
+
+<div id="ranking"></div>
+
+<br>
+<button onclick="openScreen('menu')">戻る</button>
+
+</div>
+
+
+<script>
+
+let members=[]
+let matches=[]
+
+function openScreen(id){
+
+document.querySelectorAll(".screen").forEach(s=>s.style.display="none")
+document.getElementById(id).style.display="block"
+
+}
+
+openScreen("menu")
+
+function addMember(){
+
+let div=document.createElement("div")
+div.className="memberRow"
+
+div.innerHTML=`
+<input placeholder="名前">
+<label class="leave">
+途中帰宅
+<input type="checkbox">
+</label>
+`
+
+document.getElementById("memberList").appendChild(div)
+
+}
+
+function saveMembers(){
+
+members=[]
+
+document.querySelectorAll(".memberRow").forEach(row=>{
+
+let name=row.children[0].value
+let leave=row.children[1].children[0].checked
+
+if(name){
+
+members.push({
+name:name,
+leave:leave
+})
+
+}
+
+})
+
+localStorage.setItem("wtc_members",JSON.stringify(members))
+
+alert("保存しました")
+
+}
+
+function loadMembers(){
+
+let data=localStorage.getItem("wtc_members")
+
+if(!data)return
+
+members=JSON.parse(data)
+
+members.forEach(m=>{
+
+let div=document.createElement("div")
+div.className="memberRow"
+
+div.innerHTML=`
+<input value="${m.name}">
+<label class="leave">
+途中帰宅
+<input type="checkbox" ${m.leave?"checked":""}>
+</label>
+`
+
+document.getElementById("memberList").appendChild(div)
+
+})
+
+}
+
+loadMembers()
+
+function shuffle(arr){
+
+return arr
+.map(v=>({v, r:Math.random()}))
+.sort((a,b)=>a.r-b.r)
+.map(x=>x.v)
+
+}
+
+function generate(){
+
+let players=shuffle(members.map(m=>m.name))
+
+matches=[]
+
+for(let i=0;i<15;i++){
+
+let p=shuffle(players)
+
+matches.push({
+a1:p[0],
+a2:p[1],
+b1:p[2],
+b2:p[3],
+score:null
+})
+
+}
+
+renderMatches()
+
+}
+
+function renderMatches(){
+
+let div=document.getElementById("matches")
+div.innerHTML=""
+
+matches.forEach((m,i)=>{
+
+let d=document.createElement("div")
+d.className="match"
+
+if(!m.score){
+
+d.innerHTML=`
+${i+1}試合<br>
+${m.a1}&${m.a2}
+<input type="number" id="a${i}">
+-
+<input type="number" id="b${i}">
+${m.b1}&${m.b2}
+
+<button onclick="saveScore(${i})">保存</button>
+`
+
+}else{
+
+d.innerHTML=`
+${i+1}試合<br>
+${m.a1}&${m.a2}
+<span class="score">${m.score.a}-${m.score.b}</span>
+${m.b1}&${m.b2}
+
+<button onclick="editScore(${i})">編集</button>
+`
+
+}
+
+div.appendChild(d)
+
+})
+
+updateRanking()
+
+}
+
+function saveScore(i){
+
+let a=document.getElementById("a"+i).value
+let b=document.getElementById("b"+i).value
+
+matches[i].score={a:parseInt(a),b:parseInt(b)}
+
+renderMatches()
+
+}
+
+function editScore(i){
+
+matches[i].score=null
+
+renderMatches()
+
+}
+
+function updateRanking(){
+
+let stats={}
+
+members.forEach(m=>{
+
+stats[m.name]={
+win:0,
+lose:0,
+draw:0,
+get:0,
+lost:0,
+game:0
+}
+
+})
+
+matches.forEach(m=>{
+
+if(!m.score)return
+
+let a=m.score.a
+let b=m.score.b
+
+let teamA=[m.a1,m.a2]
+let teamB=[m.b1,m.b2]
+
+teamA.forEach(p=>{
+stats[p].get+=a
+stats[p].lost+=b
+stats[p].game++
+})
+
+teamB.forEach(p=>{
+stats[p].get+=b
+stats[p].lost+=a
+stats[p].game++
+})
+
+if(a>b){
+
+teamA.forEach(p=>stats[p].win++)
+teamB.forEach(p=>stats[p].lose++)
+
+}else if(b>a){
+
+teamB.forEach(p=>stats[p].win++)
+teamA.forEach(p=>stats[p].lose++)
+
+}else{
+
+teamA.concat(teamB).forEach(p=>stats[p].draw++)
+
+}
+
+})
+
+let arr=members
+.filter(m=>!m.leave)
+.map(m=>{
+
+let s=stats[m.name]
+
+return{
+
+name:m.name,
+...s,
+diff:s.get-s.lost,
+rate:s.win+s.lose+s.draw ? s.win/(s.win+s.lose+s.draw) : 0,
+avg:s.game ? s.get/s.game : 0
+
+}
+
+})
+
+let type=document.getElementById("rankType").value
+
+arr.sort((a,b)=>{
+
+if(type=="rate")return b.rate-a.rate
+else return b.avg-a.avg
+
+})
+
+let html="<table>"
+
+html+=`
+<tr>
+<th>順位</th>
+<th>名前</th>
+<th>勝</th>
+<th>敗</th>
+<th>分</th>
+<th>得</th>
+<th>失</th>
+<th>差</th>
+<th>勝率</th>
+<th>平均G</th>
+</tr>
+`
+
+arr.forEach((p,i)=>{
+
+html+=`
+<tr>
+<td>${i+1}</td>
+<td>${p.name}</td>
+<td>${p.win}</td>
+<td>${p.lose}</td>
+<td>${p.draw}</td>
+<td>${p.get}</td>
+<td>${p.lost}</td>
+<td>${p.diff}</td>
+<td>${p.rate.toFixed(3)}</td>
+<td>${p.avg.toFixed(2)}</td>
+</tr>
+`
+
+})
+
+html+="</table>"
+
+document.getElementById("ranking").innerHTML=html
+
+}
+
+</script>
+
+</body>
+</html>
