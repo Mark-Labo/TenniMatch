@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v2.2.4 — 1面4〜9テンプレ化（生成時シャッフル）</title>
+  <title>🎾TenniMatch v2.2.5 — 1面4〜9（各15試合）</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
@@ -29,11 +29,10 @@
 </head>
 <body>
 <header>
-  <div>🎾TenniMatch🎾 組合せ＆ランキング v2.2.4</div>
+  <div>🎾TenniMatch🎾 組合せ＆ランキング v2.2.5</div>
   <div style="font-size:12px;color:#fff;margin-top:6px">部屋: <span id="roomIdDisplay">---</span> <button class="small" onclick="copyRoomLink()">リンクをコピー</button></div>
 </header>
 
-<!-- メニュー -->
 <div id="menu" class="card">
   <h2>メニュー</h2>
   <button onclick="showRegister()">メンバー登録</button>
@@ -41,7 +40,6 @@
   <button onclick="createRoom()">新しい部屋を作る</button>
 </div>
 
-<!-- 登録 -->
 <div id="register" class="card hidden">
   <h2>メンバー登録</h2>
   <input id="newMember" type="text" placeholder="名前を入力" style="padding:8px;width:200px">
@@ -50,7 +48,6 @@
   <br><button onclick="backMenu()">戻る</button>
 </div>
 
-<!-- メイン -->
 <div id="main" class="card hidden">
   <h2>参加者選択</h2>
   参加人数：
@@ -77,7 +74,6 @@
   <div id="ranking"></div>
 </div>
 
-<!-- room id set -->
 <script>
   (function(){ function randomId(len=8){const chars="abcdefghijklmnopqrstuvwxyz0123456789";let s="";for(let i=0;i<len;i++)s+=chars.charAt(Math.floor(Math.random()*chars.length));return s;}
     const params=new URLSearchParams(window.location.search); let rid=params.get("room"); if(!rid){rid="r-"+randomId(6); params.set("room",rid); history.replaceState({}, "", location.pathname+"?"+params.toString());} window.roomId=String(rid);
@@ -85,77 +81,41 @@
 </script>
 
 <script>
-/* --------------------
-   状態
-   -------------------- */
-let members = [];   // 登録者（未割当の一覧）
-let players = [];   // 生成時にシャッフルで決まる P1..PN [{name,pos}]
-let schedule = [];  // 生成されたラウンド
+/* state */
+let members = [];
+let players = [];
+let schedule = [];
 let showingRounds = 5;
 let maxRounds = 5;
 
-/* ---------- 固定テンプレート：1面4〜9人（最大15試合まで表示） ---------- */
-/* これらは tennisbear の見た目に合わせた固定テンプレ（ハードコード）です。 */
-const templates = {
-  "1_4": [
-    { matches: [ [[1,2],[3,4]] ] },
-    { matches: [ [[1,3],[2,4]] ] },
-    { matches: [ [[1,4],[2,3]] ] }
-  ],
-  "1_5": [
-    { matches: [ [[1,2],[3,4]] ] },
-    { matches: [ [[1,3],[2,5]] ] },
-    { matches: [ [[1,4],[2,3]] ] },
-    { matches: [ [[1,5],[2,4]] ] },
-    { matches: [ [[3,5],[4,2]] ] }
-  ],
-  "1_6": [
-    { matches: [ [[1,2],[3,4]] ] },
-    { matches: [ [[1,3],[2,5]] ] },
-    { matches: [ [[1,4],[2,6]] ] },
-    { matches: [ [[3,5],[4,6]] ] },
-    { matches: [ [[1,5],[2,3]] ] },
-    { matches: [ [[1,6],[4,5]] ] }
-  ],
-  "1_7": (function(){
-    const r = [];
-    // reasonable deterministic pattern up to 14 rounds but cap later; here 7 rounds
-    r.push({matches:[[[1,2],[3,4]]]});
-    r.push({matches:[[[1,3],[5,6]]]});
-    r.push({matches:[[[1,4],[2,5]]]});
-    r.push({matches:[[[1,5],[3,7]]]});
-    r.push({matches:[[[2,3],[4,6]]]});
-    r.push({matches:[[[2,6],[5,7]]]});
-    r.push({matches:[[[3,4],[6,7]]]});
-    return r;
-  })(),
-  "1_8": [
-    { matches: [ [[1,2],[3,4]] ] ,},
-    { matches: [ [[5,6],[7,8]] ] ,},
-    { matches: [ [[1,3],[5,7]] ] ,},
-    { matches: [ [[2,4],[6,8]] ] ,},
-    { matches: [ [[1,5],[2,6]] ] ,},
-    { matches: [ [[3,7],[4,8]] ] ,},
-    { matches: [ [[1,6],[2,5]] ] ,},
-    { matches: [ [[3,8],[4,7]] ] ,}
-  ],
-  "1_9": [
-    { matches: [ [[1,2],[3,4]] ] },
-    { matches: [ [[5,6],[7,8]] ] },
-    { matches: [ [[9,1],[2,3]] ] },
-    { matches: [ [[4,5],[6,7]] ] },
-    { matches: [ [[8,9],[1,3]] ] },
-    { matches: [ [[2,4],[5,8]] ] },
-    { matches: [ [[6,9],[7,1]] ] },
-    { matches: [ [[2,5],[3,6]] ] },
-    { matches: [ [[4,7],[8,9]] ] },
-    { matches: [ [[1,4],[2,7]] ] },
-    { matches: [ [[3,8],[5,9]] ] },
-    { matches: [ [[6,2],[7,3]] ] }
-  ]
-};
+/* Build deterministic 15-round templates for 1面 4〜9人.
+   Note: I cannot fetch tennisbear from here; this function
+   creates repeatable rotation-based 15 rounds per count.
+   If you provide exact tennisbear templates later I'll swap them.
+*/
+function buildFullTemplates_1_4_to_1_9(){
+  const out = {};
+  for(let count=4; count<=9; count++){
+    const rounds = [];
+    // produce exactly 15 rounds
+    for(let r=0; r<15; r++){
+      // select 4 players per round using sliding window on rotation
+      // deterministic: start offset = r
+      const a = (r % count) + 1;
+      const b = ((r+1) % count) + 1;
+      const c = ((r+2) % count) + 1;
+      const d = ((r+3) % count) + 1;
+      rounds.push({ matches: [ [ [a,b], [c,d] ] ] });
+    }
+    out[`1_${count}`] = rounds;
+  }
+  return out;
+}
 
-/* ---------- Firebase 互換の読み込みフック（既存互換） ---------- */
+/* Templates: produced by function above (1_4..1_9 each have 15 rounds) */
+const templates = buildFullTemplates_1_4_to_1_9();
+
+/* Firebase-compatible loader hook (keeps compatibility) */
 function loadFromFirebase(state){
   members = state.members || members || [];
   players = state.players || players || [];
@@ -169,31 +129,26 @@ function loadFromFirebase(state){
 }
 window.loadFromFirebase = loadFromFirebase;
 
-/* ---------- UI 初期化 ---------- */
+/* UI init */
 const pc = document.getElementById("playerCount");
 for(let i=4;i<=9;i++){ const opt=document.createElement("option"); opt.value=i; opt.text = i+"人"; pc.appendChild(opt); }
 pc.value = 8;
 pc.onchange = setupGuests;
 
-/* ---------- メンバー登録 / 割当（割当時に members から削除。生成で復活しない） ---------- */
+/* Member registration / assign (assign removes from members — will not resurrect on generate) */
 function renderMembers(){
-  const list = document.getElementById("memberList");
-  list.innerHTML = "";
+  const list = document.getElementById("memberList"); list.innerHTML = "";
   members.forEach((m,i)=>{
-    const div = document.createElement("div");
-    div.className = "member-item";
+    const div = document.createElement("div"); div.className = "member-item";
     div.innerHTML = `${escapeHtml(m)} <button onclick="deleteMember(${i})">削除</button>`;
     list.appendChild(div);
   });
   renderMemberButtons();
 }
 function renderMemberButtons(){
-  const area = document.getElementById("memberButtons");
-  area.innerHTML = "";
+  const area = document.getElementById("memberButtons"); area.innerHTML = "";
   members.forEach(name=>{
-    const btn = document.createElement("button");
-    btn.className = "member-btn";
-    btn.textContent = name;
+    const btn = document.createElement("button"); btn.className = "member-btn"; btn.textContent = name;
     btn.onclick = ()=>assignGuest(name);
     btn.setAttribute("data-name", name);
     area.appendChild(btn);
@@ -208,13 +163,9 @@ function backMenu(){ document.getElementById("register").classList.add("hidden")
 
 function setupGuests(){
   const count = parseInt(document.getElementById("playerCount").value,10);
-  const area = document.getElementById("guestArea");
-  area.innerHTML = "";
+  const area = document.getElementById("guestArea"); area.innerHTML = "";
   for(let i=1;i<=count;i++){
-    const div = document.createElement("div");
-    div.className = "guest-slot";
-    div.id = "guest"+i;
-    div.textContent = "ゲスト"+i;
+    const div = document.createElement("div"); div.className="guest-slot"; div.id="guest"+i; div.textContent="ゲスト"+i;
     div.onclick = function(){
       if(div.classList.contains("selected")){
         const name = div.getAttribute("data-name");
@@ -229,26 +180,20 @@ function setupGuests(){
   renderMemberButtons();
 }
 
-/* assignGuest: スロットに入れたら members から削除（ここが重要：生成しても復活しない） */
 function assignGuest(name){
   const count = parseInt(document.getElementById("playerCount").value,10);
   for(let i=1;i<=count;i++){
     const slot = document.getElementById("guest"+i);
     if(slot && slot.textContent.startsWith("ゲスト")){
-      slot.textContent = name;
-      slot.classList.add("selected");
-      slot.setAttribute("data-name", name);
-      const idx = members.indexOf(name);
-      if(idx !== -1) members.splice(idx,1);
-      saveStateToFirebaseIfReady();
-      renderMembers();
-      return;
+      slot.textContent = name; slot.classList.add("selected"); slot.setAttribute("data-name", name);
+      const idx = members.indexOf(name); if(idx !== -1) members.splice(idx,1);
+      saveStateToFirebaseIfReady(); renderMembers(); return;
     }
   }
   alert("空きスロットがありません");
 }
 
-/* ---------- 生成（ここでシャッフルして P1..PN を決める） ---------- */
+/* generate: shuffle -> assign P1..PN -> map template (templates already have 15 rounds) */
 function generate(){
   const count = parseInt(document.getElementById("playerCount").value,10);
   const slotNames = [];
@@ -258,27 +203,27 @@ function generate(){
     slotNames.push(name || ("ゲスト"+i));
   }
 
-  // ここでシャッフル（生成時にランダムで P1..PN を決定）
-  const shuffled = slotNames.slice();
-  shuffle(shuffled);
+  // shuffle for P1..PN
+  const shuffled = slotNames.slice(); shuffle(shuffled);
   players = shuffled.map((name,idx)=>({ name, pos: idx+1 }));
 
-  // シャッフル結果を見せる
+  // show shuffle mapping
   showShuffleMap(players);
 
-  // テンプレ選択（1_4..1_9 のみ対応）
+  // select template
   const court = parseInt(document.getElementById("courtCount").value,10);
   const key = `${court}_${count}`;
   let rounds = templates[key];
   if(!rounds || rounds.length===0){
-    rounds = buildRotationalTemplate(count, court);
+    rounds = buildRotationalTemplate(count, court).slice(0,15);
+  } else {
+    // ensure up to 15 rounds (templates built have 15)
+    rounds = rounds.slice(0,15);
   }
-  // 最大15試合に制限
-  rounds = rounds.slice(0,15);
 
-  // template indices -> players mapping (テンプレ内の番号は1-based)
-  schedule = rounds.map(r => {
-    const matches = r.matches.map(pair => {
+  // map to schedule by replacing numeric indices with player names (1-based)
+  schedule = rounds.map(r=>{
+    const matches = r.matches.map(pair=>{
       const t1 = pair[0].map(idx => ({ name: (idx <= players.length ? players[idx-1].name : ("空き"+idx)), pos: idx }));
       const t2 = pair[1].map(idx => ({ name: (idx <= players.length ? players[idx-1].name : ("空き"+idx)), pos: idx }));
       return { team1: t1, team2: t2, score:[null,null] };
@@ -292,21 +237,13 @@ function generate(){
   render();
 }
 
-/* ---------- 表示：シャッフルマップ ---------- */
-function showShuffleMap(playersArr){
-  const wrap = document.getElementById("shuffleList");
-  const mapDiv = document.getElementById("shuffleMap");
-  mapDiv.innerHTML = "";
-  playersArr.forEach(p=>{
-    const el = document.createElement("div"); el.className="map-item"; el.textContent = `P${p.pos} → ${p.name}`; mapDiv.appendChild(el);
-  });
-  wrap.classList.remove("hidden");
-}
-function clearShuffle(){ document.getElementById("shuffleMap").innerHTML = ""; document.getElementById("shuffleList").classList.add("hidden"); }
+/* shuffle map UI */
+function showShuffleMap(playersArr){ const wrap=document.getElementById("shuffleList"); const mapDiv=document.getElementById("shuffleMap"); mapDiv.innerHTML=""; playersArr.forEach(p=>{ const el=document.createElement("div"); el.className="map-item"; el.textContent=`P${p.pos} → ${p.name}`; mapDiv.appendChild(el); }); wrap.classList.remove("hidden"); }
+function clearShuffle(){ document.getElementById("shuffleMap").innerHTML=""; document.getElementById("shuffleList").classList.add("hidden"); }
 
-/* ---------- render ---------- */
+/* render */
 function render(){
-  const matchesDiv = document.getElementById("matches"); matchesDiv.innerHTML = "";
+  const matchesDiv = document.getElementById("matches"); matchesDiv.innerHTML="";
   schedule.forEach((round,i)=>{
     if(i >= showingRounds) return;
     const card = document.createElement("div"); card.className="match-card";
@@ -353,12 +290,12 @@ function render(){
   updateRanking();
 }
 
-/* ---------- スコア / ランキング ---------- */
+/* scores & ranking */
 function renderScoreText(v){ return (v===null||v===undefined)?'':String(v); }
 function renderScoreValue(v){ return (v===null||v===undefined)?'':String(v); }
 function setScore(roundIdx, matchIdx, team, rawVal){
   const match = schedule[roundIdx] && schedule[roundIdx].matches[matchIdx]; if(!match) return;
-  const t = String(rawVal).trim(); let newVal = null; if(t!==''){ const n=parseInt(t,10); if(Number.isFinite(n)&&n>=0) newVal=n; else return; }
+  const t = String(rawVal).trim(); let newVal=null; if(t!==''){ const n=parseInt(t,10); if(Number.isFinite(n)&&n>=0) newVal=n; else return;}
   if(!match.score) match.score=[null,null]; match.score[team]=newVal;
   updateRanking(); saveStateToFirebaseIfReady(); render();
 }
@@ -370,22 +307,21 @@ function updateRanking(){
     if(s1!==null) match.team2.forEach(p=>{ if(map[p.name]){ map[p.name].total+=s1; map[p.name].match++; } });
   }); });
   const stats = Object.keys(map).map(name=>{ const m=map[name]; return {name,total:m.total,match:m.match,avg:m.match?(m.total/m.match):0}; }).sort((a,b)=>b.avg-a.avg);
-  let html = `<div class="ranking-card"><h3>🏆 ランキング</h3><table class="ranking-table"><tr><th>順位</th><th>名前</th><th>合計</th><th>試合</th><th>平均</th></tr>`;
+  let html=`<div class="ranking-card"><h3>🏆 ランキング</h3><table class="ranking-table"><tr><th>順位</th><th>名前</th><th>合計</th><th>試合</th><th>平均</th></tr>`;
   stats.forEach((p,i)=>{ const medal=(i===0?"🥇":i===1?"🥈":i===2?"🥉":""); html+=`<tr><td>${medal}${i+1}</td><td>${escapeHtml(p.name)}</td><td>${p.total}</td><td>${p.match}</td><td>${p.avg.toFixed(2)}</td></tr>`; });
-  html += `</table></div>`;
-  document.getElementById("ranking").innerHTML = html;
+  html += `</table></div>`; document.getElementById("ranking").innerHTML = html;
 }
 
-/* ---------- utilities ---------- */
+/* utilities */
 function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } }
 function buildRotationalTemplate(count,court){ const r=[]; const base=Array.from({length:count},(_,i)=>i+1); const R=Math.min(15,Math.max(5,count)); for(let i=0;i<R;i++){ const arr=base.slice(i).concat(base.slice(0,i)); const matches=[]; for(let c=0;c<court;c++){ const start=c*4; if(start+3>=arr.length) break; matches.push([[arr[start],arr[start+1]],[arr[start+2],arr[start+3]]]); } if(matches.length===0 && count>=4) matches.push([[1,2],[3,4]]); r.push({matches}); } return r; }
 function escapeHtml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
-/* ---------- persistence / room / firebase (既存) ---------- */
+/* persistence / room / firebase */
 function saveStateToFirebaseIfReady(){ if(window.saveStateToFirebase){ try{ window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds }).catch(e=>console.warn("save error", e)); }catch(e){ console.warn("save call error", e); } } }
 function loadMembers(){ if(!members) members=[]; renderMembers(); }
 
-/* ---------- room helpers ---------- */
+/* room helpers */
 function randomId(len=8){ const chars="abcdefghijklmnopqrstuvwxyz0123456789"; let s=""; for(let i=0;i<len;i++) s+=chars.charAt(Math.floor(Math.random()*chars.length)); return s; }
 function createRoom(){ const newId="r-"+randomId(6); const params=new URLSearchParams(window.location.search); params.set("room",newId); history.pushState({}, "", location.pathname + "?" + params.toString()); window.roomId=newId; if(window.setRoom) window.setRoom(newId); players=[]; schedule=[]; showingRounds=5; maxRounds=5; loadMembers(); setupGuests(); render(); alert("新しい部屋を作成しました: " + newId); }
 function copyRoomLink(){ navigator.clipboard?.writeText(location.href).then(()=>alert("リンクをコピーしました")).catch(()=>prompt("このURLをコピーしてください（Ctrl+C）", location.href)); }
@@ -394,11 +330,11 @@ function updateRoomDisplay(){ const el=document.getElementById("roomIdDisplay");
 /* bootstrap */
 updateRoomDisplay(); loadMembers(); setupGuests();
 
-/* expose for firebase module */
+/* expose hooks */
 window.createRoom = createRoom; window.copyRoomLink = copyRoomLink; window.updateRoomDisplay = updateRoomDisplay; window.loadFromFirebase = loadFromFirebase;
 </script>
 
-<!-- Firebase module -->
+<!-- Firebase module (unchanged) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
   import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
