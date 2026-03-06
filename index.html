@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v3.0.3</title>
+  <title>🎾TenniMatch v3.0.4</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
@@ -27,7 +27,6 @@
     button.danger { background: var(--danger); }
     button.secondary { background: var(--secondary); color: #000; }
     
-    /* スロットとメンバーボタンの改善 (④) */
     .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-bottom: 16px; }
     .guest-slot { border: 2px dashed var(--border); border-radius: 12px; padding: 14px 8px; text-align: center; font-size: 14px; color: var(--text-muted); cursor: pointer; background: #fdfdfd; }
     .guest-slot.selected { border-style: solid; border-color: var(--primary); background: #e8f0fe; color: var(--primary); font-weight: bold; }
@@ -46,7 +45,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v3.0.3</div>
+  <div id="headerTitle">🎾TenniMatch v3.0.4</div>
   <div id="roomInfo">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="copyRoomLink()">🔗コピー</button>
@@ -275,7 +274,6 @@
     saveData(); renderMatches();
   }
 
-  /* ① ランキング表示項目の修正 */
   function updateRanking() {
     const stats = {};
     schedule.forEach(r => {
@@ -319,12 +317,26 @@
   function createRoom(){ if(confirm("新しい空の部屋を作成しますか？")) { location.href = location.pathname; } }
 
   function saveData() { if(window.fbSave) window.fbSave({allMembers, schedule, showingRounds}); }
+
+  /* 🔄 【ここを修正】リアルタイム同期時の画面更新処理を強化 */
   function loadData(data) {
     if(data.allMembers) allMembers = data.allMembers;
     if(data.schedule) schedule = data.schedule;
     if(data.showingRounds) showingRounds = data.showingRounds;
+    
+    // 現在どの画面にいても、最新データに基づいたUIに描き直す
     renderMemberList();
-    if(schedule.length > 0 && document.getElementById('screen-menu').classList.contains('active')) showScreen('match');
+    
+    const menuActive = document.getElementById('screen-menu').classList.contains('active');
+    const matchActive = document.getElementById('screen-match').classList.contains('active');
+
+    if(schedule.length > 0) {
+        if(menuActive) {
+            showScreen('match'); // メニューにいたら試合画面へ飛ばす
+        } else if(matchActive) {
+            renderMatches(); // 既に試合画面にいたら、内容だけ最新にする
+        }
+    }
   }
 </script>
 
@@ -346,7 +358,13 @@
   const roomRef = doc(db, "rooms", roomId);
 
   window.fbSave = (data) => setDoc(roomRef, data);
-  onSnapshot(roomRef, (snap) => { if(snap.exists()) loadData(snap.data()); });
+  
+  // リアルタイムリスナー
+  onSnapshot(roomRef, (snap) => { 
+    if(snap.exists()) {
+      loadData(snap.data()); 
+    }
+  });
 </script>
 </body>
 </html>
