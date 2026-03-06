@@ -2,246 +2,343 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch</title>
+  <title>🎾TenniMatch v3.0.2</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
-    /* Gemini風 モダンUIテーマ */
+    /* デザインは維持 (Gemini Modern UI) */
     :root {
-      --primary: #1a73e8;
-      --primary-dark: #1557b0;
-      --secondary: #fbbc04;
-      --danger: #ea4335;
-      --success: #34a853;
-      --bg: #f0f4f8;
-      --surface: #ffffff;
-      --text-main: #202124;
-      --text-muted: #5f6368;
-      --border: #dadce0;
+      --primary: #1a73e8; --primary-dark: #1557b0; --secondary: #fbbc04;
+      --danger: #ea4335; --success: #34a853; --bg: #f0f4f8;
+      --surface: #ffffff; --text-main: #202124; --text-muted: #5f6368; --border: #dadce0;
     }
-    
     body { margin: 0; font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text-main); padding-bottom: 40px; }
-    
-    /* ヘッダー */
     header { background: var(--surface); padding: 16px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
     #headerTitle { font-size: 18px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
     #roomInfo { font-size: 12px; color: var(--text-muted); display: flex; justify-content: center; align-items: center; gap: 8px; }
-    
-    /* 画面切り替え（アニメーション付き） */
     .screen { display: none; animation: fadeIn 0.3s ease; padding: 12px; max-width: 600px; margin: 0 auto; }
     .screen.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    
-    /* カード・汎用パーツ */
     .card { background: var(--surface); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-    h2, h3 { margin-top: 0; color: var(--text-main); }
-    p.hint { font-size: 13px; color: var(--text-muted); margin-top: -8px; margin-bottom: 16px; }
-    
-    /* 入力フォーム・ボタン */
-    input[type="text"], select { width: 100%; box-sizing: border-box; border: 2px solid var(--border); border-radius: 10px; padding: 14px; font-size: 16px; transition: 0.2s; margin-bottom: 12px; background: #fafafa; }
-    input[type="text"]:focus, select:focus { outline: none; border-color: var(--primary); background: #fff; }
-    
+    input[type="text"], input[type="number"], select { width: 100%; box-sizing: border-box; border: 2px solid var(--border); border-radius: 10px; padding: 14px; font-size: 16px; margin-bottom: 12px; background: #fafafa; }
     button { background: var(--primary); color: #fff; border: none; padding: 14px 20px; border-radius: 24px; font-size: 15px; font-weight: 700; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
-    button:active { transform: scale(0.96); background: var(--primary-dark); }
+    button:active { transform: scale(0.96); }
     button.outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
     button.small { padding: 8px 14px; border-radius: 16px; font-size: 13px; }
     button.danger { background: var(--danger); }
     button.secondary { background: var(--secondary); color: #000; }
-    
-    /* 参加枠＆メンバーボタン */
     .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-bottom: 16px; }
-    .guest-slot { border: 2px dashed var(--border); border-radius: 12px; padding: 14px 8px; text-align: center; font-size: 14px; color: var(--text-muted); cursor: pointer; background: #fafafa; font-weight: 500; }
+    .guest-slot { border: 2px dashed var(--border); border-radius: 12px; padding: 14px 8px; text-align: center; font-size: 14px; color: var(--text-muted); cursor: pointer; background: #fafafa; }
     .guest-slot.selected { border-style: solid; border-color: var(--success); background: #e6f4ea; color: var(--success); }
-    
     .member-pool { display: flex; flex-wrap: wrap; gap: 8px; }
-    .member-btn { background: #fff; border: 1px solid var(--border); color: var(--text-main); border-radius: 20px; padding: 10px 16px; font-size: 14px; font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .member-btn.assigned { opacity: 0.5; background: #eee; cursor: not-allowed; }
-    
-    /* 試合カード＆スコア */
-    .match-card { border-radius: 16px; padding: 16px; margin-bottom: 16px; position: relative; overflow: hidden; }
-    .match-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; }
-    .match-card:nth-child(4n+1)::before { background: var(--primary); }
-    .match-card:nth-child(4n+2)::before { background: var(--secondary); }
-    .match-card:nth-child(4n+3)::before { background: var(--success); }
-    .match-card:nth-child(4n+4)::before { background: #9c27b0; }
-    
-    .match-header { font-weight: 700; font-size: 15px; color: var(--text-main); margin-bottom: 12px; padding-left: 8px; }
-    .pair-row { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.7); padding: 12px; border-radius: 12px; margin-bottom: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); gap: 8px;}
-    .pair-names { flex: 1; font-weight: 600; font-size: 15px; }
-    .score-area { display: flex; align-items: center; gap: 12px; }
-    .score-input { width: 50px; text-align: center; border-radius: 8px; border: 2px solid var(--primary); background: #f0f4ff; font-size: 18px; font-weight: 700; padding: 8px; margin: 0; }
-    .score-display { font-size: 20px; font-weight: 700; letter-spacing: 2px; text-align: center; min-width: 60px; }
-    .vs-badge { text-align: center; font-size: 12px; font-weight: 700; color: #fff; background: #dadce0; border-radius: 12px; padding: 2px 8px; margin: 4px auto; width: max-content; }
-    
-    /* ランキング表 */
-    .ranking-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-    .ranking-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.05); font-size: 14px; }
-    .ranking-table th { background: var(--primary); color: #fff; padding: 12px 8px; text-align: center; font-weight: 600; }
-    .ranking-table td { border-bottom: 1px solid var(--border); padding: 12px 8px; text-align: center; }
-    .ranking-table tr:last-child td { border-bottom: none; }
-    
-    .action-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
-    .action-row button { flex: 1; min-width: 140px; }
+    .member-btn { background: #fff; border: 1px solid var(--border); border-radius: 20px; padding: 10px 16px; font-size: 14px; }
+    .member-btn.assigned { opacity: 0.4; }
+    .match-card { border-radius: 16px; padding: 16px; margin-bottom: 16px; border-left: 6px solid var(--primary); }
+    .score-input { width: 60px !important; text-align: center; font-size: 20px !important; padding: 8px !important; margin: 0 5px !important; }
+    .ranking-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .ranking-table th { background: var(--primary); color: #fff; padding: 10px; }
+    .ranking-table td { border-bottom: 1px solid var(--border); padding: 10px; text-align: center; }
   </style>
 </head>
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch</div>
+  <div id="headerTitle">🎾TenniMatch v3.0.2</div>
   <div id="roomInfo">
-    <span>部屋: <strong id="roomIdDisplay">---</strong></span>
+    <span>部屋: <strong id="roomIdDisplay">読み込み中...</strong></span>
     <button class="small outline" onclick="copyRoomLink()">🔗コピー</button>
   </div>
 </header>
 
 <div id="screen-menu" class="screen active">
-  <div class="card" style="text-align: center; padding: 40px 20px;">
-    <h2>ようこそ！</h2>
-    <p class="hint">組合せの自動生成とスコア記録ができます。</p>
-    <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 24px;">
-      <button onclick="showScreen('setup')" style="padding: 18px; font-size: 18px;">✨ 組合せを作る・確認する</button>
+  <div class="card" style="text-align: center;">
+    <h2>メインメニュー</h2>
+    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px;">
+      <button onclick="showScreen('setup')">✨ 組合せを作る・確認する</button>
       <button onclick="showScreen('register')" class="outline">👥 メンバーを登録・編集</button>
-      <button onclick="createRoom()" class="outline secondary">🆕 新しい部屋（データ）を作る</button>
+      <button onclick="createRoom()" class="outline secondary">🆕 新しい部屋を作る</button>
     </div>
   </div>
 </div>
 
 <div id="screen-register" class="screen">
   <div class="card">
-    <h2>メンバー登録</h2>
-    <p class="hint">よく一緒にプレイする人を登録しておくと便利です。</p>
+    <h3>メンバー登録</h3>
     <div style="display: flex; gap: 8px;">
-      <input id="newMember" type="text" placeholder="名前を入力" style="margin-bottom:0;">
-      <button onclick="addMember()">追加</button>
+      <input id="newMember" type="text" placeholder="名前を入力">
+      <button onclick="addMember()" style="height:52px;">追加</button>
     </div>
-    
-    <div style="margin-top: 20px;">
-      <h3 style="font-size: 15px; border-bottom: 2px solid var(--border); padding-bottom: 8px;">登録済みリスト</h3>
-      <div id="memberList" style="display: flex; flex-direction: column; gap: 8px;"></div>
-    </div>
-    
-    <div style="margin-top: 24px; text-align: center;">
-      <button onclick="showScreen('menu')" class="outline" style="width: 100%;">🔙 メニューに戻る</button>
-    </div>
+    <div id="memberList" style="margin-top:15px; display:flex; flex-direction:column; gap:8px;"></div>
+    <button onclick="showScreen('menu')" class="outline" style="width:100%; margin-top:20px;">🔙 戻る</button>
   </div>
 </div>
 
 <div id="screen-setup" class="screen">
   <div class="card">
-    <h2>参加者の選択</h2>
-    
-    <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-      <div style="flex: 1;">
-        <label style="font-size:13px; font-weight:bold; color:var(--text-muted);">参加人数</label>
-        <select id="playerCount"></select>
-      </div>
-      <div style="flex: 1;">
-        <label style="font-size:13px; font-weight:bold; color:var(--text-muted);">コート数</label>
-        <select id="courtCount"><option value="1">1面</option></select>
-      </div>
+    <h3>参加メンバー選択</h3>
+    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+      <div style="flex:1;"><label>人数</label><select id="playerCount"></select></div>
+      <div style="flex:1;"><label>コート</label><select id="courtCount"><option>1面</option></select></div>
     </div>
-
-    <label style="font-size:13px; font-weight:bold; color:var(--text-muted);">本日の参加枠（タップで外す）</label>
     <div id="guestArea" class="slot-grid"></div>
-
-    <label style="font-size:13px; font-weight:bold; color:var(--text-muted);">登録メンバー（タップで枠に追加）</label>
-    <div id="memberButtons" class="member-pool" style="margin-bottom: 24px;"></div>
-
-    <div id="setupActions" style="display: flex; flex-direction: column; gap: 12px;">
-      <button onclick="generate('reset')">✨ 最初から組合せを生成</button>
-      <button id="btnContinueGenerate" onclick="generate('continue')" class="secondary" style="display: none;">
-        🔄 途中から生成（メンバー変更）
-      </button>
-      <button onclick="showScreen('menu')" class="outline">🔙 メニュー</button>
+    <p style="font-size:12px; color:var(--text-muted);">登録メンバーから選択：</p>
+    <div id="memberButtons" class="member-pool"></div>
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 25px;">
+      <button onclick="generate('reset')">🚀 組合せを生成</button>
+      <button id="btnContinueGenerate" onclick="generate('continue')" class="secondary" style="display:none;">🔄 途中から再生成</button>
+      <button onclick="showScreen('menu')" class="outline">🔙 戻る</button>
     </div>
-    <p id="continueHint" class="hint" style="text-align:center; margin-top:12px; display:none;">
-      ※「途中から」を選ぶと、スコア入力済みの試合はそのまま残り、以降の試合が新しいメンバーで再生成されます。
-    </p>
   </div>
 </div>
 
 <div id="screen-match" class="screen">
-  <div class="action-row" style="margin-bottom: 16px; margin-top: 0;">
-    <button onclick="showScreen('setup')" class="outline secondary" style="font-size:13px; padding: 10px;">👥 参加者変更 (途中参加/退出)</button>
-    <button onclick="showScreen('menu')" class="outline" style="font-size:13px; padding: 10px;">🔙 メニュー</button>
+  <div style="display:flex; gap:8px; margin-bottom:15px;">
+    <button onclick="showScreen('setup')" class="outline secondary" style="flex:1; font-size:12px;">👥 途中参加/退出</button>
+    <button onclick="showScreen('menu')" class="outline" style="flex:1; font-size:12px;">🔙 メニュー</button>
   </div>
-
   <div id="matches"></div>
-  
-  <div class="card" id="rankingCard" style="padding: 16px;">
-    <div class="ranking-header">
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
       <h3 style="margin:0;">🏆 ランキング</h3>
-      <select id="rankingSort" onchange="updateRanking()" style="width:auto; margin:0; padding: 8px; font-size:13px;">
-        <option value="winRate">勝率 順</option>
-        <option value="avgScore">平均ゲーム数 順</option>
+      <select id="rankingSort" onchange="updateRanking()" style="width:auto; margin:0; padding:5px;">
+        <option value="winRate">勝率順</option>
+        <option value="avgScore">平均順</option>
       </select>
     </div>
     <div id="ranking"></div>
   </div>
 </div>
 
-
 <script>
-  /* ============================
-     ③ バージョン＆タイトル統合
-     ============================ */
-  const APP_VERSION = "v3.0.1";
-  const APP_TITLE = `🎾TenniMatch ${APP_VERSION}`;
-  document.title = APP_TITLE;
-  document.getElementById('headerTitle').textContent = APP_TITLE;
+  /* 基本設定 */
+  let allMembers = [], currentSlots = [], schedule = [], showingRounds = 5, maxRounds = 5;
+  window.editMode = {};
 
-  /* ============================
-     状態管理（State）
-     ============================ */
-  let allMembers = [];   // ⑥ 登録済みメンバー（マスターデータ）
-  let currentSlots = []; // 現在セットアップ画面で選択中の参加者配列
-  let players = [];      // 組合せ生成時のP1~Pnマッピング
-  let schedule = [];     // 試合スケジュール
-  let showingRounds = 5; // 表示中の試合数
-  let maxRounds = 5;
-  window.editMode = {};  // 編集モードフラグ
+  // URLから部屋IDを取得 (①の修正)
+  const params = new URLSearchParams(window.location.search);
+  let roomId = params.get("room") || "r-" + Math.random().toString(36).substring(2,8);
+  if(!params.get("room")) {
+    params.set("room", roomId);
+    history.replaceState({}, "", location.pathname + "?" + params.toString());
+  }
+  document.getElementById('roomIdDisplay').textContent = roomId;
 
-  /* テンプレート（1面 4〜11人）※変更なし */
-  const templates = {
-    "1_4": [ { matches: [ [[1,2],[3,4]] ] }, { matches: [ [[1,3],[2,4]] ] }, { matches: [ [[1,4],[2,3]] ] } ],
-    "1_5": [ {matches:[[[1,2],[3,4]]]}, {matches:[[[1,3],[2,5]]]}, {matches:[[[1,4],[3,5]]]}, {matches:[[[1,5],[2,4]]]}, {matches:[[[2,3],[4,5]]]}, {matches:[[[1,2],[3,5]]]}, {matches:[[[1,3],[2,4]]]}, {matches:[[[1,4],[2,5]]]}, {matches:[[[1,5],[3,4]]]}, {matches:[[[2,4],[3,5]]]}, {matches:[[[1,2],[4,5]]]}, {matches:[[[1,4],[2,3]]]}, {matches:[[[1,3],[4,5]]]}, {matches:[[[1,5],[2,3]]]}, {matches:[[[2,5],[3,4]]]} ],
-    "1_6": [ {matches:[[[1,2],[3,4]]]}, {matches:[[[1,3],[5,6]]]}, {matches:[[[2,5],[4,6]]]}, {matches:[[[1,4],[2,3]]]}, {matches:[[[1,5],[2,6]]]}, {matches:[[[3,6],[4,5]]]}, {matches:[[[1,6],[2,4]]]}, {matches:[[[1,2],[3,5]]]}, {matches:[[[3,4],[5,6]]]}, {matches:[[[1,3],[2,4]]]}, {matches:[[[1,5],[3,6]]]}, {matches:[[[2,6],[4,5]]]}, {matches:[[[1,4],[2,5]]]}, {matches:[[[1,6],[2,3]]]}, {matches:[[[3,5],[4,6]]]} ],
-    "1_7": [ {matches:[[[1,2],[3,4]]]}, {matches:[[[5,6],[7,1]]]}, {matches:[[[5,2],[6,3]]]}, {matches:[[[7,4],[1,5]]]}, {matches:[[[2,4],[3,7]]]}, {matches:[[[6,1],[3,5]]]}, {matches:[[[2,6],[4,7]]]}, {matches:[[[1,6],[2,3]]]}, {matches:[[[5,7],[4,6]]]}, {matches:[[[1,3],[2,7]]]}, {matches:[[[4,5],[1,7]]]}, {matches:[[[6,3],[2,4]]]}, {matches:[[[5,4],[2,7]]]}, {matches:[[[5,6],[1,3]]]}, {matches:[[[4,6],[7,3]]]} ],
-    "1_8": [ {matches:[[[1,2],[3,4]]]}, {matches:[[[5,6],[7,8]]]}, {matches:[[[1,5],[2,6]]]}, {matches:[[[3,7],[4,8]]]}, {matches:[[[1,3],[5,7]]]}, {matches:[[[2,4],[6,8]]]}, {matches:[[[1,4],[5,8]]]}, {matches:[[[2,3],[6,7]]]}, {matches:[[[1,6],[2,5]]]}, {matches:[[[3,8],[4,7]]]}, {matches:[[[1,7],[3,5]]]}, {matches:[[[2,8],[4,6]]]}, {matches:[[[1,8],[3,6]]]}, {matches:[[[2,7],[4,5]]]}, {matches:[[[1,2],[7,8]]]} ],
-    "1_9": [ {matches:[[[1,2],[3,4]]]}, {matches:[[[5,6],[7,8]]]}, {matches:[[[9,1],[4,8]]]}, {matches:[[[3,7],[2,6]]]}, {matches:[[[5,9],[3,6]]]}, {matches:[[[1,4],[2,7]]]}, {matches:[[[5,8],[9,3]]]}, {matches:[[[1,5],[2,8]]]}, {matches:[[[4,6],[7,9]]]}, {matches:[[[3,8],[2,9]]]}, {matches:[[[1,6],[4,5]]]}, {matches:[[[7,6],[1,8]]]}, {matches:[[[9,4],[2,5]]]}, {matches:[[[7,3],[2,4]]]}, {matches:[[[1,3],[5,9]]]} ],
-    "1_10":[ {matches:[[[1,2],[3,4]]]}, {matches:[[[5,6],[7,8]]]}, {matches:[[[9,10],[1,5]]]}, {matches:[[[3,10],[4,8]]]}, {matches:[[[2,9],[6,7]]]}, {matches:[[[1,4],[5,10]]]}, {matches:[[[3,9],[6,8]]]}, {matches:[[[2,7],[5,9]]]}, {matches:[[[1,6],[4,7]]]}, {matches:[[[3,8],[2,10]]]}, {matches:[[[1,10],[8,9]]]}, {matches:[[[2,5],[6,4]]]}, {matches:[[[3,7],[1,7]]]}, {matches:[[[2,8],[4,9]]]}, {matches:[[[3,6],[5,10]]]} ],
-    "1_11":[ {matches:[[[1,2],[3,4]]]}, {matches:[[[5,6],[7,8]]]}, {matches:[[[9,10],[11,1]]]}, {matches:[[[5,2],[3,6]]]}, {matches:[[[4,9],[7,11]]]}, {matches:[[[8,10],[1,5]]]}, {matches:[[[2,9],[3,7]]]}, {matches:[[[6,4],[8,11]]]}, {matches:[[[10,3],[4,7]]]}, {matches:[[[1,9],[5,11]]]}, {matches:[[[6,10],[8,2]]]}, {matches:[[[3,9],[5,7]]]}, {matches:[[[10,11],[1,4]]]}, {matches:[[[2,6],[8,5]]]}, {matches:[[[1,7],[3,6]]]} ]
-  };
-
-  /* ============================
-     画面遷移・初期化
-     ============================ */
-  function showScreen(screenId) {
-    document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
-    document.getElementById(`screen-${screenId}`).classList.add('active');
-    
-    if (screenId === 'setup') {
-      setupGuests();
-      // ⑤ 既存の試合がある場合は「途中から生成」ボタンを表示
-      const hasRounds = schedule.length > 0;
-      document.getElementById('btnContinueGenerate').style.display = hasRounds ? 'inline-flex' : 'none';
-      document.getElementById('continueHint').style.display = hasRounds ? 'block' : 'none';
-    } else if (screenId === 'match') {
-      renderMatches();
+  /* 画面遷移 (②の修正) */
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+    if(id === 'setup') { 
+      initSetup(); 
+      const hasMatch = schedule.some(r => r.matches.some(m => m.score && m.score[0] !== null));
+      document.getElementById('btnContinueGenerate').style.display = hasMatch ? 'block' : 'none';
     }
+    if(id === 'match') renderMatches();
+    window.scrollTo(0,0);
   }
 
-  const pc = document.getElementById("playerCount");
-  for(let i=4; i<=11; i++){ const opt=document.createElement("option"); opt.value=i; opt.text = i+"人"; pc.appendChild(opt); }
-  pc.value = 8;
-  pc.onchange = setupGuests;
+  /* メンバー管理 */
+  function addMember() {
+    const val = document.getElementById('newMember').value.trim();
+    if(val && !allMembers.includes(val)) {
+      allMembers.push(val);
+      document.getElementById('newMember').value = "";
+      renderMemberList();
+      saveData();
+    }
+  }
+  function renderMemberList() {
+    const list = document.getElementById('memberList');
+    list.innerHTML = allMembers.map((m, i) => `
+      <div style="display:flex; justify-content:space-between; background:#fff; padding:8px 12px; border-radius:8px; border:1px solid #ddd;">
+        <span>${m}</span><button class="small danger" onclick="allMembers.splice(${i},1);renderMemberList();saveData();">削除</button>
+      </div>`).join('');
+    renderMemberButtons();
+  }
 
-  /* ============================
-     メンバー登録管理（⑥ 改善）
-     ============================ */
-  function renderMembersList() {
-    const list = document.getElementById("memberList"); list.innerHTML = "";
-    allMembers.forEach((m, i) => {
-      const div = document.createElement("div"); 
-      div.style.display = "flex"; div.style.justifyContent = "space-between"; div.style.alignItems = "center"; div.style.background = "#fff"; div.style.padding = "10px 16px"; div.style.borderRadius = "8px"; div.style.border = "1px solid var(--border)";
-      div.innerHTML = `<span style="font-weight:600;">${
+  /* セットアップ */
+  const pcSelect = document.getElementById('playerCount');
+  for(let i=4; i<=11; i++) pcSelect.innerHTML += `<option value="${i}">${i}人</option>`;
+  pcSelect.value = 8;
+  pcSelect.onchange = initSetup;
+
+  function initSetup() {
+    const count = parseInt(pcSelect.value);
+    while(currentSlots.length < count) currentSlots.push(null);
+    currentSlots = currentSlots.slice(0, count);
+    renderSlots();
+  }
+
+  function renderSlots() {
+    const area = document.getElementById('guestArea');
+    area.innerHTML = currentSlots.map((name, i) => `
+      <div class="guest-slot ${name?'selected':''}" onclick="removeSlot(${i})">${name || '空き枠 '+(i+1)}</div>
+    `).join('');
+    renderMemberButtons();
+  }
+
+  function renderMemberButtons() {
+    const area = document.getElementById('memberButtons');
+    if(!area) return;
+    area.innerHTML = allMembers.map(name => {
+      const isUsed = currentSlots.includes(name);
+      return `<button class="member-btn ${isUsed?'assigned':''}" onclick="${isUsed?'':'addSlot(\''+name+'\')'}">${name}</button>`;
+    }).join('');
+  }
+
+  function addSlot(name) {
+    const idx = currentSlots.indexOf(null);
+    if(idx !== -1) { currentSlots[idx] = name; renderSlots(); }
+  }
+  function removeSlot(i) { currentSlots[i] = null; renderSlots(); }
+
+  /* 組合せ生成 (v3.0.1のロジックを継承) */
+  const templates = {
+    "1_4":[[[1,2],[3,4]],[[1,3],[2,4]],[[1,4],[2,3]]],
+    "1_5":[[[1,2],[3,4]],[[1,3],[2,5]],[[1,4],[3,5]],[[1,5],[2,4]],[[2,3],[4,5]]],
+    "1_6":[[[1,2],[3,4]],[[1,3],[5,6]],[[2,5],[4,6]],[[1,4],[2,3]],[[1,5],[2,6]]],
+    "1_7":[[[1,2],[3,4]],[[5,6],[7,1]],[[5,2],[6,3]],[[7,4],[1,5]],[[2,4],[3,7]]],
+    "1_8":[[[1,2],[3,4]],[[5,6],[7,8]],[[1,5],[2,6]],[[3,7],[4,8]],[[1,3],[5,7]]],
+    "1_9":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,1],[4,8]],[[3,7],[2,6]],[[5,9],[3,6]]],
+    "1_10":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[1,5]],[[3,10],[4,8]],[[2,9],[6,7]]],
+    "1_11":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[11,1]],[[5,2],[3,6]],[[4,9],[7,11]]]
+  };
+
+  function generate(mode) {
+    const finalNames = currentSlots.map((n, i) => n || `ゲスト${i+1}`);
+    const count = finalNames.length;
+    const base = templates[`1_${count}`];
+    let newSchedule = [];
+    
+    // 15試合分回す
+    for(let i=0; i<15; i++) {
+      const t = base[i % base.length];
+      const match = { 
+        team1: t[0].map(pIdx => ({ name: finalNames[pIdx-1] })),
+        team2: t[1].map(pIdx => ({ name: finalNames[pIdx-1] })),
+        score: [null, null]
+      };
+      newSchedule.push({ matches: [match] });
+    }
+
+    if(mode === 'reset') {
+      schedule = newSchedule;
+      showingRounds = 5;
+    } else {
+      let lastIdx = -1;
+      schedule.forEach((r, i) => { if(r.matches[0].score[0] !== null) lastIdx = i; });
+      schedule = schedule.slice(0, lastIdx+1).concat(newSchedule);
+      showingRounds = schedule.length > lastIdx+6 ? lastIdx+6 : schedule.length;
+    }
+    saveData();
+    showScreen('match');
+  }
+
+  function renderMatches() {
+    const area = document.getElementById('matches');
+    area.innerHTML = '';
+    schedule.forEach((r, ri) => {
+      if(ri >= showingRounds) return;
+      const m = r.matches[0];
+      const isEdit = window.editMode[ri];
+      const s0 = m.score[0], s1 = m.score[1];
+      
+      area.innerHTML += `
+        <div class="card match-card">
+          <div style="font-weight:700; color:var(--text-muted); margin-bottom:10px;">MATCH ${ri+1}</div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="flex:1; text-align:center; font-weight:600;">${m.team1[0].name}<br>${m.team1[1].name}</div>
+            <div style="flex:1; text-align:center;">
+              ${isEdit || s0===null ? 
+                `<input type="number" id="s-${ri}-0" class="score-input" value="${s0||''}"> : <input type="number" id="s-${ri}-1" class="score-input" value="${s1||''}">
+                 <br><button class="small" style="margin-top:10px;" onclick="saveScore(${ri})">OK</button>` : 
+                `<div style="font-size:24px; font-weight:700;">${s0} - ${s1}</div>
+                 <button class="small outline" onclick="window.editMode[${ri}]=true;renderMatches();">修正</button>`
+              }
+            </div>
+            <div style="flex:1; text-align:center; font-weight:600;">${m.team2[0].name}<br>${m.team2[1].name}</div>
+          </div>
+        </div>`;
+    });
+    if(showingRounds < schedule.length) {
+      area.innerHTML += `<button class="outline" style="width:100%; margin-bottom:20px;" onclick="showingRounds+=5;renderMatches();">もっと見る</button>`;
+    }
+    updateRanking();
+  }
+
+  function saveScore(ri) {
+    const v0 = document.getElementById(`s-${ri}-0`).value;
+    const v1 = document.getElementById(`s-${ri}-1`).value;
+    if(v0==='' || v1==='') return;
+    schedule[ri].matches[0].score = [parseInt(v0), parseInt(v1)];
+    window.editMode[ri] = false;
+    saveData();
+    renderMatches();
+  }
+
+  function updateRanking() {
+    const stats = {};
+    schedule.forEach(r => {
+      const m = r.matches[0];
+      [...m.team1, ...m.team2].forEach(p => { if(!stats[p.name]) stats[p.name]={w:0, l:0, d:0, games:0, m:0}; });
+      if(m.score[0] === null) return;
+      const s0 = m.score[0], s1 = m.score[1];
+      const update = (names, myS, opS) => {
+        names.forEach(n => {
+          const st = stats[n.name]; st.m++; st.games += myS;
+          if(myS > opS) st.w++; else if(myS < opS) st.l++; else st.d++;
+        });
+      };
+      update(m.team1, s0, s1); update(m.team2, s1, s0);
+    });
+
+    const list = Object.keys(stats).map(name => ({ name, ...stats[name], 
+      winRate: stats[name].m ? stats[name].w / stats[name].m : 0,
+      avg: stats[name].m ? stats[name].games / stats[name].m : 0
+    }));
+    
+    const mode = document.getElementById('rankingSort').value;
+    list.sort((a,b) => mode==='winRate' ? b.winRate - a.winRate : b.avg - a.avg);
+
+    document.getElementById('ranking').innerHTML = `
+      <table class="ranking-table">
+        <tr><th>位</th><th>名</th><th>勝</th><th>敗</th><th>${mode==='winRate'?'率':'平'}</th></tr>
+        ${list.map((p, i) => `<tr><td>${i+1}</td><td>${p.name}</td><td>${p.w}</td><td>${p.l}</td><td>${mode==='winRate'?(p.winRate*100).toFixed(0)+'%':p.avg.toFixed(1)}</td></tr>`).join('')}
+      </table>`;
+  }
+
+  function copyRoomLink(){ navigator.clipboard.writeText(location.href); alert("URLをコピーしました"); }
+  function createRoom(){ location.href = location.pathname; }
+
+  /* Firebase用ダミー/連携 */
+  function saveData() { if(window.fbSave) window.fbSave({allMembers, schedule, showingRounds}); }
+  function loadData(data) {
+    if(data.allMembers) allMembers = data.allMembers;
+    if(data.schedule) schedule = data.schedule;
+    if(data.showingRounds) showingRounds = data.showingRounds;
+    renderMemberList();
+    if(schedule.length > 0 && document.getElementById('screen-menu').classList.contains('active')) showScreen('match');
+  }
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBXBOgFKYf5hOJXnxgT7xMwkQREv1tXxWg",
+    authDomain: "tennis-match-ranking-man-58aee.firebaseapp.com",
+    projectId: "tennis-match-ranking-man-58aee",
+    storageBucket: "tennis-match-ranking-man-58aee.firebasestorage.app",
+    messagingSenderId: "452972436558",
+    appId: "1:452972436558:web:68357629ca021a6d6f771f"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const roomRef = doc(db, "rooms", roomId);
+
+  window.fbSave = (data) => setDoc(roomRef, data);
+  onSnapshot(roomRef, (snap) => { if(snap.exists()) loadData(snap.data()); });
+</script>
+</body>
+</html>
