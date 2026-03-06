@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v3.0.5</title>
+  <title>🎾TenniMatch v3.0.6</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
@@ -25,9 +25,7 @@
     button:active { transform: scale(0.96); }
     button.outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
     button.small { padding: 6px 12px; border-radius: 16px; font-size: 12px; }
-    
-    /* ボタンデザイン修正 (②) */
-    button.danger-zone { background: var(--danger-bg); color: var(--danger-text); border: 1px solid #f5c2c7; }
+    button.danger-zone { background: var(--danger-bg); color: var(--danger-text); border: 1px solid #f5c2c7; font-size: 11px; }
     button.danger { background: var(--danger); color: #fff; }
     button.secondary { background: var(--secondary); color: #000; }
     
@@ -39,13 +37,15 @@
     .member-btn { background: #eef2f7; border: 1px solid var(--border); border-radius: 20px; padding: 10px 16px; font-size: 14px; color: #333; font-weight: 500; }
     .member-btn.assigned { background: var(--primary); color: #fff; border-color: var(--primary); }
 
-    /* スマホ最適化レイアウト (③) */
-    .match-card { border-radius: 16px; padding: 16px 10px; margin-bottom: 16px; border-left: 6px solid var(--primary); }
+    .match-card { border-radius: 16px; padding: 16px 10px; margin-bottom: 16px; border-left: 6px solid var(--primary); position: relative; }
     .match-flex { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
     .team-box { flex: 1; text-align: center; font-weight: 600; font-size: 13px; line-height: 1.4; word-break: break-all; }
     .score-container { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
     .score-input { width: 50px !important; height: 50px !important; text-align: center; font-size: 22px !important; padding: 0 !important; margin: 0 !important; border-radius: 8px !important; }
     
+    /* ③ お休みメンバー表示用スタイル */
+    .rest-info { margin-top: 10px; font-size: 11px; color: var(--text-muted); text-align: center; border-top: 1px dashed var(--border); padding-top: 8px; }
+
     .ranking-table { width: 100%; border-collapse: collapse; font-size: 12px; }
     .ranking-table th { background: #5f6368; color: #fff; padding: 8px 4px; }
     .ranking-table td { border-bottom: 1px solid var(--border); padding: 12px 4px; text-align: center; }
@@ -54,7 +54,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v3.0.5</div>
+  <div id="headerTitle">🎾TenniMatch v3.0.6</div>
   <div id="roomInfo">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="copyRoomLink()">🔗コピー</button>
@@ -142,7 +142,6 @@
     window.scrollTo(0,0);
   }
 
-  /* ① メンバー修正機能追加 */
   function addMember() {
     const val = document.getElementById('newMember').value.trim();
     if(val && !allMembers.includes(val)) {
@@ -160,6 +159,7 @@
   }
   function renderMemberList() {
     const list = document.getElementById('memberList');
+    if(!list) return;
     list.innerHTML = allMembers.map((m, i) => `
       <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; padding:8px 12px; border-radius:12px; border:1px solid #ddd;">
         <span style="font-weight:bold;">${m}</span>
@@ -185,6 +185,7 @@
 
   function renderSlots() {
     const area = document.getElementById('guestArea');
+    if(!area) return;
     area.innerHTML = currentSlots.map((name, i) => `
       <div class="guest-slot ${name?'selected':''}" onclick="removeSlot(${i})">${name || '枠 '+(i+1)}</div>
     `).join('');
@@ -240,6 +241,7 @@
     for(let i = nextRoundStart; i < nextRoundStart + 15; i++) {
       const t = base[i % base.length];
       newPart.push({
+        roundParticipants: finalNames, // ③ お休み判定用にその時点の参加者を保存
         matches: [{
           team1: t[0].map(pIdx => ({ name: finalNames[pIdx-1] })),
           team2: t[1].map(pIdx => ({ name: finalNames[pIdx-1] })),
@@ -254,9 +256,9 @@
     showScreen('match');
   }
 
-  /* ③ スコア入力エリアの横並び固定レイアウト */
   function renderMatches() {
     const area = document.getElementById('matches');
+    if(!area) return;
     area.innerHTML = '';
     schedule.forEach((r, ri) => {
       if(ri >= showingRounds) return;
@@ -265,12 +267,16 @@
       const s0 = m.score[0], s1 = m.score[1];
       const isLocked = !isEdit && s0 !== null;
       
+      // ③ お休みメンバーの算出
+      const playingNames = [...m.team1, ...m.team2].map(p => p.name);
+      const restingNames = (r.roundParticipants || []).filter(n => !playingNames.includes(n));
+      const restHtml = restingNames.length > 0 ? `<div class="rest-info">お休み: ${restingNames.join(', ')}</div>` : '';
+
       area.innerHTML += `
         <div class="card match-card" style="${isLocked?'border-left-color:var(--success);':''}">
           <div style="font-weight:700; color:var(--text-muted); font-size:11px; margin-bottom:12px;">MATCH ${ri+1}</div>
           <div class="match-flex">
             <div class="team-box">${m.team1[0].name}<br>${m.team1[1].name}</div>
-            
             <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
                 <div class="score-container">
                 ${!isLocked ? 
@@ -285,13 +291,14 @@
                     `<button class="small outline" onclick="window.editMode[${ri}]=true;renderMatches();">修正</button>`
                 }
             </div>
-
             <div class="team-box">${m.team2[0].name}<br>${m.team2[1].name}</div>
           </div>
+          ${restHtml}
         </div>`;
     });
     if(showingRounds < schedule.length) {
-      area.innerHTML += `<button class="outline" style="width:100%; margin-bottom:20px;" onclick="showingRounds+=5;renderMatches();">さらに試合を表示</button>`;
+      // ② 同期するように修正
+      area.innerHTML += `<button class="outline" style="width:100%; margin-bottom:20px;" onclick="showingRounds+=5;saveData();">さらに試合を表示 (+5)</button>`;
     }
     updateRanking();
   }
@@ -302,7 +309,8 @@
     if(v0==='' || v1==='') return;
     schedule[ri].matches[0].score = [parseInt(v0), parseInt(v1)];
     window.editMode[ri] = false;
-    saveData(); renderMatches();
+    saveData(); 
+    // renderはsaveData経由のonSnapshotで走る
   }
 
   function updateRanking() {
@@ -330,6 +338,8 @@
     list.sort((a,b) => mode==='winRate' ? (b.winRate - a.winRate || b.w - a.w) : (b.avg - a.avg || b.games - a.games));
 
     let html = '';
+    const tableEl = document.getElementById('ranking');
+    if(!tableEl) return;
     if(mode === 'winRate') {
       html = `<table class="ranking-table">
         <tr><th>位</th><th>名前</th><th>勝</th><th>負</th><th>分</th><th>勝率</th><th>試合</th></tr>
@@ -341,22 +351,30 @@
         ${list.map((p, i) => `<tr><td>${i+1}</td><td style="text-align:left;">${p.name}</td><td>${p.games}</td><td>${p.m}</td><td>${p.avg.toFixed(2)}</td></tr>`).join('')}
       </table>`;
     }
-    document.getElementById('ranking').innerHTML = html;
+    tableEl.innerHTML = html;
   }
 
   function copyRoomLink(){ navigator.clipboard.writeText(location.href); alert("URLをコピーしました"); }
-  function createRoom(){ if(confirm("新しい空の部屋を作成しますか？")) { location.href = location.pathname; } }
-  function saveData() { if(window.fbSave) window.fbSave({allMembers, schedule, showingRounds}); }
+  function createRoom(){ if(confirm("新しい空の部屋を作成しますか？")) { location.href = window.location.origin + window.location.pathname; } }
+  
+  function saveData() { 
+    if(window.fbSave) window.fbSave({allMembers, schedule, showingRounds}); 
+  }
 
   function loadData(data) {
+    if(!data) return;
     if(data.allMembers) allMembers = data.allMembers;
     if(data.schedule) schedule = data.schedule;
     if(data.showingRounds) showingRounds = data.showingRounds;
+    
     renderMemberList();
-    const matchActive = document.getElementById('screen-match').classList.contains('active');
+    const isMenu = document.getElementById('screen-menu').classList.contains('active');
+    const isMatch = document.getElementById('screen-match').classList.contains('active');
+
+    // ① 同期のトリガーを確実に引く
     if(schedule.length > 0) {
-        if(document.getElementById('screen-menu').classList.contains('active')) showScreen('match');
-        else if(matchActive) renderMatches();
+        if(isMenu) showScreen('match');
+        else if(isMatch) renderMatches();
     }
   }
 </script>
