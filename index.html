@@ -1,55 +1,38 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>🎾TenniMatch v2.2.0 — 組合せ生成（テンプレート固定 / シャッフルP割り当て）</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <title>🎾TenniMatch v2.2.5 — 1面4〜9（各15試合）</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    body { margin:0; font-family:'Noto Sans JP',sans-serif; background: linear-gradient(135deg,#1e3c72,#2a5298); color: #333; }
-    header { padding: 16px; text-align: center; color: white; font-size: 18px; font-weight: 700; }
-    #roomInfo { font-size: 12px; margin-top:6px; color: #fff; }
-    .card { background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin: 16px; padding: 16px; }
-    .hidden { display: none; }
-    button { background: linear-gradient(135deg,#ff9966,#ff5e62); border: none; padding: 10px 16px; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; margin: 8px 4px; }
-    button:hover { opacity:0.9; }
-    #register input { padding:6px; width: 180px; margin-right:8px; }
-    #register .member-item { margin:8px 0; }
-    #register .member-item button { margin-left:8px; background:#e74c3c; }
-    #guestArea .guest-slot { display:inline-block; border:1px solid #ccc; border-radius:6px; padding:8px; margin:4px; min-width:80px; text-align:center; cursor: pointer; background:#f9f9f9; }
-    #guestArea .guest-slot:hover { background:#e0e0e0; }
-    .member-btn { margin:4px; background: #4caf50; }
-    .match-card { border-radius:14px; padding: 12px; margin: 10px 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); color: #333; }
-    .match-title { font-weight:700; margin-bottom: 8px; }
-    .court-name { font-weight:600; color: #2a5298; margin-top: 12px; margin-bottom: 4px; }
-    .pair-row { display: flex; justify-content: space-between; align-items: center; margin:6px 0; gap:8px; }
-    .pair { font-weight:500; }
-    .vs { text-align:center; font-size: 12px; color: #666; margin: 2px 0; }
-    .score-display { width:40px; height:36px; line-height:36px; text-align:center; border-radius:6px; background:#fff; border:1px solid #ccc; }
-    .score-input { width:48px; height:36px; font-size:16px; text-align:center; border:2px solid #2a5298; border-radius:8px; background: #f0f4ff; }
-    .delete-score { background:#e74c3c; padding:6px 8px; border-radius:6px; color:white; border:none; cursor:pointer; }
-    .delete-score:hover { opacity:0.9; }
-    .ranking-table { width: 100%; border-collapse: collapse; margin: 16px; }
-    .ranking-table th, .ranking-table td { border:1px solid #ddd; padding:8px; text-align:center; }
-    .ranking-table th { background:#4caf50; color:#fff; }
-    .ranking-card { margin:16px; }
-    .guest-slot { display:inline-block; border:1px solid #ccc; border-radius:8px; padding:10px; margin:6px; min-width:90px; text-align:center; cursor:pointer; background:#eeeeee; transition:0.2s; }
-    .guest-slot.selected { margin:4px; background:#4caf50 !important; color:white !important; border:none; }
-    .small { font-size:12px; padding:6px 10px; }
-    #shuffleList { margin-top:12px; padding:10px; border-radius:8px; background:#f7f7f7; }
-    #shuffleList .map-item { margin:6px 0; }
-    .muted { color:#666; font-size:13px; }
+    body{margin:0;font-family:'Noto Sans JP',sans-serif;background:linear-gradient(135deg,#1e3c72,#2a5298);color:#333}
+    header{padding:16px;text-align:center;color:#fff;font-weight:700}
+    .card{background:#fff;border-radius:12px;padding:16px;margin:16px;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+    button{background:linear-gradient(135deg,#ff9966,#ff5e62);border:none;padding:10px 14px;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;margin:6px}
+    .small{font-size:12px;padding:6px 10px}
+    .guest-slot{display:inline-block;border:1px solid #ccc;border-radius:8px;padding:10px;margin:6px;min-width:90px;text-align:center;background:#eee;cursor:pointer}
+    .guest-slot.selected{background:#4caf50;color:#fff;border:none}
+    .member-btn{margin:4px;background:#4caf50;color:#fff;padding:8px;border-radius:8px;border:none;cursor:pointer}
+    .match-card{border-radius:14px;padding:12px;margin:10px 16px;background:#fff}
+    .pair-row{display:flex;justify-content:space-between;align-items:center;margin:6px 0;gap:8px}
+    .pair{font-weight:500}
+    .vs{text-align:center;font-size:12px;color:#666;margin:2px 0}
+    .score-input{width:48px;height:36px;text-align:center;border-radius:8px;border:2px solid #2a5298;background:#f0f4ff}
+    .score-display{width:40px;height:36px;line-height:36px;text-align:center;border-radius:6px;border:1px solid #ccc;background:#fff}
+    .ranking-table{width:100%;border-collapse:collapse;margin:16px}
+    .ranking-table th,.ranking-table td{border:1px solid #ddd;padding:8px;text-align:center}
+    .ranking-table th{background:#4caf50;color:#fff}
+    #shuffleList{margin-top:12px;padding:10px;border-radius:8px;background:#f7f7f7}
+    .muted{color:#666;font-size:13px}
   </style>
 </head>
 <body>
-
 <header>
-  <div id="appTitle">🎾TenniMatch🎾 
-  組合せ＆ランキング管理 v2.2.0</div>
-  <div id="roomInfo">部屋: <span id="roomIdDisplay">---</span> &nbsp; <button class="small" onclick="copyRoomLink()">リンクをコピー</button></div>
+  <div>🎾TenniMatch🎾 組合せ＆ランキング v2.2.5</div>
+  <div style="font-size:12px;color:#fff;margin-top:6px">部屋: <span id="roomIdDisplay">---</span> <button class="small" onclick="copyRoomLink()">リンクをコピー</button></div>
 </header>
 
-<!-- メニュー画面 -->
 <div id="menu" class="card">
   <h2>メニュー</h2>
   <button onclick="showRegister()">メンバー登録</button>
@@ -57,568 +40,304 @@
   <button onclick="createRoom()">新しい部屋を作る</button>
 </div>
 
-<!-- メンバー登録 -->
 <div id="register" class="card hidden">
   <h2>メンバー登録</h2>
-  <input id="newMember" type="text" placeholder="名前を入力">
+  <input id="newMember" type="text" placeholder="名前を入力" style="padding:8px;width:200px">
   <button onclick="addMember()">登録</button>
-  <div id="memberList" style="margin-top:12px;"></div>
-  <br>
-  <button onclick="backMenu()">戻る</button>
+  <div id="memberList" style="margin-top:12px"></div>
+  <br><button onclick="backMenu()">戻る</button>
 </div>
 
-<!-- 組合せ＆ランキング -->
 <div id="main" class="card hidden">
   <h2>参加者選択</h2>
-
   参加人数：
   <select id="playerCount"></select>
-
   コート数：
-  <select id="courtCount">
-    <option value="1">1面</option>
-    <option value="2">2面</option>
-  </select>
+  <select id="courtCount"><option value="1">1面</option></select>
 
-  <div id="guestArea" style="margin-top:12px;"></div>
+  <div id="guestArea" style="margin-top:12px"></div>
 
   <h3>登録者リスト</h3>
   <div id="memberButtons"></div>
 
-  <!-- ここにシャッフル後リストを表示 -->
   <div id="shuffleList" class="hidden card">
-    <h3 style="margin-top:0;">参加者シャッフル後リスト（P割当）</h3>
+    <h3 style="margin-top:0">参加者シャッフル後リスト（P割当）</h3>
     <div id="shuffleMap" class="muted"></div>
-    <div style="margin-top:8px;">
-      <button onclick="clearShuffle()" class="small">シャッフルリストを消す</button>
-    </div>
+    <div style="margin-top:8px"><button class="small" onclick="clearShuffle()">シャッフルリストを消す</button></div>
   </div>
 
   <br>
-  <button onclick="generate()">生成</button>
+  <button onclick="generate()">生成（シャッフルしてP割当）</button>
   <button onclick="backMenu()">戻る</button>
 
-  <div id="matches"></div>  <!-- 組合せカード -->
-  <div id="ranking"></div>  <!-- ランキング表 -->
+  <div id="matches"></div>
+  <div id="ranking"></div>
 </div>
 
-<!-- ---- 先に roomId を用意（非 module） ---- -->
 <script>
-  (function(){
-    function randomId(len = 8){
-      const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-      let s = "";
-      for(let i=0;i<len;i++) s += chars.charAt(Math.floor(Math.random()*chars.length));
-      return s;
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    let rid = params.get("room");
-    if(!rid){
-      rid = "r-" + randomId(6);
-      params.set("room", rid);
-      const newUrl = location.pathname + "?" + params.toString();
-      history.replaceState({}, "", newUrl);
-    }
-    window.roomId = String(rid);
+  (function(){ function randomId(len=8){const chars="abcdefghijklmnopqrstuvwxyz0123456789";let s="";for(let i=0;i<len;i++)s+=chars.charAt(Math.floor(Math.random()*chars.length));return s;}
+    const params=new URLSearchParams(window.location.search); let rid=params.get("room"); if(!rid){rid="r-"+randomId(6); params.set("room",rid); history.replaceState({}, "", location.pathname+"?"+params.toString());} window.roomId=String(rid);
   })();
 </script>
 
-<!-- ---- メイン UI / ロジック (v2.2.0) ---- -->
 <script>
-  let members = [];
+/* state */
+let members = [];
+let players = [];
+let schedule = [];
+let showingRounds = 5;
+let maxRounds = 5;
 
-  // loadFromFirebase はモジュール側から呼ばれる（互換性のため存在）
-  function loadFromFirebase(state){
-    members = state.members || [];
-    players = state.players || [];
-    schedule = state.schedule || [];
-    showingRounds = state.showingRounds || 5;
-    maxRounds = state.maxRounds || schedule.length || 5;
-    renderMembers();
-    render();
-    updateRanking();
-    if(window.updateRoomDisplay) window.updateRoomDisplay();
-  }
-  window.loadFromFirebase = loadFromFirebase;
-
-  // プレイヤー / スケジュール / 表示制御
-  let players = []; // { name, pos }
-  let schedule = []; // { matches:[ { team1:[{name,pos}], team2:[...] , score:[null,null] } ] }
-  let showingRounds = 5;
-  let maxRounds = 5;
-
-  function loadMembers(){
-    members = [];
-    renderMembers();
-  }
-
-  function saveMembers(){
-    if(window.saveStateToFirebase){
-      window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds });
-    }
-  }
-
-  function renderMembers(){
-    const list = document.getElementById("memberList");
-    list.innerHTML = "";
-    members.forEach((m,i)=>{
-      list.innerHTML += `
-        <div class="member-item">
-          ${m}
-          <button onclick="deleteMember(${i})">削除</button>
-        </div>`;
-    });
-    renderMemberButtons();
-  }
-
-  function addMember(){
-    const name = document.getElementById("newMember").value.trim();
-    if(!name) return;
-    members.push(name);
-    document.getElementById("newMember").value = "";
-    saveMembers();
-    renderMembers();
-  }
-
-  function deleteMember(i){
-    members.splice(i,1);
-    saveMembers();
-    renderMembers();
-  }
-
-  function showRegister(){
-    document.getElementById("menu").classList.add("hidden");
-    document.getElementById("register").classList.remove("hidden");
-  }
-  function showMain(){
-    document.getElementById("menu").classList.add("hidden");
-    document.getElementById("main").classList.remove("hidden");
-    setupGuests();
-    // hide shuffle list until generate
-    document.getElementById("shuffleList").classList.add("hidden");
-  }
-  function backMenu(){
-    document.getElementById("register").classList.add("hidden");
-    document.getElementById("main").classList.add("hidden");
-    document.getElementById("menu").classList.remove("hidden");
-  }
-
-  for(let i=4;i<=20;i++){
-    const opt = document.createElement("option");
-    opt.value = i; opt.text = i+"人";
-    document.getElementById("playerCount").appendChild(opt);
-  }
-  document.getElementById("playerCount").value = 8;
-  document.getElementById("playerCount").onchange = setupGuests;
-
-  function setupGuests(){
-    const count = parseInt(document.getElementById("playerCount").value);
-    const area = document.getElementById("guestArea");
-    area.innerHTML = "";
-    for(let i=1;i<=count;i++){
-      const div = document.createElement("div");
-      div.className = "guest-slot";
-      div.id = "guest"+i;
-      div.textContent = "ゲスト"+i;
-      div.onclick = function(){
-        if(div.classList.contains("selected")){
-          const name = div.textContent;
-          div.textContent = "ゲスト"+i;
-          div.classList.remove("selected");
-          const btn = document.querySelector(`[data-name="${name}"]`);
-          if(btn) btn.style.display = "inline-block";
-        }
-      };
-      area.appendChild(div);
-    }
-    renderMemberButtons();
-  }
-
-  function renderMemberButtons(){
-    const btnArea = document.getElementById("memberButtons");
-    btnArea.innerHTML = "";
-    members.forEach(name => {
-      const btn = document.createElement("button");
-      btn.className = "member-btn";
-      btn.textContent = name;
-      btn.setAttribute("data-name", name);
-      btn.onclick = ()=>assignGuest(name);
-      btnArea.appendChild(btn);
-    });
-  }
-  function assignGuest(name){
-    const count = parseInt(document.getElementById("playerCount").value);
-    for(let i=count;i>=1;i--){
-      const slot = document.getElementById("guest"+i);
-      if(slot.textContent.startsWith("ゲスト")){
-        slot.textContent = name;
-        slot.classList.add("selected");
-        const btn = document.querySelector(`[data-name="${name}"]`);
-        if(btn) btn.style.display = "none";
-        break;
-      }
-    }
-  }
-
-  // --- 固定テンプレート群 ---
-  // 9人・2面 のテンプレート（テニスベアから取得したパターン、先頭15回分を上限に使用）
-  const templates = {
-    "9_2": [
-      // round1..15 (1-indexed player numbers)
-      { matches: [ [[1,2],[3,4]], [[5,6],[7,8]] ] },
-      { matches: [ [[9,1],[2,5]], [[3,7],[4,8]] ] },
-      { matches: [ [[6,9],[1,3]], [[2,4],[5,8]] ] },
-      { matches: [ [[7,6],[9,2]], [[1,5],[3,8]] ] },
-      { matches: [ [[4,6],[7,9]], [[1,8],[2,3]] ] },
-      { matches: [ [[5,9],[4,7]], [[6,1],[2,8]] ] },
-      { matches: [ [[3,6],[4,5]], [[7,1],[9,8]] ] },
-      { matches: [ [[2,7],[3,5]], [[4,9],[6,8]] ] },
-      { matches: [ [[1,4],[5,7]], [[2,6],[3,9]] ] },
-      { matches: [ [[1,2],[4,7]], [[8,5],[6,9]] ] },
-      { matches: [ [[3,8],[7,9]], [[1,5],[2,6]] ] },
-      { matches: [ [[4,9],[3,2]], [[1,8],[5,7]] ] },
-      { matches: [ [[6,8],[3,4]], [[1,7],[2,9]] ] },
-      { matches: [ [[5,4],[3,6]], [[1,9],[7,8]] ] },
-      { matches: [ [[2,5],[4,6]], [[3,1],[8,9]] ] }
-    ],
-    // 8人・2面 用（既存 template8 を活用。ラウンド数は template の長さ分）
-    "8_2": [
-      { matches:[[ [1,2],[3,4] ], [ [5,6],[7,8] ]] },
-      { matches:[[ [1,3],[2,4] ], [ [5,7],[6,8] ]] },
-      { matches:[[ [1,4],[2,3] ], [ [5,8],[6,7] ]] },
-      { matches:[[ [1,5],[2,6] ], [ [3,7],[4,8] ]] },
-      { matches:[[ [1,6],[2,5] ], [ [3,8],[4,7] ]] },
-      { matches:[[ [1,7],[2,8] ], [ [3,5],[4,6] ]] },
-      { matches:[[ [1,8],[2,7] ], [ [3,6],[4,5] ]] }
-    ],
-    // 4人・1面 用（基本パターン）
-    "4_1": [
-      { matches:[[ [1,2],[3,4] ]] },
-      { matches:[[ [1,3],[2,4] ]] },
-      { matches:[[ [1,4],[2,3] ]] }
-    ]
-  };
-
-  // フォールバック：簡易ローテーションでテンプレートを作る（人数と面数に応じて）
-  function buildRotationalTemplate(count, court){
+/* Build deterministic 15-round templates for 1面 4〜9人.
+   Note: I cannot fetch tennisbear from here; this function
+   creates repeatable rotation-based 15 rounds per count.
+   If you provide exact tennisbear templates later I'll swap them.
+*/
+function buildFullTemplates_1_4_to_1_9(){
+  const out = {};
+  for(let count=4; count<=9; count++){
     const rounds = [];
-    const playersIdx = Array.from({length:count}, (_,i)=>i+1);
-    // シンプルに count rounds (or up to 15) of rotating opponents
-    const maxR = Math.min(15, Math.max(5, Math.floor(15)));
-    for(let r=0;r<Math.min(15, count); r++){
-      const roundMatches = [];
-      // rotate array
-      const arr = playersIdx.slice(r).concat(playersIdx.slice(0,r));
-      // pair sequentially into court*2 players
-      for(let c=0;c<court;c++){
-        // each court needs two pairs = 4 players
-        const base = c*4;
-        if(base+3 >= arr.length) break;
-        const a1 = arr[base], a2 = arr[base+1], b1 = arr[base+2], b2 = arr[base+3];
-        roundMatches.push([[a1,a2],[b1,b2]]);
+    // produce exactly 15 rounds
+    for(let r=0; r<15; r++){
+      // select 4 players per round using sliding window on rotation
+      // deterministic: start offset = r
+      const a = (r % count) + 1;
+      const b = ((r+1) % count) + 1;
+      const c = ((r+2) % count) + 1;
+      const d = ((r+3) % count) + 1;
+      rounds.push({ matches: [ [ [a,b], [c,d] ] ] });
+    }
+    out[`1_${count}`] = rounds;
+  }
+  return out;
+}
+
+/* Templates: produced by function above (1_4..1_9 each have 15 rounds) */
+const templates = buildFullTemplates_1_4_to_1_9();
+
+/* Firebase-compatible loader hook (keeps compatibility) */
+function loadFromFirebase(state){
+  members = state.members || members || [];
+  players = state.players || players || [];
+  schedule = state.schedule || schedule || [];
+  showingRounds = state.showingRounds || showingRounds || 5;
+  maxRounds = state.maxRounds || maxRounds || schedule.length || 5;
+  renderMembers();
+  render();
+  updateRanking();
+  if(window.updateRoomDisplay) window.updateRoomDisplay();
+}
+window.loadFromFirebase = loadFromFirebase;
+
+/* UI init */
+const pc = document.getElementById("playerCount");
+for(let i=4;i<=9;i++){ const opt=document.createElement("option"); opt.value=i; opt.text = i+"人"; pc.appendChild(opt); }
+pc.value = 8;
+pc.onchange = setupGuests;
+
+/* Member registration / assign (assign removes from members — will not resurrect on generate) */
+function renderMembers(){
+  const list = document.getElementById("memberList"); list.innerHTML = "";
+  members.forEach((m,i)=>{
+    const div = document.createElement("div"); div.className = "member-item";
+    div.innerHTML = `${escapeHtml(m)} <button onclick="deleteMember(${i})">削除</button>`;
+    list.appendChild(div);
+  });
+  renderMemberButtons();
+}
+function renderMemberButtons(){
+  const area = document.getElementById("memberButtons"); area.innerHTML = "";
+  members.forEach(name=>{
+    const btn = document.createElement("button"); btn.className = "member-btn"; btn.textContent = name;
+    btn.onclick = ()=>assignGuest(name);
+    btn.setAttribute("data-name", name);
+    area.appendChild(btn);
+  });
+}
+function addMember(){ const name = document.getElementById("newMember").value.trim(); if(!name) return; if(members.includes(name) || players.some(p=>p.name===name)){ alert("同じ名前があります"); return; } members.push(name); document.getElementById("newMember").value=""; saveStateToFirebaseIfReady(); renderMembers(); }
+function deleteMember(i){ members.splice(i,1); saveStateToFirebaseIfReady(); renderMembers(); }
+
+function showRegister(){ document.getElementById("menu").classList.add("hidden"); document.getElementById("register").classList.remove("hidden"); }
+function showMain(){ document.getElementById("menu").classList.add("hidden"); document.getElementById("main").classList.remove("hidden"); setupGuests(); document.getElementById("shuffleList").classList.add("hidden"); }
+function backMenu(){ document.getElementById("register").classList.add("hidden"); document.getElementById("main").classList.add("hidden"); document.getElementById("menu").classList.remove("hidden"); }
+
+function setupGuests(){
+  const count = parseInt(document.getElementById("playerCount").value,10);
+  const area = document.getElementById("guestArea"); area.innerHTML = "";
+  for(let i=1;i<=count;i++){
+    const div = document.createElement("div"); div.className="guest-slot"; div.id="guest"+i; div.textContent="ゲスト"+i;
+    div.onclick = function(){
+      if(div.classList.contains("selected")){
+        const name = div.getAttribute("data-name");
+        div.textContent = "ゲスト"+i;
+        div.classList.remove("selected");
+        div.removeAttribute("data-name");
+        if(name && !members.includes(name)){ members.push(name); saveStateToFirebaseIfReady(); renderMembers(); }
       }
-      rounds.push({ matches: roundMatches });
+    };
+    area.appendChild(div);
+  }
+  renderMemberButtons();
+}
+
+function assignGuest(name){
+  const count = parseInt(document.getElementById("playerCount").value,10);
+  for(let i=1;i<=count;i++){
+    const slot = document.getElementById("guest"+i);
+    if(slot && slot.textContent.startsWith("ゲスト")){
+      slot.textContent = name; slot.classList.add("selected"); slot.setAttribute("data-name", name);
+      const idx = members.indexOf(name); if(idx !== -1) members.splice(idx,1);
+      saveStateToFirebaseIfReady(); renderMembers(); return;
     }
-    return rounds;
+  }
+  alert("空きスロットがありません");
+}
+
+/* generate: shuffle -> assign P1..PN -> map template (templates already have 15 rounds) */
+function generate(){
+  const count = parseInt(document.getElementById("playerCount").value,10);
+  const slotNames = [];
+  for(let i=1;i<=count;i++){
+    const s = document.getElementById("guest"+i);
+    const name = s && s.classList.contains("selected") ? s.getAttribute("data-name") : (s ? s.textContent : ("ゲスト"+i));
+    slotNames.push(name || ("ゲスト"+i));
   }
 
-  // --- 生成処理 ---
-  function generate(){
-    // collect guest slot names (in order)
-    const count = parseInt(document.getElementById("playerCount").value);
-    const guestNames = [];
-    for(let i=1;i<=count;i++){
-      const slot = document.getElementById("guest"+i);
-      guestNames.push(slot ? slot.textContent : ("ゲスト"+i));
-    }
+  // shuffle for P1..PN
+  const shuffled = slotNames.slice(); shuffle(shuffled);
+  players = shuffled.map((name,idx)=>({ name, pos: idx+1 }));
 
-    // create randomized P1..PN mapping (シャッフル)
-    const shuffled = guestNames.slice();
-    shuffle(shuffled);
-    // players array keeps name + pos (pos=1..N) to be used by ranking logic
-    players = shuffled.map((name, idx)=>({ name, pos: idx+1 }));
+  // show shuffle mapping
+  showShuffleMap(players);
 
-    // show shuffle mapping in UI
-    showShuffleMap(players);
+  // select template
+  const court = parseInt(document.getElementById("courtCount").value,10);
+  const key = `${court}_${count}`;
+  let rounds = templates[key];
+  if(!rounds || rounds.length===0){
+    rounds = buildRotationalTemplate(count, court).slice(0,15);
+  } else {
+    // ensure up to 15 rounds (templates built have 15)
+    rounds = rounds.slice(0,15);
+  }
 
-    // select template based on count and court
-    const court = parseInt(document.getElementById("courtCount").value);
-    const key = `${count}_${court}`;
-    let templateRounds = templates[key];
-    if(!templateRounds){
-      // fallback: try 8_2 or 4_1 where reasonable, otherwise build rotation
-      if(key === "8_2" && templates["8_2"]) templateRounds = templates["8_2"];
-      else if(key === "4_1" && templates["4_1"]) templateRounds = templates["4_1"];
-      else templateRounds = buildRotationalTemplate(count, court);
-    }
-
-    // limit to max 15 rounds (user request)
-    const roundsToUse = templateRounds.slice(0, 15);
-
-    // Build schedule: map template indices -> actual players (pos index in template is 1-based)
-    schedule = roundsToUse.map(r => {
-      const matches = r.matches.map(pair => {
-        // pair: [[a,b],[c,d]] (each entry are index numbers)
-        const t1 = pair[0].map(idx => {
-          const name = (idx <= players.length) ? players[idx-1].name : ("空き"+idx);
-          return { name, pos: idx };
-        });
-        const t2 = pair[1].map(idx => {
-          const name = (idx <= players.length) ? players[idx-1].name : ("空き"+idx);
-          return { name, pos: idx };
-        });
-        return { team1: t1, team2: t2, score: [null, null] };
-      });
-      return { matches };
+  // map to schedule by replacing numeric indices with player names (1-based)
+  schedule = rounds.map(r=>{
+    const matches = r.matches.map(pair=>{
+      const t1 = pair[0].map(idx => ({ name: (idx <= players.length ? players[idx-1].name : ("空き"+idx)), pos: idx }));
+      const t2 = pair[1].map(idx => ({ name: (idx <= players.length ? players[idx-1].name : ("空き"+idx)), pos: idx }));
+      return { team1: t1, team2: t2, score:[null,null] };
     });
+    return { matches };
+  });
 
-    // schedule fully created (最大15試合) — 表示は最初5試合
-    maxRounds = schedule.length;
-    showingRounds = Math.min(5, maxRounds);
+  maxRounds = schedule.length;
+  showingRounds = Math.min(5, maxRounds);
+  saveStateToFirebaseIfReady();
+  render();
+}
 
-    // save state to Firebase (members 必須)
-    if(window.saveStateToFirebase){
-      window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds }).catch(e => console.warn("save error", e));
-    }
+/* shuffle map UI */
+function showShuffleMap(playersArr){ const wrap=document.getElementById("shuffleList"); const mapDiv=document.getElementById("shuffleMap"); mapDiv.innerHTML=""; playersArr.forEach(p=>{ const el=document.createElement("div"); el.className="map-item"; el.textContent=`P${p.pos} → ${p.name}`; mapDiv.appendChild(el); }); wrap.classList.remove("hidden"); }
+function clearShuffle(){ document.getElementById("shuffleMap").innerHTML=""; document.getElementById("shuffleList").classList.add("hidden"); }
 
-    render();
-  }
-
-  // 表示：シャッフルマップ
-  function showShuffleMap(playersArr){
-    const wrap = document.getElementById("shuffleList");
-    const mapDiv = document.getElementById("shuffleMap");
-    mapDiv.innerHTML = "";
-    playersArr.forEach(p => {
-      const el = document.createElement("div");
-      el.className = "map-item";
-      el.textContent = `P${p.pos} → ${p.name}`;
-      mapDiv.appendChild(el);
-    });
-    wrap.classList.remove("hidden");
-  }
-  function clearShuffle(){
-    document.getElementById("shuffleMap").innerHTML = "";
-    document.getElementById("shuffleList").classList.add("hidden");
-  }
-
-  // レンダリング（スコア入力欄や P表示に注意）
-  function render(){
-    const matchesDiv = document.getElementById("matches");
-    matchesDiv.innerHTML = "";
-
-    schedule.forEach((round, i) => {
-      if(i >= showingRounds) return;
-      const card = document.createElement('div');
-      card.className = 'match-card';
-      const bgColors = ["#e3f2fd","#fff3e0","#e8f5e9","#fce4ec"];
-      card.style.background = bgColors[i % bgColors.length];
-      card.innerHTML = `<div class="match-title">🏆 MATCH ${(i+1).toString().padStart(2,'0')}</div>`;
-
-      const m = round.matches;
-      // For each court in this round, label courts generically A, B, C...
-      m.forEach((mm, ci) => {
-        const courtLabel = ["【コートA】","【コートB】","【コートC】"][ci] || `【コート${String.fromCharCode(65+ci)}】`;
-        card.innerHTML += `<div class="court-name">${courtLabel}</div>`;
-
-        // team1
-        const t1p0 = mm.team1[0] ? `P${mm.team1[0].pos}` : '';
-        const t1p1 = mm.team1[1] ? `P${mm.team1[1].pos}` : '';
-        const t2p0 = mm.team2[0] ? `P${mm.team2[0].pos}` : '';
-        const t2p1 = mm.team2[1] ? `P${mm.team2[1].pos}` : '';
-
-        card.innerHTML += `
-          <div class="pair-row">
-            <div class="pair">${t1p0} ＆ ${t1p1}</div>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <div class="score-display" id="disp-${i}-${ci}-0">${renderScoreText(mm.score && mm.score[0])}</div>
-              <input class="score-input" id="input-${i}-${ci}-0" type="number" min="0" max="99" value="${renderScoreValue(mm.score && mm.score[0])}" onchange="setScore(${i},${ci},0,this.value)">
-              <button class="delete-score" onclick="deleteScore(${i},${ci},0)">削除</button>
-            </div>
+/* render */
+function render(){
+  const matchesDiv = document.getElementById("matches"); matchesDiv.innerHTML="";
+  schedule.forEach((round,i)=>{
+    if(i >= showingRounds) return;
+    const card = document.createElement("div"); card.className="match-card";
+    const bg = ["#e3f2fd","#fff3e0","#e8f5e9","#fce4ec"][i%4];
+    card.style.background = bg;
+    card.innerHTML = `<div style="font-weight:700;margin-bottom:8px">🏆 MATCH ${(i+1).toString().padStart(2,'0')}</div>`;
+    round.matches.forEach((m,ci)=>{
+      const courtLabel = ["【コートA】","【コートB】","【コートC】"][ci] || `【コート${String.fromCharCode(65+ci)}】`;
+      card.innerHTML += `<div style="font-weight:600;color:#2a5298;margin-top:8px">${courtLabel}</div>`;
+      const t1p0 = m.team1[0] ? `P${m.team1[0].pos}` : '';
+      const t1p1 = m.team1[1] ? `P${m.team1[1].pos}` : '';
+      const t2p0 = m.team2[0] ? `P${m.team2[0].pos}` : '';
+      const t2p1 = m.team2[1] ? `P${m.team2[1].pos}` : '';
+      card.innerHTML += `
+        <div class="pair-row">
+          <div class="pair">${escapeHtml(t1p0)} ＆ ${escapeHtml(t1p1)}</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div class="score-display" id="disp-${i}-${ci}-0">${renderScoreText(m.score && m.score[0])}</div>
+            <input class="score-input" id="input-${i}-${ci}-0" type="number" min="0" max="99" value="${renderScoreValue(m.score && m.score[0])}" onchange="setScore(${i},${ci},0,this.value)">
+            <button onclick="deleteScore(${i},${ci},0)" style="background:#e74c3c;color:#fff;border:none;padding:6px;border-radius:6px;cursor:pointer">削除</button>
           </div>
-          <div class="vs">vs</div>
-          <div class="pair-row">
-            <div class="pair">${t2p0} ＆ ${t2p1}</div>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <div class="score-display" id="disp-${i}-${ci}-1">${renderScoreText(mm.score && mm.score[1])}</div>
-              <input class="score-input" id="input-${i}-${ci}-1" type="number" min="0" max="99" value="${renderScoreValue(mm.score && mm.score[1])}" onchange="setScore(${i},${ci},1,this.value)">
-              <button class="delete-score" onclick="deleteScore(${i},${ci},1)">削除</button>
-            </div>
+        </div>
+        <div class="vs">vs</div>
+        <div class="pair-row">
+          <div class="pair">${escapeHtml(t2p0)} ＆ ${escapeHtml(t2p1)}</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div class="score-display" id="disp-${i}-${ci}-1">${renderScoreText(m.score && m.score[1])}</div>
+            <input class="score-input" id="input-${i}-${ci}-1" type="number" min="0" max="99" value="${renderScoreValue(m.score && m.score[1])}" onchange="setScore(${i},${ci},1,this.value)">
+            <button onclick="deleteScore(${i},${ci},1)" style="background:#e74c3c;color:#fff;border:none;padding:6px;border-radius:6px;cursor:pointer">削除</button>
           </div>
-        `;
-      });
-
-      matchesDiv.appendChild(card);
+        </div>
+      `;
     });
+    matchesDiv.appendChild(card);
+  });
 
-    // 追加ボタン（+5ずつ表示、最大 maxRounds）
-    if(showingRounds < maxRounds){
-      const btn = document.createElement("button");
-      btn.textContent = `試合追加 +5（現在 ${showingRounds}/${maxRounds}）`;
-      btn.onclick = ()=>{
-        showingRounds = Math.min(maxRounds, showingRounds + 5);
-        render();
-        if(window.saveStateToFirebase){
-          window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds }).catch(e => console.warn("save error", e));
-        }
-      };
-      matchesDiv.appendChild(btn);
-    }
-
-    updateRanking();
+  if(showingRounds < maxRounds){
+    const btn = document.createElement("button");
+    btn.textContent = `試合追加 +5（現在 ${showingRounds}/${maxRounds}）`;
+    btn.onclick = ()=>{ showingRounds = Math.min(maxRounds, showingRounds+5); render(); saveStateToFirebaseIfReady(); };
+    matchesDiv.appendChild(btn);
   }
 
-  // スコア系ユーティリティ
-  function renderScoreText(val){
-    if(val === null || val === undefined) return '';
-    return String(val);
-  }
-  function renderScoreValue(val){
-    if(val === null || val === undefined) return '';
-    return String(val);
-  }
+  updateRanking();
+}
 
-  function setScore(roundIndex, matchIndex, team, rawVal){
-    const match = schedule[roundIndex].matches[matchIndex];
-    if(!match) return;
-    const trimmed = String(rawVal).trim();
-    let newVal = null;
-    if(trimmed !== ''){
-      const n = parseInt(trimmed, 10);
-      if(Number.isFinite(n) && n >= 0){
-        newVal = n;
-      } else { return; }
-    } else {
-      newVal = null;
-    }
-    if(!match.score) match.score = [null,null];
-    match.score[team] = newVal;
+/* scores & ranking */
+function renderScoreText(v){ return (v===null||v===undefined)?'':String(v); }
+function renderScoreValue(v){ return (v===null||v===undefined)?'':String(v); }
+function setScore(roundIdx, matchIdx, team, rawVal){
+  const match = schedule[roundIdx] && schedule[roundIdx].matches[matchIdx]; if(!match) return;
+  const t = String(rawVal).trim(); let newVal=null; if(t!==''){ const n=parseInt(t,10); if(Number.isFinite(n)&&n>=0) newVal=n; else return;}
+  if(!match.score) match.score=[null,null]; match.score[team]=newVal;
+  updateRanking(); saveStateToFirebaseIfReady(); render();
+}
+function deleteScore(roundIdx, matchIdx, team){ const match = schedule[roundIdx] && schedule[roundIdx].matches[matchIdx]; if(!match||!match.score) return; match.score[team]=null; updateRanking(); saveStateToFirebaseIfReady(); render(); }
+function updateRanking(){
+  const map={}; players.forEach(p=>{ map[p.name]={total:0,match:0}; });
+  schedule.forEach(round=>{ round.matches.forEach(match=>{ if(!match.score) return; const s0=(match.score[0]!==null&&match.score[0]!==undefined)?match.score[0]:null; const s1=(match.score[1]!==null&&match.score[1]!==undefined)?match.score[1]:null;
+    if(s0!==null) match.team1.forEach(p=>{ if(map[p.name]){ map[p.name].total+=s0; map[p.name].match++; } });
+    if(s1!==null) match.team2.forEach(p=>{ if(map[p.name]){ map[p.name].total+=s1; map[p.name].match++; } });
+  }); });
+  const stats = Object.keys(map).map(name=>{ const m=map[name]; return {name,total:m.total,match:m.match,avg:m.match?(m.total/m.match):0}; }).sort((a,b)=>b.avg-a.avg);
+  let html=`<div class="ranking-card"><h3>🏆 ランキング</h3><table class="ranking-table"><tr><th>順位</th><th>名前</th><th>合計</th><th>試合</th><th>平均</th></tr>`;
+  stats.forEach((p,i)=>{ const medal=(i===0?"🥇":i===1?"🥈":i===2?"🥉":""); html+=`<tr><td>${medal}${i+1}</td><td>${escapeHtml(p.name)}</td><td>${p.total}</td><td>${p.match}</td><td>${p.avg.toFixed(2)}</td></tr>`; });
+  html += `</table></div>`; document.getElementById("ranking").innerHTML = html;
+}
 
-    updateRanking();
-    if(window.saveStateToFirebase){
-      window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds }).catch(e => console.warn("save error", e));
-    }
-    render();
-  }
+/* utilities */
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } }
+function buildRotationalTemplate(count,court){ const r=[]; const base=Array.from({length:count},(_,i)=>i+1); const R=Math.min(15,Math.max(5,count)); for(let i=0;i<R;i++){ const arr=base.slice(i).concat(base.slice(0,i)); const matches=[]; for(let c=0;c<court;c++){ const start=c*4; if(start+3>=arr.length) break; matches.push([[arr[start],arr[start+1]],[arr[start+2],arr[start+3]]]); } if(matches.length===0 && count>=4) matches.push([[1,2],[3,4]]); r.push({matches}); } return r; }
+function escapeHtml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
-  function deleteScore(roundIndex, matchIndex, team){
-    const match = schedule[roundIndex].matches[matchIndex];
-    if(!match || !match.score) return;
-    match.score[team] = null;
-    updateRanking();
-    if(window.saveStateToFirebase){
-      window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds }).catch(e => console.warn("save error", e));
-    }
-    render();
-  }
+/* persistence / room / firebase */
+function saveStateToFirebaseIfReady(){ if(window.saveStateToFirebase){ try{ window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds }).catch(e=>console.warn("save error", e)); }catch(e){ console.warn("save call error", e); } } }
+function loadMembers(){ if(!members) members=[]; renderMembers(); }
 
-  // ランキング集計（内部は氏名で集計するため変更なし）
-  function updateRanking(){
-    const map = {};
-    players.forEach(p=>{
-      map[p.name] = { total:0, match:0 };
-    });
+/* room helpers */
+function randomId(len=8){ const chars="abcdefghijklmnopqrstuvwxyz0123456789"; let s=""; for(let i=0;i<len;i++) s+=chars.charAt(Math.floor(Math.random()*chars.length)); return s; }
+function createRoom(){ const newId="r-"+randomId(6); const params=new URLSearchParams(window.location.search); params.set("room",newId); history.pushState({}, "", location.pathname + "?" + params.toString()); window.roomId=newId; if(window.setRoom) window.setRoom(newId); players=[]; schedule=[]; showingRounds=5; maxRounds=5; loadMembers(); setupGuests(); render(); alert("新しい部屋を作成しました: " + newId); }
+function copyRoomLink(){ navigator.clipboard?.writeText(location.href).then(()=>alert("リンクをコピーしました")).catch(()=>prompt("このURLをコピーしてください（Ctrl+C）", location.href)); }
+function updateRoomDisplay(){ const el=document.getElementById("roomIdDisplay"); if(el) el.textContent = window.roomId || "—"; }
 
-    schedule.forEach(round=>{
-      round.matches.forEach(match=>{
-        if(!match.score) return;
-        const s0 = (match.score[0] !== null && match.score[0] !== undefined) ? match.score[0] : null;
-        const s1 = (match.score[1] !== null && match.score[1] !== undefined) ? match.score[1] : null;
+/* bootstrap */
+updateRoomDisplay(); loadMembers(); setupGuests();
 
-        if(s0 !== null){
-          match.team1.forEach(p=>{
-            if(map[p.name]){ map[p.name].total += s0; map[p.name].match++; }
-          });
-        }
-        if(s1 !== null){
-          match.team2.forEach(p=>{
-            if(map[p.name]){ map[p.name].total += s1; map[p.name].match++; }
-          });
-        }
-      });
-    });
-
-    const stats = Object.keys(map).map(name=>{
-      const m = map[name];
-      return {
-        name,
-        total: m.total,
-        match: m.match,
-        avg: m.match ? (m.total/m.match) : 0
-      };
-    }).sort((a,b)=>b.avg - a.avg);
-
-    let html = `<div class="ranking-card"><h3>🏆 ランキング</h3>`;
-    html += `<table class="ranking-table"><tr><th>順位</th><th>名前</th><th>合計</th><th>試合</th><th>平均</th></tr>`;
-    stats.forEach((p,i)=>{
-      const medal = (i===0?"🥇": i===1?"🥈": i===2?"🥉": "");
-      html += `<tr><td>${medal}${i+1}</td><td>${p.name}</td><td>${p.total}</td><td>${p.match}</td><td>${p.avg.toFixed(2)}</td></tr>`;
-    });
-    html += `</table></div>`;
-    document.getElementById("ranking").innerHTML = html;
-  }
-
-  // Fisher-Yates シャッフル
-  function shuffle(arr){
-    for(let i=arr.length-1;i>0;i--){
-      const j = Math.floor(Math.random()*(i+1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-  }
-
-  function randomId(len = 8){
-    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-    let s = "";
-    for(let i=0;i<len;i++) s += chars.charAt(Math.floor(Math.random()*chars.length));
-    return s;
-  }
-  function createRoom(){
-    const newId = "r-" + randomId(6);
-    const params = new URLSearchParams(window.location.search);
-    params.set("room", newId);
-    const newUrl = location.pathname + "?" + params.toString();
-    history.pushState({}, "", newUrl);
-    window.roomId = newId;
-    updateRoomDisplay();
-    if(window.setRoom) window.setRoom(newId);
-    players = [];
-    schedule = [];
-    showingRounds = 5;
-    maxRounds = 5;
-    loadMembers();
-    setupGuests();
-    render();
-    alert("新しい部屋を作成しました: " + newId);
-  }
-
-  function copyRoomLink(){
-    navigator.clipboard?.writeText(location.href).then(()=>{
-      alert("リンクをコピーしました");
-    }).catch(()=>{
-      prompt("このURLをコピーしてください（Ctrl+C）", location.href);
-    });
-  }
-
-  function updateRoomDisplay(){
-    const el = document.getElementById("roomIdDisplay");
-    if(el) el.textContent = window.roomId || "—";
-  }
-
-  updateRoomDisplay();
-  loadMembers();
-  setupGuests();
-
-  window.createRoom = createRoom;
-  window.copyRoomLink = copyRoomLink;
-  window.updateRoomDisplay = updateRoomDisplay;
+/* expose hooks */
+window.createRoom = createRoom; window.copyRoomLink = copyRoomLink; window.updateRoomDisplay = updateRoomDisplay; window.loadFromFirebase = loadFromFirebase;
 </script>
 
-<!-- ---- Firebase module（既存） ---- -->
+<!-- Firebase module (unchanged) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
   import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
-
   const firebaseConfig = {
     apiKey: "AIzaSyBXBOgFKYf5hOJXnxgT7xMwkQREv1tXxWg",
     authDomain: "tennis-match-ranking-man-58aee.firebaseapp.com",
@@ -627,64 +346,15 @@
     messagingSenderId: "452972436558",
     appId: "1:452972436558:web:68357629ca021a6d6f771f"
   };
-
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-
-  let roomRef = null;
-  let unsubscribe = null;
-
-  async function saveStateToFirebase(state){
-    if(!roomRef) return Promise.reject(new Error("roomRef not set"));
-    return setDoc(roomRef, state);
-  }
-
-  function subscribeToRoom(rid){
-    if(unsubscribe) unsubscribe();
-    roomRef = doc(db, "rooms", rid);
-    unsubscribe = onSnapshot(roomRef, (snapshot)=>{
-      if(snapshot.exists()){
-        const state = snapshot.data();
-        console.log("Firebase同期:", state);
-        if(window.loadFromFirebase){
-          window.loadFromFirebase(state);
-        }
-      } else {
-        console.log("Firebase: room empty / not exists yet");
-      }
-    }, (err)=>{
-      console.error("onSnapshot error", err);
-    });
-  }
-
-  window.setRoom = function(newRoomId){
-    console.log("切替 room:", newRoomId);
-    subscribeToRoom(newRoomId);
-    if(window.updateRoomDisplay) window.updateRoomDisplay();
-  };
-
-  if(window.roomId){
-    subscribeToRoom(window.roomId);
-  } else {
-    window.roomId = "default";
-    subscribeToRoom(window.roomId);
-  }
-
+  let roomRef = null; let unsubscribe = null;
+  async function saveStateToFirebase(state){ if(!roomRef) return Promise.reject(new Error("roomRef not set")); return setDoc(roomRef, state); }
+  function subscribeToRoom(rid){ if(unsubscribe) unsubscribe(); roomRef = doc(db, "rooms", rid); unsubscribe = onSnapshot(roomRef, snapshot=>{ if(snapshot.exists()){ const state = snapshot.data(); console.log("Firebase同期:", state); if(window.loadFromFirebase) window.loadFromFirebase(state); } else { console.log("Firebase: room empty / not exists yet"); } }, err=>{ console.error("onSnapshot error", err); }); }
+  window.setRoom = function(newRoomId){ subscribeToRoom(newRoomId); if(window.updateRoomDisplay) window.updateRoomDisplay(); };
+  if(window.roomId) subscribeToRoom(window.roomId); else { window.roomId = "default"; subscribeToRoom(window.roomId); }
   window.saveStateToFirebase = saveStateToFirebase;
-
-  if(!window.loadFromFirebase){
-    window.loadFromFirebase = function(state){
-      players = state.players || [];
-      schedule = state.schedule || [];
-      showingRounds = state.showingRounds || 5;
-      maxRounds = state.maxRounds || schedule.length || 5;
-      if(window.updateRoomDisplay) window.updateRoomDisplay();
-      render();
-      updateRanking();
-    };
-  }
-
+  if(!window.loadFromFirebase){ window.loadFromFirebase = function(state){ players = state.players || []; schedule = state.schedule || []; showingRounds = state.showingRounds || 5; maxRounds = state.maxRounds || schedule.length || 5; if(window.updateRoomDisplay) window.updateRoomDisplay(); render(); updateRanking(); }; }
 </script>
-
 </body>
 </html>
