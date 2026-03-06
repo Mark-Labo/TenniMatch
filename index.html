@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v2.2.7 — 完全版（1面4〜11人テンプレ・シャッフル・スコア・Firebase）</title>
+  <title>🎾TenniMatch v3.0.0 — 完全版（1面4〜11人テンプレ・シャッフル・スコア・Firebase）</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
@@ -10,22 +10,23 @@
     header{padding:16px;text-align:center;color:#fff;font-weight:700}
     #roomInfo{font-size:12px;color:#fff;margin-top:6px}
     .card{background:#fff;border-radius:12px;padding:16px;margin:16px;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+    
+    /* ①の修正：hiddenクラスのCSSを追加（これがないと画面が隠れません） */
+    .hidden { display: none !important; }
+
     button{background:linear-gradient(135deg,#ff9966,#ff5e62);border:none;padding:10px 14px;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;margin:6px}
-    button.small{padding:6px 10px;font-size:12px}
+    button.small{padding:6px 10px;font-size:12px; margin: 0 4px;}
     input[type="text"]{padding:8px}
     .guest-slot{display:inline-block;border:1px solid #ccc;border-radius:8px;padding:10px;margin:6px;min-width:90px;text-align:center;background:#eee;cursor:pointer}
     .guest-slot.selected{background:#4caf50;color:#fff;border:none}
     .member-btn{margin:4px;background:#4caf50;color:#fff;padding:8px;border-radius:8px;border:none;cursor:pointer}
     .match-card{border-radius:14px;padding:12px;margin:10px 16px;background:#fff}
-    .pair-row{display:flex;justify-content:space-between;align-items:center;margin:6px 0;gap:8px}
     .pair{font-weight:500}
-    .vs{text-align:center;font-size:12px;color:#666;margin:2px 0}
-    .score-input{width:56px;height:36px;text-align:center;border-radius:8px;border:2px solid #2a5298;background:#f0f4ff}
-    .score-display{width:44px;height:36px;line-height:36px;text-align:center;border-radius:6px;border:1px solid #ccc;background:#fff}
+    .vs{text-align:center;font-size:12px;color:#666;margin:4px 0}
+    .score-input{width:42px;height:36px;text-align:center;border-radius:8px;border:2px solid #2a5298;background:#f0f4ff;font-size:16px;}
     .ranking-table{width:100%;border-collapse:collapse;margin:16px}
     .ranking-table th,.ranking-table td{border:1px solid #ddd;padding:8px;text-align:center}
     .ranking-table th{background:#4caf50;color:#fff}
-    #shuffleList{margin-top:12px;padding:10px;border-radius:8px;background:#f7f7f7}
     .muted{color:#666;font-size:13px}
   </style>
 </head>
@@ -36,7 +37,6 @@
   <div id="roomInfo">部屋: <span id="roomIdDisplay">---</span> <button class="small" onclick="copyRoomLink()">リンクをコピー</button></div>
 </header>
 
-<!-- メニュー（UIはv2.2.0と同様） -->
 <div id="menu" class="card">
   <h2>メニュー</h2>
   <button onclick="showRegister()">メンバー登録</button>
@@ -44,7 +44,6 @@
   <button onclick="createRoom()">新しい部屋を作る</button>
 </div>
 
-<!-- メンバー登録 -->
 <div id="register" class="card hidden">
   <h2>メンバー登録</h2>
   <input id="newMember" type="text" placeholder="名前を入力">
@@ -54,7 +53,6 @@
   <button onclick="backMenu()">戻る</button>
 </div>
 
-<!-- 組合せ画面 -->
 <div id="main" class="card hidden">
   <h2>参加者選択</h2>
 
@@ -71,12 +69,6 @@
   <h3>登録者リスト</h3>
   <div id="memberButtons"></div>
 
-  <div id="shuffleList" class="hidden card">
-    <h3 style="margin-top:0;">参加者シャッフル後リスト（P割当）</h3>
-    <div id="shuffleMap" class="muted"></div>
-    <div style="margin-top:8px;"><button class="small" onclick="clearShuffle()">シャッフルリストを消す</button></div>
-  </div>
-
   <br>
   <button onclick="generate()">生成（シャッフルしてP割当）</button>
   <button onclick="backMenu()">戻る</button>
@@ -85,7 +77,6 @@
   <div id="ranking"></div>
 </div>
 
-<!-- room id prefill -->
 <script>
   (function(){
     function randomId(len=8){ const chars="abcdefghijklmnopqrstuvwxyz0123456789"; let s=""; for(let i=0;i<len;i++) s+=chars.charAt(Math.floor(Math.random()*chars.length)); return s; }
@@ -108,11 +99,10 @@ let schedule = [];  // 生成されたラウンド（{matches:[{team1:[{name,pos
 let showingRounds = 5;
 let maxRounds = 5;
 
-/* ---------- テンプレート（1面 4〜11人） ----------
-   画像の表に合わせたテンプレ（各ラウンドは {matches:[ [ [a,b],[c,d] ], ... ] } 形式）。
-   4人は3ラウンドのパターンのみ定義（生成時に5回繰り返して15にする）。
-   各人数は理想表に沿って15ラウンド分を用意（画像の表をコード化）。
-*/
+// ③の修正：編集モードを管理するための変数
+window.editMode = {}; // 例: { "0-0": true } (ラウンド0, マッチ0が編集中)
+
+/* ---------- テンプレート（1面 4〜11人） ---------- */
 const templates = {
   "1_4": [
     { matches: [ [[1,2],[3,4]] ] },
@@ -171,22 +161,22 @@ const templates = {
     {matches:[[[4,6],[7,3]]]}
   ],
   "1_8": [
- {matches:[[[1,2],[3,4]]]},
- {matches:[[[5,6],[7,8]]]},
- {matches:[[[1,5],[2,6]]]},
- {matches:[[[3,7],[4,8]]]},
- {matches:[[[1,3],[5,7]]]},
- {matches:[[[2,4],[6,8]]]},
- {matches:[[[1,4],[5,8]]]},
- {matches:[[[2,3],[6,7]]]},
- {matches:[[[1,6],[2,5]]]},
- {matches:[[[3,8],[4,7]]]},
- {matches:[[[1,7],[3,5]]]},
- {matches:[[[2,8],[4,6]]]},
- {matches:[[[1,8],[3,6]]]},
- {matches:[[[2,7],[4,5]]]},
- {matches:[[[1,2],[7,8]]]}
-],
+    {matches:[[[1,2],[3,4]]]},
+    {matches:[[[5,6],[7,8]]]},
+    {matches:[[[1,5],[2,6]]]},
+    {matches:[[[3,7],[4,8]]]},
+    {matches:[[[1,3],[5,7]]]},
+    {matches:[[[2,4],[6,8]]]},
+    {matches:[[[1,4],[5,8]]]},
+    {matches:[[[2,3],[6,7]]]},
+    {matches:[[[1,6],[2,5]]]},
+    {matches:[[[3,8],[4,7]]]},
+    {matches:[[[1,7],[3,5]]]},
+    {matches:[[[2,8],[4,6]]]},
+    {matches:[[[1,8],[3,6]]]},
+    {matches:[[[2,7],[4,5]]]},
+    {matches:[[[1,2],[7,8]]]}
+  ],
   "1_9": [
     {matches:[[[1,2],[3,4]]]},
     {matches:[[[5,6],[7,8]]]},
@@ -283,7 +273,7 @@ function addMember(){ const name=document.getElementById("newMember").value.trim
 function deleteMember(i){ members.splice(i,1); saveStateToFirebaseIfReady(); renderMembers(); }
 
 function showRegister(){ document.getElementById("menu").classList.add("hidden"); document.getElementById("register").classList.remove("hidden"); }
-function showMain(){ document.getElementById("menu").classList.add("hidden"); document.getElementById("main").classList.remove("hidden"); setupGuests(); document.getElementById("shuffleList").classList.add("hidden"); }
+function showMain(){ document.getElementById("menu").classList.add("hidden"); document.getElementById("main").classList.remove("hidden"); setupGuests(); }
 function backMenu(){ document.getElementById("register").classList.add("hidden"); document.getElementById("main").classList.add("hidden"); document.getElementById("menu").classList.remove("hidden"); }
 
 function setupGuests(){
@@ -305,7 +295,6 @@ function setupGuests(){
   renderMemberButtons();
 }
 
-/* assignGuest: スロットに入れたら members から削除（生成しても復活しない） */
 function assignGuest(name){
   const count = parseInt(document.getElementById("playerCount").value,10);
   for(let i=1;i<=count;i++){
@@ -322,7 +311,6 @@ function assignGuest(name){
 /* ---------- 生成ロジック（シャッフルしてテンプレに当てはめ） ---------- */
 function generate(){
   const count = parseInt(document.getElementById("playerCount").value,10);
-  // collect slot names in order
   const slotNames = [];
   for(let i=1;i<=count;i++){
     const s = document.getElementById("guest"+i);
@@ -335,20 +323,17 @@ function generate(){
   shuffle(shuffled);
   players = shuffled.map((name,idx)=>({ name, pos: idx+1 }));
 
-  // show mapping
-  showShuffleMap(players);
+  // ②の修正：ここで表示していたシャッフルマップ表示の呼び出しを削除しました
 
-  // pick template key
   const court = parseInt(document.getElementById("courtCount").value,10);
   const key = `${court}_${count}`;
   let rounds = templates[`1_${count}`] || [];
 
-  // if template rounds < 15 (e.g., 4 has 3), repeat cyclically to make 15
   if(rounds.length < 15){
     const more = [];
     let i = 0;
     while(more.length < 15){
-      more.push(JSON.parse(JSON.stringify(rounds[i % rounds.length]))); // clone
+      more.push(JSON.parse(JSON.stringify(rounds[i % rounds.length])));
       i++;
     }
     rounds = more.slice(0,15);
@@ -356,7 +341,6 @@ function generate(){
     rounds = rounds.slice(0,15);
   }
 
-  // map template indices to players' names (template indices are 1-based)
   schedule = rounds.map(r => {
     const matches = r.matches.map(pair => {
       const t1 = pair[0].map(idx => ({ name: (idx <= players.length ? players[idx-1].name : ("空き"+idx)), pos: idx }));
@@ -368,26 +352,12 @@ function generate(){
 
   maxRounds = schedule.length;
   showingRounds = Math.min(5, maxRounds);
+  window.editMode = {}; // 新規生成時に編集モードをリセット
   saveStateToFirebaseIfReady();
   render();
 }
 
-/* ---------- シャッフルマップ表示 ---------- */
-function showShuffleMap(playersArr){
-  const wrap = document.getElementById("shuffleList");
-  const mapDiv = document.getElementById("shuffleMap");
-  mapDiv.innerHTML = "";
-  playersArr.forEach(p=>{
-    const el = document.createElement("div");
-    el.className = "map-item";
-    el.textContent = `P${p.pos} → ${p.name}`;
-    mapDiv.appendChild(el);
-  });
-  wrap.classList.remove("hidden");
-}
-function clearShuffle(){ document.getElementById("shuffleMap").innerHTML = ""; document.getElementById("shuffleList").classList.add("hidden"); }
-
-/* ---------- 表示（名前で表示） ---------- */
+/* ---------- 表示（③ スコアのUI変更対応） ---------- */
 function render(){
   const matchesDiv = document.getElementById("matches"); matchesDiv.innerHTML = "";
   schedule.forEach((round,i)=>{
@@ -396,29 +366,49 @@ function render(){
     const bg = ["#e3f2fd","#fff3e0","#e8f5e9","#fce4ec"][i%4];
     card.style.background = bg;
     card.innerHTML = `<div style="font-weight:700;margin-bottom:8px">🏆 MATCH ${(i+1).toString().padStart(2,'0')}</div>`;
+    
     round.matches.forEach((m,mi)=>{
-      const courtLabel = `【コートA】`;
-      card.innerHTML += `<div style="font-weight:600;color:#2a5298;margin-top:8px">${courtLabel}</div>`;
       const t1n0 = m.team1[0] ? m.team1[0].name : '';
       const t1n1 = m.team1[1] ? m.team1[1].name : '';
       const t2n0 = m.team2[0] ? m.team2[0].name : '';
       const t2n1 = m.team2[1] ? m.team2[1].name : '';
+
+      // ③ スコアの判定とUI構築
+      const matchKey = `${i}-${mi}`;
+      const s0 = (m.score && m.score[0] !== null) ? m.score[0] : '';
+      const s1 = (m.score && m.score[1] !== null) ? m.score[1] : '';
+      const hasScore = (s0 !== '' || s1 !== '');
+      const isEdit = window.editMode[matchKey] || (!hasScore && window.editMode[matchKey] !== false);
+
+      let scoreHtml = '';
+      if (isEdit) {
+        // 編集中：[ 6 ] - [ 4 ] [保存]
+        scoreHtml = `
+          <div style="display:flex; align-items:center; gap:6px; justify-content:center;">
+            <input class="score-input" id="inp-${i}-${mi}-0" type="number" min="0" max="99" value="${s0}">
+            <span style="font-weight:bold;">-</span>
+            <input class="score-input" id="inp-${i}-${mi}-1" type="number" min="0" max="99" value="${s1}">
+            <button class="small" onclick="saveMatchScore(${i}, ${mi})" style="background:#4caf50;">保存</button>
+          </div>`;
+      } else {
+        // 保存後： 6 - 4 [✏️編集]
+        scoreHtml = `
+          <div style="display:flex; align-items:center; gap:12px; justify-content:center;">
+            <span style="font-size:18px; font-weight:bold; letter-spacing:2px;">${s0} - ${s1}</span>
+            <button class="small" onclick="editMatchScore(${i}, ${mi})" style="background:#f39c12;">✏️編集</button>
+          </div>`;
+      }
+
       card.innerHTML += `
-        <div class="pair-row">
-          <div class="pair">${escapeHtml(t1n0)} ＆ ${escapeHtml(t1n1)}</div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <div class="score-display" id="disp-${i}-${mi}-0">${renderScoreText(m.score && m.score[0])}</div>
-            <input class="score-input" id="input-${i}-${mi}-0" type="number" min="0" max="99" value="${renderScoreValue(m.score && m.score[0])}" onchange="setScore(${i},${mi},0,this.value)">
-            <button onclick="deleteScore(${i},${mi},0)" style="background:#e74c3c;color:#fff;border:none;padding:6px;border-radius:6px;cursor:pointer">削除</button>
+        <div style="font-weight:600;color:#2a5298;margin-top:12px">【コートA】</div>
+        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-top:8px; background:#fff; padding:12px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+          <div style="flex:1; min-width:140px; text-align:center;">
+            <div class="pair">${escapeHtml(t1n0)} ＆ ${escapeHtml(t1n1)}</div>
+            <div class="vs">vs</div>
+            <div class="pair">${escapeHtml(t2n0)} ＆ ${escapeHtml(t2n1)}</div>
           </div>
-        </div>
-        <div class="vs">vs</div>
-        <div class="pair-row">
-          <div class="pair">${escapeHtml(t2n0)} ＆ ${escapeHtml(t2n1)}</div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <div class="score-display" id="disp-${i}-${mi}-1">${renderScoreText(m.score && m.score[1])}</div>
-            <input class="score-input" id="input-${i}-${mi}-1" type="number" min="0" max="99" value="${renderScoreValue(m.score && m.score[1])}" onchange="setScore(${i},${mi},1,this.value)">
-            <button onclick="deleteScore(${i},${mi},1)" style="background:#e74c3c;color:#fff;border:none;padding:6px;border-radius:6px;cursor:pointer">削除</button>
+          <div style="background:#f8f9fa; padding:8px 12px; border-radius:8px;">
+            ${scoreHtml}
           </div>
         </div>
       `;
@@ -436,31 +426,27 @@ function render(){
   updateRanking();
 }
 
-/* ---------- スコア / ランキング ---------- */
-function renderScoreText(v){ return (v===null||v===undefined)?'':String(v); }
-function renderScoreValue(v){ return (v===null||v===undefined)?'':String(v); }
-function setScore(roundIdx, matchIdx, team, rawVal){
-  const match = schedule[roundIdx] && schedule[roundIdx].matches[matchIdx];
-  if(!match) return;
-  const t = String(rawVal).trim(); let newVal = null;
-  if(t !== ''){
-    const n = parseInt(t,10);
-    if(Number.isFinite(n) && n >= 0) newVal = n; else return;
-  }
-  if(!match.score) match.score = [null,null];
-  match.score[team] = newVal;
+/* ---------- ③ スコア編集・保存用関数 ---------- */
+function editMatchScore(roundIdx, matchIdx){
+  window.editMode[`${roundIdx}-${matchIdx}`] = true;
+  render();
+}
+
+function saveMatchScore(roundIdx, matchIdx){
+  const v0 = document.getElementById(`inp-${roundIdx}-${matchIdx}-0`).value;
+  const v1 = document.getElementById(`inp-${roundIdx}-${matchIdx}-1`).value;
+  const match = schedule[roundIdx].matches[matchIdx];
+  if(!match.score) match.score = [null, null];
+  
+  match.score[0] = v0 === '' ? null : parseInt(v0, 10);
+  match.score[1] = v1 === '' ? null : parseInt(v1, 10);
+  
+  window.editMode[`${roundIdx}-${matchIdx}`] = false; // 編集モード終了
   updateRanking();
   saveStateToFirebaseIfReady();
   render();
 }
-function deleteScore(roundIdx, matchIdx, team){
-  const match = schedule[roundIdx] && schedule[roundIdx].matches[matchIdx];
-  if(!match || !match.score) return;
-  match.score[team] = null;
-  updateRanking();
-  saveStateToFirebaseIfReady();
-  render();
-}
+
 function updateRanking(){
   const map = {};
   players.forEach(p=>{ map[p.name] = { total:0, match:0 }; });
@@ -497,16 +483,15 @@ function updateRanking(){
 
 /* ---------- ユーティリティ ---------- */
 function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } }
-function buildRotationalTemplate(count,court){ const r=[]; const base=Array.from({length:count},(_,i)=>i+1); const R=Math.min(15,Math.max(5,count)); for(let i=0;i<R;i++){ const arr=base.slice(i).concat(base.slice(0,i)); const matches=[]; for(let c=0;c<court;c++){ const start=c*4; if(start+3>=arr.length) break; matches.push([[arr[start],arr[start+1]],[arr[start+2],arr[start+3]]]); } if(matches.length===0 && count>=4) matches.push([[1,2],[3,4]]); r.push({matches}); } return r; }
 function escapeHtml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;"); }
 
-/* ---------- Firebase / room 保存（既存を維持） ---------- */
+/* ---------- Firebase / room 保存 ---------- */
 function saveStateToFirebaseIfReady(){ if(window.saveStateToFirebase){ try{ window.saveStateToFirebase({ members, players, schedule, showingRounds, maxRounds }).catch(e=>console.warn("save error", e)); }catch(e){ console.warn("save call error", e); } } }
 function loadMembers(){ if(!members) members=[]; renderMembers(); }
 
 /* ---------- room helpers ---------- */
 function randomId(len=8){ const chars="abcdefghijklmnopqrstuvwxyz0123456789"; let s=""; for(let i=0;i<len;i++) s+=chars.charAt(Math.floor(Math.random()*chars.length)); return s; }
-function createRoom(){ const newId="r-"+randomId(6); const params=new URLSearchParams(window.location.search); params.set("room",newId); history.pushState({}, "", location.pathname + "?" + params.toString()); window.roomId=newId; if(window.setRoom) window.setRoom(newId); players=[]; schedule=[]; showingRounds=5; maxRounds=5; loadMembers(); setupGuests(); render(); alert("新しい部屋を作成しました: " + newId); }
+function createRoom(){ const newId="r-"+randomId(6); const params=new URLSearchParams(window.location.search); params.set("room",newId); history.pushState({}, "", location.pathname + "?" + params.toString()); window.roomId=newId; if(window.setRoom) window.setRoom(newId); players=[]; schedule=[]; showingRounds=5; maxRounds=5; window.editMode={}; loadMembers(); setupGuests(); render(); alert("新しい部屋を作成しました: " + newId); }
 function copyRoomLink(){ navigator.clipboard?.writeText(location.href).then(()=>alert("リンクをコピーしました")).catch(()=>prompt("このURLをコピーしてください（Ctrl+C）", location.href)); }
 function updateRoomDisplay(){ const el=document.getElementById("roomIdDisplay"); if(el) el.textContent = window.roomId || "—"; }
 
@@ -517,7 +502,6 @@ updateRoomDisplay(); loadMembers(); setupGuests();
 window.createRoom = createRoom; window.copyRoomLink = copyRoomLink; window.updateRoomDisplay = updateRoomDisplay; window.loadFromFirebase = loadFromFirebase;
 </script>
 
-<!-- Firebase module（そのまま） -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
   import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
