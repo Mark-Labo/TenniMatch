@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v3.0.7</title>
+  <title>🎾TenniMatch v4.0.0</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
@@ -38,22 +38,26 @@
     .member-btn.assigned { background: var(--primary); color: #fff; border-color: var(--primary); }
 
     .match-card { border-radius: 16px; padding: 16px 10px; margin-bottom: 16px; border-left: 6px solid var(--primary); position: relative; }
-    .match-flex { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
-    .team-box { flex: 1; text-align: center; font-weight: 600; font-size: 13px; line-height: 1.4; word-break: break-all; }
+    .match-flex { display: flex; justify-content: space-between; align-items: center; gap: 4px; padding: 10px 0; }
+    .team-box { flex: 1; text-align: center; font-weight: 600; font-size: 13px; line-height: 1.5; word-break: break-all; }
     .score-container { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
     .score-input { width: 50px !important; height: 50px !important; text-align: center; font-size: 22px !important; padding: 0 !important; margin: 0 !important; border-radius: 8px !important; }
     
     .rest-info { margin-top: 10px; font-size: 11px; color: var(--text-muted); text-align: center; border-top: 1px dashed var(--border); padding-top: 8px; }
+    .court-label { font-size: 11px; color: #fff; background: var(--primary); display: inline-block; padding: 2px 8px; border-radius: 8px; font-weight: bold; margin-bottom: 4px; }
+    .multi-court-divider { border-top: 1px dotted var(--border); margin: 8px 0; }
 
     .ranking-table { width: 100%; border-collapse: collapse; font-size: 12px; }
     .ranking-table th { background: #5f6368; color: #fff; padding: 8px 4px; }
     .ranking-table td { border-bottom: 1px solid var(--border); padding: 12px 4px; text-align: center; }
+
+    .num-badge { display: inline-block; margin: 4px; font-weight: bold; color: var(--primary-dark); background: #e8f0fe; padding: 6px 10px; border-radius: 12px; font-size: 13px; border: 1px solid #c5d7f8;}
   </style>
 </head>
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v3.0.7</div>
+  <div id="headerTitle">🎾TenniMatch v4.0.0</div>
   <div id="roomInfo">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="copyRoomLink()">🔗コピー</button>
@@ -87,8 +91,8 @@
   <div class="card">
     <h3>参加メンバー選択</h3>
     <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-      <div style="flex:1;"><label>人数</label><select id="playerCount"></select></div>
-      <div style="flex:1;"><label>コート</label><select id="courtCount"><option>1面</option></select></div>
+      <div style="flex:1;"><label>コート</label><select id="courtCount" onchange="updatePlayerSelect()"><option value="1">1面</option><option value="2">2面</option></select></div>
+      <div style="flex:1;"><label>人数</label><select id="playerCount" onchange="initSetup()"></select></div>
     </div>
     <div id="guestArea" class="slot-grid"></div>
     <p style="font-size:12px; color:var(--text-muted); font-weight:bold;">登録メンバー（タップで参加）:</p>
@@ -107,7 +111,14 @@
     <button onclick="resetAllMatches()" class="danger-zone" style="flex:1.2; font-size:11px;">🗑️ 組合せリセット</button>
     <button onclick="showScreen('menu')" class="outline" style="flex:1; font-size:11px;">🔙 メニュー</button>
   </div>
+  
+  <div class="card" style="padding: 12px;">
+    <div style="font-size:12px; color:var(--text-muted); font-weight:bold; margin-bottom:8px;">📌 割り当て番号</div>
+    <div id="assignedNumbersArea" style="line-height: 1.8;"></div>
+  </div>
+
   <div id="matches"></div>
+  
   <div class="card">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
       <h3 style="margin:0;">🏆 ランキング</h3>
@@ -124,6 +135,8 @@
   let allMembers = [], currentSlots = [], schedule = [], showingRounds = 5;
   window.editMode = {};
 
+  const circleNums = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯'];
+
   const params = new URLSearchParams(window.location.search);
   let roomId = params.get("room") || "r-" + Math.random().toString(36).substring(2,8);
   if(!params.get("room")) { params.set("room", roomId); history.replaceState({}, "", location.pathname + "?" + params.toString()); }
@@ -133,12 +146,27 @@
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('screen-' + id).classList.add('active');
     if(id === 'setup') { 
-      initSetup(); 
-      const lastScored = schedule.findIndex(r => r.matches[0].score[0] === null);
+      updatePlayerSelect(false);
+      const lastScored = schedule.findIndex(r => r.matches.some(m => m.score[0] === null));
       document.getElementById('btnContinueGenerate').style.display = (lastScored > 0 || (lastScored === -1 && schedule.length > 0)) ? 'block' : 'none';
     }
     if(id === 'match') renderMatches();
     window.scrollTo(0,0);
+  }
+
+  function updatePlayerSelect(resetInit = true) {
+    const cc = document.getElementById('courtCount').value;
+    const pc = document.getElementById('playerCount');
+    const currentVal = pc.value;
+    pc.innerHTML = '';
+    const min = cc == '1' ? 4 : 8;
+    const max = cc == '1' ? 11 : 16;
+    for(let i = min; i <= max; i++) pc.innerHTML += `<option value="${i}">${i}人</option>`;
+    
+    if(currentVal >= min && currentVal <= max) pc.value = currentVal;
+    else pc.value = min;
+    
+    if(resetInit) initSetup();
   }
 
   function addMember() {
@@ -170,13 +198,8 @@
     renderMemberButtons();
   }
 
-  const pcSelect = document.getElementById('playerCount');
-  for(let i=4; i<=11; i++) pcSelect.innerHTML += `<option value="${i}">${i}人</option>`;
-  pcSelect.value = 8;
-  pcSelect.onchange = initSetup;
-
   function initSetup() {
-    const count = parseInt(pcSelect.value);
+    const count = parseInt(document.getElementById('playerCount').value);
     while(currentSlots.length < count) currentSlots.push(null);
     currentSlots = currentSlots.slice(0, count);
     renderSlots();
@@ -211,55 +234,82 @@
     }
   }
 
+  // 1面・2面全てのテンプレート
   const templates = {
+    // === 1面用 ===
     "1_4":[[[1,2],[3,4]],[[1,3],[2,4]],[[1,4],[2,3]]],
-    "1_5":[
-      [[1,2],[3,4]],[[1,3],[2,5]],[[1,4],[3,5]],[[1,5],[2,4]],[[2,3],[4,5]],
-      [[1,2],[3,5]],[[1,3],[2,4]],[[1,4],[2,5]],[[1,5],[3,4]],[[2,4],[3,5]],
-      [[1,2],[4,5]],[[1,4],[2,3]],[[1,3],[4,5]],[[1,5],[2,3]],[[2,5],[3,4]]
+    "1_5":[[[1,2],[3,4]],[[1,3],[2,5]],[[1,4],[3,5]],[[1,5],[2,4]],[[2,3],[4,5]],[[1,2],[3,5]],[[1,3],[2,4]],[[1,4],[2,5]],[[1,5],[3,4]],[[2,4],[3,5]],[[1,2],[4,5]],[[1,4],[2,3]],[[1,3],[4,5]],[[1,5],[2,3]],[[2,5],[3,4]]],
+    "1_6":[[[1,2],[3,4]],[[1,3],[5,6]],[[2,5],[4,6]],[[1,4],[2,3]],[[1,5],[2,6]],[[3,6],[4,5]],[[1,6],[2,4]],[[1,2],[3,5]],[[3,4],[5,6]],[[1,3],[2,4]],[[1,5],[3,6]],[[2,6],[4,5]],[[1,4],[2,5]],[[1,6],[2,3]],[[3,5],[4,6]]],
+    "1_7":[[[1,2],[3,4]],[[5,6],[7,1]],[[5,2],[6,3]],[[7,4],[1,5]],[[2,4],[3,7]],[[6,1],[3,5]],[[2,6],[4,7]],[[1,6],[2,3]],[[5,7],[4,6]],[[1,3],[2,7]],[[4,5],[1,7]],[[6,3],[2,4]],[[5,4],[2,7]],[[5,6],[1,3]],[[4,6],[7,3]]],
+    "1_8":[[[1,2],[3,4]],[[5,6],[7,8]],[[1,5],[2,6]],[[3,7],[4,8]],[[1,3],[5,7]],[[2,4],[6,8]],[[1,4],[5,8]],[[2,3],[6,7]],[[1,6],[2,5]],[[3,8],[4,7]],[[1,7],[3,5]],[[2,8],[4,6]],[[1,8],[3,6]],[[2,7],[4,5]],[[1,2],[7,8]]],
+    "1_9":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,1],[4,8]],[[3,7],[2,6]],[[5,9],[3,6]],[[1,4],[2,7]],[[5,8],[9,3]],[[1,5],[2,8]],[[4,6],[7,9]],[[3,8],[2,9]],[[1,6],[4,5]],[[7,6],[1,8]],[[9,4],[2,5]],[[7,3],[2,4]],[[1,3],[5,9]]],
+    "1_10":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[1,5]],[[3,10],[4,8]],[[2,9],[6,7]],[[1,4],[5,10]],[[3,9],[6,8]],[[2,7],[5,9]],[[1,6],[4,7]],[[3,8],[2,10]],[[1,10],[8,9]],[[2,5],[6,4]],[[3,7],[1,9]],[[2,8],[4,9]],[[3,6],[5,10]]],
+    "1_11":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[11,1]],[[5,2],[3,6]],[[4,9],[7,11]],[[8,10],[1,5]],[[2,9],[3,7]],[[6,4],[8,11]],[[10,3],[4,7]],[[1,9],[5,11]],[[6,10],[8,2]],[[3,9],[5,7]],[[10,11],[1,4]],[[2,6],[8,5]],[[1,7],[3,6]]],
+    // === 2面用 ===
+    "2_8": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,5],[2,6]],[[3,7],[4,8]]],[[[1,3],[5,8]],[[2,4],[6,7]]],[[[2,7],[6,8]],[[1,4],[3,5]]],[[[1,3],[5,7]],[[2,8],[4,6]]],[[[2,5],[4,8]],[[1,7],[3,6]]],[[[1,6],[4,8]],[[2,3],[5,7]]],[[[1,5],[2,7]],[[3,8],[4,6]]],[[[3,6],[4,5]],[[1,8],[2,7]]],[[[1,4],[2,8]],[[3,5],[6,7]]],[[[2,3],[6,8]],[[1,5],[4,7]]],[[[1,7],[4,6]],[[2,5],[3,8]]],[[[1,2],[3,7]],[[4,5],[6,8]]],[[[2,6],[3,4]],[[1,7],[5,8]]],[[[1,8],[3,6]],[[2,4],[5,7]]]],
+    "2_9": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,6],[5,9]],[[2,3],[4,7]]],[[[2,4],[8,9]],[[1,5],[3,6]]],[[[1,8],[7,9]],[[2,6],[3,5]]],[[[4,8],[5,7]],[[1,3],[2,9]]],[[[4,9],[6,7]],[[1,5],[3,8]]],[[[2,8],[4,6]],[[1,9],[5,7]]],[[[3,7],[6,9]],[[1,4],[2,8]]],[[[2,5],[4,9]],[[3,7],[6,8]]],[[[1,7],[2,6]],[[3,9],[4,5]]],[[[1,9],[3,8]],[[2,4],[6,7]]],[[[2,7],[5,8]],[[1,3],[6,9]]],[[[1,6],[4,5]],[[3,9],[7,8]]],[[[2,5],[8,9]],[[1,4],[3,6]]],[[[1,2],[4,7]],[[3,5],[8,9]]]],
+    "2_10":[[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,5],[9,10]],[[2,3],[6,7]]],[[[4,9],[8,10]],[[2,7],[3,6]]],[[[1,4],[5,8]],[[2,9],[6,10]]],[[[3,9],[7,10]],[[1,8],[4,5]]],[[[2,5],[6,8]],[[1,9],[3,10]]],[[[4,7],[6,9]],[[1,3],[2,5]]],[[[4,8],[7,10]],[[1,6],[2,3]]],[[[2,5],[4,9]],[[3,7],[6,8]]],[[[1,8],[6,9]],[[4,10],[5,7]]],[[[2,10],[3,5]],[[1,6],[8,9]]],[[[1,7],[2,4]],[[3,8],[5,9]]],[[[3,10],[4,6]],[[1,5],[7,8]]],[[[2,9],[4,7]],[[1,10],[5,6]]],[[[3,6],[8,10]],[[2,7],[4,9]]]],
+    "2_11":[[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,11],[9,10]],[[2,5],[3,6]]],[[[4,7],[8,9]],[[2,3],[10,11]]],[[[1,5],[6,11]],[[4,9],[7,10]]],[[[2,8],[3,9]],[[1,7],[5,11]]],[[[4,10],[6,8]],[[1,3],[2,11]]],[[[5,10],[7,9]],[[2,6],[4,8]]],[[[1,8],[3,11]],[[6,7],[9,10]]],[[[2,4],[5,11]],[[3,8],[7,9]]],[[[1,10],[4,6]],[[3,5],[8,9]]],[[[2,6],[7,11]],[[1,10],[4,5]]],[[[3,9],[4,8]],[[1,6],[7,11]]],[[[2,10],[5,8]],[[1,11],[6,9]]],[[[3,7],[4,10]],[[1,2],[5,6]]],[[[4,9],[8,11]],[[2,10],[5,7]]]],
+    "2_12":[[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[1,5],[2,6]]],[[[3,7],[4,8]],[[9,11],[10,12]]],[[[1,6],[2,5]],[[3,9],[7,10]]],[[[4,11],[8,12]],[[1,3],[5,6]]],[[[2,10],[7,9]],[[1,8],[4,12]]],[[[3,6],[5,11]],[[4,7],[9,10]]],[[[1,12],[2,8]],[[3,10],[7,11]]],[[[4,5],[6,9]],[[2,12],[8,11]]],[[[1,10],[4,6]],[[3,5],[8,9]]],[[[2,11],[4,9]],[[1,7],[3,5]]],[[[6,10],[8,12]],[[2,3],[4,9]]],[[[1,11],[5,7]],[[2,4],[10,12]]],[[[3,9],[6,8]],[[1,2],[10,11]]],[[[4,7],[5,12]],[[6,11],[8,9]]]],
+    "2_13":[[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[1,6],[5,13]]],[[[2,7],[3,8]],[[4,9],[10,13]]],[[[1,11],[5,12]],[[2,4],[6,7]]],[[[3,9],[8,13]],[[6,12],[10,11]]],[[[1,5],[4,7]],[[2,9],[10,12]]],[[[3,13],[8,11]],[[1,12],[4,6]]],[[[2,10],[5,9]],[[3,7],[11,13]]],[[[1,4],[8,12]],[[2,6],[9,13]]],[[[2,13],[5,10]],[[3,12],[6,8]]],[[[1,7],[9,11]],[[2,8],[4,10]]],[[[3,5],[6,13]],[[2,4],[9,12]]],[[[1,8],[7,10]],[[3,11],[5,13]]],[[[2,12],[6,9]],[[1,13],[7,8]]],[[[4,10],[5,11]],[[3,6],[8,9]]]],
+    "2_14":[[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[13,14],[1,3]]],[[[2,4],[5,7]],[[6,8],[9,11]]],[[[10,12],[13,2]],[[14,4],[1,5]]],[[[3,6],[7,9]],[[8,10],[11,13]]],[[[12,14],[1,4]],[[2,5],[3,7]]],[[[6,9],[8,11]],[[10,13],[12,2]]],[[[14,3],[1,6]],[[4,7],[5,8]]],[[[9,12],[10,14]],[[11,2],[13,4]]],[[[1,7],[3,8]],[[5,9],[6,10]]],[[[11,14],[12,3]],[[13,5],[2,6]]],[[[4,8],[7,10]],[[1,9],[11,13]]][[[14,5],[12,6]],[[2,7],[3,9]]],[[[4,10],[8,12]],[[1,11],[14,6]]],
+      [[[5,13],[7,14]],[[2,8],[3,10]]]
     ],
-    "1_6":[
-      [[1,2],[3,4]],[[1,3],[5,6]],[[2,5],[4,6]],[[1,4],[2,3]],[[1,5],[2,6]],
-      [[3,6],[4,5]],[[1,6],[2,4]],[[1,2],[3,5]],[[3,4],[5,6]],[[1,3],[2,4]],
-      [[1,5],[3,6]],[[2,6],[4,5]],[[1,4],[2,5]],[[1,6],[2,3]],[[3,5],[4,6]]
+    "2_15":[
+      [[[1,2],[3,4]],[[5,6],[7,8]]],
+      [[[9,10],[11,12]],[[13,14],[15,1]]],
+      [[[2,3],[4,5]],[[6,7],[8,9]]],
+      [[[10,11],[12,13]],[[14,15],[1,4]]],
+      [[[2,5],[3,6]],[[7,10],[8,11]]],
+      [[[9,12],[13,1]],[[14,2],[15,3]]],
+      [[[4,7],[5,8]],[[6,9],[10,13]]],
+      [[[11,14],[12,15]],[[1,5],[2,6]]],
+      [[[3,8],[4,9]],[[7,12],[10,15]]],
+      [[[13,2],[14,4]],[[1,6],[11,3]]],
+      [[[5,10],[8,13]],[[9,14],[12,2]]],
+      [[[15,5],[1,7]],[[4,11],[6,14]]],
+      [[[8,15],[3,10]],[[2,9],[13,5]]],
+      [[[12,4],[1,8]],[[11,6],[7,14]]],
+      [[[15,9],[10,2]],[[3,12],[13,7]]]
     ],
-    "1_7":[
-      [[1,2],[3,4]],[[5,6],[7,1]],[[5,2],[6,3]],[[7,4],[1,5]],[[2,4],[3,7]],
-      [[6,1],[3,5]],[[2,6],[4,7]],[[1,6],[2,3]],[[5,7],[4,6]],[[1,3],[2,7]],
-      [[4,5],[1,7]],[[6,3],[2,4]],[[5,4],[2,7]],[[5,6],[1,3]],[[4,6],[7,3]]
-    ],
-    "1_8":[
-      [[1,2],[3,4]],[[5,6],[7,8]],[[1,5],[2,6]],[[3,7],[4,8]],[[1,3],[5,7]],
-      [[2,4],[6,8]],[[1,4],[5,8]],[[2,3],[6,7]],[[1,6],[2,5]],[[3,8],[4,7]],
-      [[1,7],[3,5]],[[2,8],[4,6]],[[1,8],[3,6]],[[2,7],[4,5]],[[1,2],[7,8]]
-    ],
-    "1_9":[
-      [[1,2],[3,4]],[[5,6],[7,8]],[[9,1],[4,8]],[[3,7],[2,6]],[[5,9],[3,6]],
-      [[1,4],[2,7]],[[5,8],[9,3]],[[1,5],[2,8]],[[4,6],[7,9]],[[3,8],[2,9]],
-      [[1,6],[4,5]],[[7,6],[1,8]],[[9,4],[2,5]],[[7,3],[2,4]],[[1,3],[5,9]]
-    ],
-    "1_10":[
-      [[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[1,5]],[[3,10],[4,8]],[[2,9],[6,7]],
-      [[1,4],[5,10]],[[3,9],[6,8]],[[2,7],[5,9]],[[1,6],[4,7]],[[3,8],[2,10]],
-      [[1,10],[8,9]],[[2,5],[6,4]],[[3,7],[1,9]],[[2,8],[4,9]],[[3,6],[5,10]]
-    ],
-    "1_11":[
-      [[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[11,1]],[[5,2],[3,6]],[[4,9],[7,11]],
-      [[8,10],[1,5]],[[2,9],[3,7]],[[6,4],[8,11]],[[10,3],[4,7]],[[1,9],[5,11]],
-      [[6,10],[8,2]],[[3,9],[5,7]],[[10,11],[1,4]],[[2,6],[8,5]],[[1,7],[3,6]]
+    "2_16":[
+      [[[1,2],[3,4]],[[5,6],[7,8]]],
+      [[[9,10],[11,12]],[[13,14],[15,16]]],
+      [[[1,3],[2,4]],[[5,7],[6,8]]],
+      [[[9,11],[10,12]],[[13,15],[14,16]]],
+      [[[1,5],[2,6]],[[3,7],[4,8]]],
+      [[[9,13],[10,14]],[[11,15],[12,16]]],
+      [[[1,9],[2,10]],[[3,11],[4,12]]],
+      [[[5,13],[6,14]],[[7,15],[8,16]]],
+      [[[1,13],[2,14]],[[3,15],[4,16]]],
+      [[[5,9],[6,10]],[[7,11],[8,12]]],
+      [[[1,6],[3,8]],[[5,2],[7,4]]],
+      [[[9,14],[11,16]],[[13,10],[15,12]]],
+      [[[1,10],[3,12]],[[9,2],[11,4]]],
+      [[[5,14],[7,16]],[[13,6],[15,8]]],
+      [[[1,14],[3,16]],[[9,6],[11,8]]]
     ]
   };
+
+  const circledNums = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮","⑯"];
 
   function generate(mode) {
     const finalNames = currentSlots.map((n, i) => n || `ゲスト${i+1}`);
     const count = finalNames.length;
-    const base = templates[`1_${count}`];
+    const courts = parseInt(document.getElementById('courtCount').value);
+    const key = `${courts}_${count}`;
+    const base = templates[key];
+
+    if(!base) {
+      alert("この組み合わせのデータがありません");
+      return;
+    }
     
     let nextRoundStart = 0;
     let oldSchedule = [];
 
     if(mode === 'continue') {
-      const lastScoredIdx = schedule.findLastIndex(r => r.matches[0].score[0] !== null);
+      const lastScoredIdx = schedule.findLastIndex(r => r.matches.some(m => m.score[0] !== null));
       nextRoundStart = lastScoredIdx + 1;
       oldSchedule = schedule.slice(0, nextRoundStart);
     }
@@ -267,13 +317,18 @@
     let newPart = [];
     for(let i = nextRoundStart; i < nextRoundStart + 15; i++) {
       const t = base[i % base.length];
+      
+      const roundMatches = t.map(matchData => {
+        return {
+          team1: matchData[0].map(pIdx => ({ pIdx, name: finalNames[pIdx-1] })),
+          team2: matchData[1].map(pIdx => ({ pIdx, name: finalNames[pIdx-1] })),
+          score: [null, null]
+        };
+      });
+
       newPart.push({
         roundParticipants: [...finalNames],
-        matches: [{
-          team1: t[0].map(pIdx => ({ name: finalNames[pIdx-1] })),
-          team2: t[1].map(pIdx => ({ name: finalNames[pIdx-1] })),
-          score: [null, null]
-        }]
+        matches: roundMatches
       });
     }
 
@@ -287,70 +342,100 @@
     const area = document.getElementById('matches');
     if(!area) return;
     area.innerHTML = '';
+
+    if (schedule.length > 0) {
+      const mappingHtml = schedule[0].roundParticipants.map((name, i) => `${circledNums[i]} ${name}`).join(' / ');
+      area.innerHTML += `
+        <div class="card" style="font-size:12px; margin-bottom:15px; background:#e8f0fe; border:1px solid var(--primary); padding: 12px;">
+          <strong style="color:var(--primary);">【プレイヤー番号】</strong><br>
+          <div style="margin-top:4px; line-height:1.6;">${mappingHtml}</div>
+        </div>
+      `;
+    }
+
     schedule.forEach((r, ri) => {
       if(ri >= showingRounds) return;
-      const m = r.matches[0];
-      const isEdit = window.editMode[ri];
-      const s0 = m.score[0], s1 = m.score[1];
-      const isLocked = !isEdit && s0 !== null;
       
-      const playingNames = [...m.team1, ...m.team2].map(p => p.name);
-      const restingNames = (r.roundParticipants || []).filter(n => !playingNames.includes(n));
-      const restHtml = restingNames.length > 0 ? `<div class="rest-info">お休み: ${restingNames.join(', ')}</div>` : '';
+      let roundHtml = `<div class="card match-card" style="padding-bottom:10px;">
+                        <div style="font-weight:700; color:var(--text-muted); font-size:12px; margin-bottom:8px;">MATCH ${ri+1}</div>`;
 
-      area.innerHTML += `
-        <div class="card match-card" style="${isLocked?'border-left-color:var(--success);':''}">
-          <div style="font-weight:700; color:var(--text-muted); font-size:11px; margin-bottom:12px;">MATCH ${ri+1}</div>
-          <div class="match-flex">
-            <div class="team-box">${m.team1[0].name}<br>${m.team1[1].name}</div>
-            <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
-                <div class="score-container">
-                ${!isLocked ? 
-                    `<input type="number" id="s-${ri}-0" class="score-input" value="${s0??''}" placeholder="0">
-                    <span style="font-weight:bold; font-size:20px;">:</span>
-                    <input type="number" id="s-${ri}-1" class="score-input" value="${s1??''}" placeholder="0">` : 
-                    `<div style="font-size:28px; font-weight:800; letter-spacing:4px;">${s0} - ${s1}</div>`
-                }
-                </div>
-                ${!isLocked ? 
-                    `<button class="small" style="background:var(--success); padding:8px 20px;" onclick="saveScore(${ri})">保存</button>` : 
-                    `<button class="small outline" onclick="window.editMode[${ri}]=true;renderMatches();">修正</button>`
-                }
+      r.matches.forEach((m, mi) => {
+        const isEdit = window.editMode[`${ri}-${mi}`];
+        const s0 = m.score[0], s1 = m.score[1];
+        const isLocked = !isEdit && s0 !== null;
+
+        const courtLabel = r.matches.length > 1 ? `<div style="font-size:11px; font-weight:bold; color:var(--primary); margin-bottom:4px;">コート ${mi+1}</div>` : '';
+
+        roundHtml += `
+          <div style="margin-bottom:12px; padding:10px; background:#f8f9fa; border-radius:12px; ${isLocked?'border-left:4px solid var(--success);':''}">
+            ${courtLabel}
+            <div class="match-flex">
+              <div class="team-box">${circledNums[m.team1[0].pIdx-1]}${m.team1[0].name}<br>${circledNums[m.team1[1].pIdx-1]}${m.team1[1].name}</div>
+              <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+                  <div class="score-container">
+                  ${!isLocked ? 
+                      `<input type="number" id="s-${ri}-${mi}-0" class="score-input" value="${s0??''}" placeholder="0">
+                      <span style="font-weight:bold; font-size:20px;">:</span>
+                      <input type="number" id="s-${ri}-${mi}-1" class="score-input" value="${s1??''}" placeholder="0">` : 
+                      `<div style="font-size:24px; font-weight:800; letter-spacing:2px;">${s0} - ${s1}</div>`
+                  }
+                  </div>
+                  ${!isLocked ? 
+                      `<button class="small" style="background:var(--success); padding:6px 16px;" onclick="saveScore(${ri}, ${mi})">保存</button>` : 
+                      `<button class="small outline" onclick="window.editMode['${ri}-${mi}']=true;renderMatches();">修正</button>`
+                  }
+              </div>
+              <div class="team-box">${circledNums[m.team2[0].pIdx-1]}${m.team2[0].name}<br>${circledNums[m.team2[1].pIdx-1]}${m.team2[1].name}</div>
             </div>
-            <div class="team-box">${m.team2[0].name}<br>${m.team2[1].name}</div>
           </div>
-          ${restHtml}
-        </div>`;
+        `;
+      });
+
+      const playingNames = r.matches.flatMap(m => [...m.team1, ...m.team2].map(p => p.name));
+      const restingNames = (r.roundParticipants || []).filter(n => !playingNames.includes(n));
+      if(restingNames.length > 0) {
+        roundHtml += `<div class="rest-info">お休み: ${restingNames.join(', ')}</div>`;
+      }
+
+      roundHtml += `</div>`;
+      area.innerHTML += roundHtml;
     });
+
     if(showingRounds < schedule.length) {
       area.innerHTML += `<button class="outline" style="width:100%; margin-bottom:20px;" onclick="showingRounds+=5;saveData();">さらに試合を表示 (+5)</button>`;
     }
     updateRanking();
   }
 
-  function saveScore(ri) {
-    const v0 = document.getElementById(`s-${ri}-0`).value;
-    const v1 = document.getElementById(`s-${ri}-1`).value;
-    if(v0==='' || v1==='') return;
-    schedule[ri].matches[0].score = [parseInt(v0), parseInt(v1)];
-    window.editMode[ri] = false;
+  function saveScore(ri, mi) {
+    const v0 = document.getElementById(`s-${ri}-${mi}-0`).value;
+    const v1 = document.getElementById(`s-${ri}-${mi}-1`).value;
+    
+    // 値が変わらなくても保存ボタンを押せばロック状態(isEdit=false)に戻る
+    window.editMode[`${ri}-${mi}`] = false;
+
+    if(v0 !== '' && v1 !== '') {
+      schedule[ri].matches[mi].score = [parseInt(v0), parseInt(v1)];
+    }
+    
     saveData(); 
   }
 
   function updateRanking() {
     const stats = {};
     schedule.forEach(r => {
-      const m = r.matches[0];
-      [...m.team1, ...m.team2].forEach(p => { if(!stats[p.name]) stats[p.name]={w:0, l:0, d:0, games:0, m:0}; });
-      if(m.score[0] === null) return;
-      const s0 = m.score[0], s1 = m.score[1];
-      const update = (names, myS, opS) => {
-        names.forEach(n => {
-          const st = stats[n.name]; st.m++; st.games += myS;
-          if(myS > opS) st.w++; else if(myS < opS) st.l++; else st.d++;
-        });
-      };
-      update(m.team1, s0, s1); update(m.team2, s1, s0);
+      r.matches.forEach(m => {
+        [...m.team1, ...m.team2].forEach(p => { if(!stats[p.name]) stats[p.name]={w:0, l:0, d:0, games:0, m:0}; });
+        if(m.score[0] === null) return;
+        const s0 = m.score[0], s1 = m.score[1];
+        const update = (names, myS, opS) => {
+          names.forEach(n => {
+            const st = stats[n.name]; st.m++; st.games += myS;
+            if(myS > opS) st.w++; else if(myS < opS) st.l++; else st.d++;
+          });
+        };
+        update(m.team1, s0, s1); update(m.team2, s1, s0);
+      });
     });
 
     const list = Object.keys(stats).map(name => ({ name, ...stats[name], 
