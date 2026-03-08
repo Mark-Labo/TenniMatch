@@ -1,0 +1,38 @@
+// キャッシュの名前（バージョン管理用）
+const CACHE_NAME = 'tennimatch-v4.2.0';
+
+// オフラインで利用可能にするファイルのリスト
+const ASSETS_TO_CACHE = [
+  './index.html',
+  './manifest.json',
+  './icon-192.png'
+];
+
+// インストール時にファイルを保存する
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS_TO_CACHE);
+    })
+  );
+});
+
+// オフライン時は保存されたファイルを表示する
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
+    })
+  );
+});
+
+// 古いキャッシュを削除する
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+      );
+    })
+  );
+});
