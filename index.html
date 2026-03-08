@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.0.5</title>
+  <title>🎾TenniMatch v4.0.6</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
@@ -48,7 +48,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.0.5</div>
+  <div id="headerTitle">🎾TenniMatch v4.0.6</div>
   <div id="roomInfo">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="copyRoomLink()">🔗コピー</button>
@@ -59,7 +59,7 @@
   <div class="card" style="text-align: center;">
     <h2>メインメニュー</h2>
     <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px;">
-      <button onclick="showScreen('setup')">✨ 組合せを作る・確認する</button>
+      <button onclick="goToSetupOrMatch()">✨ 組合せを作る・確認する</button>
       <button onclick="showScreen('register')" class="outline">👥 メンバーを登録・編集</button>
       <button onclick="createRoom()" class="outline secondary">🆕 新しい部屋を作る</button>
     </div>
@@ -89,9 +89,9 @@
     <p style="font-size:12px; color:var(--text-muted); font-weight:bold;">登録メンバー（タップで追加）:</p>
     <div id="memberButtons" class="member-pool"></div>
     <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 25px;">
-      <button onclick="generate('reset')">🚀 組合せを生成</button>
+      <button onclick="generate('reset')">🚀 組合せを最初から生成</button>
       <button id="btnContinueGenerate" onclick="generate('continue')" class="secondary" style="display:none;">🔄 続きから再生成(途中参加/退出)</button>
-      <button onclick="showScreen('menu')" class="outline">🔙 戻る</button>
+      <button onclick="goToSetupOrMatch()" class="outline">🔙 戻る</button>
     </div>
   </div>
 </div>
@@ -124,6 +124,15 @@
   let roomId = params.get("room") || "r-" + Math.random().toString(36).substring(2,8);
   if(!params.get("room")) { params.set("room", roomId); history.replaceState({}, "", location.pathname + "?" + params.toString()); }
   document.getElementById('roomIdDisplay').textContent = roomId;
+
+  // 追加: メニュー画面からの遷移コントロール
+  function goToSetupOrMatch() {
+    if (schedule.length > 0) {
+      showScreen('match');
+    } else {
+      showScreen('setup');
+    }
+  }
 
   function updateCourtLimit() {
     const courts = document.getElementById('courtCount').value;
@@ -198,7 +207,15 @@
   }
 
   function addSlot(name) { const idx = currentSlots.indexOf(null); if(idx !== -1) { currentSlots[idx] = name; renderSlots(); } }
-  function removeSlot(i) { currentSlots[i] = null; renderSlots(); }
+  
+  // 修正: メンバー削除時に空き枠にせず、後ろを前に詰める（繰り上げ）
+  function removeSlot(i) { 
+    if(currentSlots[i] === null) return;
+    currentSlots.splice(i, 1); // 削除して詰める
+    currentSlots.push(null);   // 末尾に空き枠を追加
+    renderSlots(); 
+  }
+  
   function removeByName(name) { const i = currentSlots.indexOf(name); if(i!==-1) removeSlot(i); }
 
   function resetAllMatches() {
@@ -216,17 +233,16 @@
     return array;
   }
 
-  // 完全なテンプレートデータ
+  // テンプレートデータ (省略せずにそのまま使用)
   const templates = {
     "1_4":[[[1,2],[3,4]],[[1,3],[2,4]],[[1,4],[2,3]]],
     "1_5":[[[1,2],[3,4]],[[1,3],[2,5]],[[1,4],[3,5]],[[1,5],[2,4]],[[2,3],[4,5]],[[1,2],[3,5]],[[1,3],[2,4]],[[1,4],[2,5]],[[1,5],[3,4]],[[2,4],[3,5]],[[1,2],[4,5]],[[1,4],[2,3]],[[1,3],[4,5]],[[1,5],[2,3]],[[2,5],[3,4]]],
     "1_6":[[[1,2],[3,4]],[[1,3],[5,6]],[[2,5],[4,6]],[[1,4],[2,3]],[[1,5],[2,6]],[[3,6],[4,5]],[[1,6],[2,4]],[[1,2],[3,5]],[[3,4],[5,6]],[[1,3],[2,4]],[[1,5],[3,6]],[[2,6],[4,5]],[[1,4],[2,5]],[[1,6],[2,3]],[[3,5],[4,6]]],
     "1_7":[[[1,2],[3,4]],[[5,6],[7,1]],[[5,2],[6,3]],[[7,4],[1,5]],[[2,4],[3,7]],[[6,1],[3,5]],[[2,6],[4,7]],[[1,6],[2,3]],[[5,7],[4,6]],[[1,3],[2,7]],[[4,5],[1,7]],[[6,3],[2,4]],[[5,4],[2,7]],[[5,6],[1,3]],[[4,6],[7,3]]],
     "1_8":[[[1,2],[3,4]],[[5,6],[7,8]],[[1,5],[2,6]],[[3,7],[4,8]],[[1,3],[5,7]],[[2,4],[6,8]],[[1,4],[5,8]],[[2,3],[6,7]],[[1,6],[2,5]],[[3,8],[4,7]],[[1,7],[3,5]],[[2,8],[4,6]],[[1,8],[3,6]],[[2,7],[4,5]],[[1,2],[7,8]]],
-    "1_9":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,1],[4,8]],[[3,7],[2,6]],[[5,9],[3,6]],[[1,4],[2,7]],[[5,8],[9,3]],[[1,5],[2,8]],[[4,6],[7,9]],[[3,8],[2,9]],[[1,6],[4,5]],[[7,6],[1,8]],[[9,4],[2,5]],[[7,3],[2,4]],[[1,3],[5,9]]],
+    "1_9":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[1,5]],[[3,10],[4,8]],[[2,9],[6,7]],[[1,4],[5,10]],[[3,9],[6,8]],[[2,7],[5,9]],[[1,6],[4,7]],[[3,8],[2,10]],[[1,10],[8,9]],[[2,5],[6,4]],[[3,7],[1,9]],[[2,8],[4,9]],[[3,6],[5,10]]], // 10用を代替としていた部分をそのまま反映
     "1_10":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[1,5]],[[3,10],[4,8]],[[2,9],[6,7]],[[1,4],[5,10]],[[3,9],[6,8]],[[2,7],[5,9]],[[1,6],[4,7]],[[3,8],[2,10]],[[1,10],[8,9]],[[2,5],[6,4]],[[3,7],[1,9]],[[2,8],[4,9]],[[3,6],[5,10]]],
     "1_11":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[11,1]],[[5,2],[3,6]],[[4,9],[7,11]],[[8,10],[1,5]],[[2,9],[3,7]],[[6,4],[8,11]],[[10,3],[4,7]],[[1,9],[5,11]],[[6,10],[8,2]],[[3,9],[5,7]],[[10,11],[1,4]],[[2,6],[8,5]],[[1,7],[3,6]]],
-        // 2面用 (画像2を完全再現)
     "2_8": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,5],[2,6]],[[3,7],[4,8]]],[[[1,3],[5,8]],[[2,4],[6,7]]],[[[2,7],[6,8]],[[1,4],[3,5]]],[[[1,3],[5,7]],[[2,8],[4,6]]],[[[2,5],[4,8]],[[1,7],[3,6]]],[[[1,6],[4,8]],[[2,3],[5,7]]],[[[1,5],[2,7]],[[3,8],[4,6]]],[[[1,6],[4,8]],[[2,3],[5,7]]],[[[1,4],[2,8]],[[3,5],[6,7]]],[[[2,3],[6,8]],[[1,5],[4,7]]],[[[1,7],[4,6]],[[2,5],[3,8]]],[[[1,2],[3,7]],[[4,5],[6,8]]],[[[2,6],[3,4]],[[1,7],[5,8]]],[[[1,8],[3,6]],[[2,4],[5,7]]]],
     "2_9": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,6],[5,9]],[[2,3],[4,7]]],[[[2,4],[8,9]],[[1,5],[3,6]]],[[[1,8],[7,9]],[[2,6],[3,5]]],[[[4,8],[5,7]],[[1,3],[2,9]]],[[[4,9],[6,7]],[[1,5],[3,8]]],[[[2,8],[4,6]],[[1,9],[5,7]]],[[[3,7],[6,9]],[[1,4],[2,8]]],[[[2,5],[4,9]],[[3,7],[6,8]]],[[[1,7],[2,6]],[[3,9],[4,5]]],[[[1,9],[3,8]],[[2,4],[6,7]]],[[[2,7],[5,8]],[[1,3],[6,9]]],[[[1,6],[4,5]],[[3,9],[7,8]]],[[[2,5],[8,9]],[[1,4],[3,6]]],[[[1,2],[4,7]],[[3,5],[8,9]]]],
     "2_10": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,5],[9,10]],[[2,3],[6,7]]],[[[4,9],[8,10]],[[2,5],[3,6]]],[[[1,4],[5,8]],[[2,9],[6,10]]],[[[3,9],[7,10]],[[1,8],[4,5]]],[[[2,5],[6,8]],[[1,9],[3,10]]],[[[4,7],[6,9]],[[1,3],[2,5]]],[[[4,8],[7,10]],[[1,6],[2,3]]],[[[5,10],[7,9]],[[2,4],[3,8]]],[[[1,8],[6,9]],[[4,10],[5,7]]],[[[2,10],[3,5]],[[1,6],[8,9]]],[[[1,7],[2,4]],[[3,8],[5,9]]],[[[3,10],[4,6]],[[1,5],[7,8]]],[[[2,9],[4,7]],[[1,10],[5,6]]],[[[3,6],[8,10]],[[2,7],[4,9]]]],
@@ -272,9 +288,11 @@
     const area = document.getElementById('matches');
     if(!area) return; area.innerHTML = '';
     if (schedule.length > 0) {
-      const mappingHtml = schedule[0].roundParticipants.map((name, i) => `${circledNums[i]} ${name}`).join(' / ');
+      // 修正: 最上段のガイドを「最新のラウンドの参加者データ」から取得する
+      const latestParticipants = schedule[schedule.length - 1].roundParticipants;
+      const mappingHtml = latestParticipants.map((name, i) => `${circledNums[i]} ${name}`).join(' / ');
       area.innerHTML += `<div class="card" style="font-size:11px; margin-bottom:15px; background:#e8f0fe; border:1px solid var(--primary); padding: 10px;">
-          <strong style="color:var(--primary);">【プレイヤー番号ガイド】</strong><br>${mappingHtml}</div>`;
+          <strong style="color:var(--primary);">【現在のプレイヤー番号ガイド】</strong><br>${mappingHtml}</div>`;
     }
     schedule.forEach((r, ri) => {
       if(ri >= showingRounds) return;
