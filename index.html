@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.1.0</title>
+  <title>🎾TenniMatch v4.1.1</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
@@ -28,6 +28,7 @@
     button.danger-zone { background: var(--danger-bg); color: var(--danger-text); border: 1px solid #f5c2c7; font-size: 11px; }
     button.danger { background: var(--danger); color: #fff; }
     button.secondary { background: var(--secondary); color: #000; }
+    button.muted { background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-weight: 400; }
     .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-bottom: 16px; }
     .guest-slot { border: 2px dashed var(--border); border-radius: 12px; padding: 14px 8px; text-align: center; font-size: 14px; color: var(--text-muted); cursor: pointer; background: #fdfdfd; }
     .guest-slot.selected { border-style: solid; border-color: var(--primary); background: #e8f0fe; color: var(--primary); font-weight: bold; }
@@ -48,7 +49,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.1.0</div>
+  <div id="headerTitle">🎾TenniMatch v4.1.1</div>
   <div id="roomInfo">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="copyRoomLink()">🔗コピー</button>
@@ -62,7 +63,7 @@
       <button onclick="goToSetupOrMatch()">✨ 組合せを作る・確認する</button>
       <button onclick="showScreen('stats')" class="secondary">📊 総合実績確認</button>
       <button onclick="showScreen('register')" class="outline">👥 メンバーを登録・編集</button>
-      <button onclick="createRoom()" class="outline secondary">🆕 新しい部屋を作る</button>
+      <button onclick="createRoom()" class="muted small">🆕 新しい部屋を作る</button>
     </div>
   </div>
 </div>
@@ -75,7 +76,7 @@
       <button onclick="addMember()" style="height:52px;">追加</button>
     </div>
     <div id="memberList" style="margin-top:15px; display:flex; flex-direction:column; gap:8px;"></div>
-    <button onclick="showScreen('menu')" class="outline" style="width:100%; margin-top:20px;">🔙 戻る</button>
+    <button onclick="showScreen('menu')" class="outline" style="width:100%; margin-top:20px;">🔙 メニューに戻る</button>
   </div>
 </div>
 
@@ -92,21 +93,32 @@
     <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 25px;">
       <button onclick="generate('reset')">🚀 組合せを最初から生成</button>
       <button id="btnContinueGenerate" onclick="generate('continue')" class="secondary" style="display:none;">🔄 続きから再生成(途中参加/退出)</button>
-      <button onclick="goToSetupOrMatch()" class="outline">🔙 戻る</button>
+      <button onclick="showScreen('menu')" class="outline">🔙 メニューに戻る</button>
     </div>
   </div>
 </div>
 
 <div id="screen-match" class="screen">
-  <div style="display:flex; gap:8px; margin-bottom:15px; flex-wrap:wrap;">
+  <div style="display:flex; gap:8px; margin-bottom:15px;">
     <button onclick="showScreen('setup')" class="outline secondary" style="flex:1; font-size:11px;">👥 途中参加/退出</button>
-    <button onclick="showScreen('menu')" class="outline" style="flex:1; font-size:11px;">🔙 メニュー</button>
-    <div style="width:100%; display:flex; gap:8px;">
-      <button onclick="commitHistoryAndReset()" class="danger" style="flex:1.5; font-size:11px;">💾 実績保存＆リセット</button>
-      <button onclick="resetAllMatches()" class="danger-zone" style="flex:1; font-size:11px;">🗑️ 保存せず破棄</button>
+    <button onclick="showScreen('menu')" class="outline" style="flex:1; font-size:11px;">🔙 メニューへ戻る</button>
+  </div>
+
+  <div class="card" style="padding: 15px;">
+    <h3 style="margin: 0 0 15px 0; display:flex; align-items:center; gap:8px; color:var(--primary);">📋 試合組合せ＆スコア</h3>
+    
+    <div id="match-control-btns" style="display:flex; gap:8px; margin-bottom:15px;">
+      <button onclick="commitHistoryAndReset()" class="danger" style="flex:1.5; font-size:12px;">💾 実績保存＆リセット</button>
+      <button onclick="resetAllMatches()" class="danger-zone" style="flex:1; font-size:12px;">🗑️ 保存せず破棄</button>
+    </div>
+
+    <div id="matches"></div>
+    <div id="post-reset-nav" style="display:none; text-align:center; padding:20px 0;">
+      <p style="color:var(--text-muted); font-size:14px;">試合データはありません。</p>
+      <button onclick="showScreen('menu')" class="outline" style="width:100%;">← メニューに戻る</button>
     </div>
   </div>
-  <div id="matches"></div>
+
   <div class="card">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
       <h3 style="margin:0;">🏆 今日のランキング</h3>
@@ -150,7 +162,7 @@
 
 <script>
   let allMembers = [], currentSlots = [], schedule = [], showingRounds = 5;
-  let historyData = {}; // 総合実績用データ格納
+  let historyData = {}; 
   window.editMode = {};
   const circledNums = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮","⑯"];
 
@@ -160,11 +172,8 @@
   document.getElementById('roomIdDisplay').textContent = roomId;
 
   function goToSetupOrMatch() {
-    if (schedule.length > 0) {
-      showScreen('match');
-    } else {
-      showScreen('setup');
-    }
+    if (schedule.length > 0) { showScreen('match'); } 
+    else { showScreen('setup'); }
   }
 
   function updateCourtLimit() {
@@ -185,7 +194,11 @@
       if(!document.getElementById('playerCount').options.length) updateCourtLimit();
       document.getElementById('btnContinueGenerate').style.display = (schedule.length > 0) ? 'block' : 'none';
     }
-    if(id === 'match') renderMatches();
+    if(id === 'match') {
+        renderMatches();
+        document.getElementById('post-reset-nav').style.display = (schedule.length === 0) ? 'block' : 'none';
+        document.getElementById('match-control-btns').style.display = (schedule.length === 0) ? 'none' : 'flex';
+    }
     if(id === 'stats') { initStatsYear(); renderStats(); }
     window.scrollTo(0,0);
   }
@@ -247,36 +260,33 @@
   function resetAllMatches() {
     if(confirm("【注意】この日のスコアは実績に保存されずに消去されます。\n本当にリセットしますか？")) { 
       schedule=[]; showingRounds=5; window.editMode={};
-      currentSlots = []; initSetup(); saveData(); showScreen('setup'); 
+      currentSlots = []; initSetup(); saveData(); showScreen('match'); 
     }
   }
 
-  // 実績保存処理
   function commitHistoryAndReset() {
     const scoredMatches = [];
-    schedule.forEach(r => {
-      r.matches.forEach(m => {
-        if(m.score[0] !== null) scoredMatches.push(m);
-      });
-    });
-    
-    if(scoredMatches.length === 0) {
-      alert("保存する試合データ（スコア入力済み）がありません！");
-      return;
-    }
+    schedule.forEach(r => r.matches.forEach(m => { if(m.score[0] !== null) scoredMatches.push(m); }));
+    if(scoredMatches.length === 0) { alert("保存する試合データ（スコア入力済み）がありません！"); return; }
     
     if(confirm(`入力済みの ${scoredMatches.length} 試合を総合実績に保存し、本日の組合せをリセットしますか？`)) {
       const d = new Date();
-      // YYYY-MM-DD形式
       const dateKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      
       if(!historyData[dateKey]) historyData[dateKey] = [];
       historyData[dateKey] = historyData[dateKey].concat(scoredMatches);
-      
       schedule=[]; showingRounds=5; window.editMode={};
       currentSlots = []; initSetup(); saveData();
       alert("実績を保存しました！お疲れ様でした🎾");
-      showScreen('menu');
+      showScreen('match'); 
+    }
+  }
+
+  // 歴史削除機能
+  function deleteHistory(dateKey) {
+    if(confirm(`${dateKey.replace(/-/g,'/')} の実績データをすべて削除しますか？\n（この操作は取り消せません）`)) {
+      delete historyData[dateKey];
+      saveData();
+      renderStats();
     }
   }
 
@@ -302,19 +312,13 @@
 
   function shuffleArray(array) {
     let a = [...array];
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
     return a;
   }
 
   function generate(mode) {
     let finalNames = currentSlots.map((n, i) => n || `ゲスト${i+1}`);
-    if(mode === 'reset') {
-      finalNames = shuffleArray(finalNames);
-      currentSlots = [...finalNames]; 
-    }
+    if(mode === 'reset') { finalNames = shuffleArray(finalNames); currentSlots = [...finalNames]; }
     const count = finalNames.length;
     const courts = parseInt(document.getElementById('courtCount').value);
     const base = templates[`${courts}_${count}`];
@@ -388,7 +392,6 @@
     renderMatches();
   }
 
-  // --- 共通のランキング計算ロジック ---
   function calcStats(matches) {
     const stats = {};
     matches.forEach(m => {
@@ -408,7 +411,6 @@
       ${list.map((p, i) => `<tr><td>${i+1}</td><td style="text-align:left;">${p.name}</td>${sortMode==='winRate'?`<td>${p.w}</td><td>${p.l}</td><td>${p.d}</td><td>${(p.winRate*100).toFixed(0)}%</td>`:`<td>${p.games}</td><td>${p.avg.toFixed(2)}</td>`}<td>${p.m}</td></tr>`).join('')}</table>`;
   }
 
-  // 今日のランキング
   function updateRanking() {
     const scoredMatches = [];
     schedule.forEach(r => r.matches.forEach(m => { if(m.score[0] !== null) scoredMatches.push(m); }));
@@ -418,27 +420,21 @@
     if(tableEl) tableEl.innerHTML = generateRankingHTML(list, mode);
   }
 
-  // 総合実績画面の初期化（存在する年をセレクトボックスにセット）
   function initStatsYear() {
     const yearSelect = document.getElementById('statsYear');
     let years = new Set();
     Object.keys(historyData).forEach(d => years.add(d.split('-')[0]));
     if(years.size === 0) years.add(new Date().getFullYear().toString());
-    
     yearSelect.innerHTML = Array.from(years).sort().reverse().map(y => `<option value="${y}">${y}年</option>`).join('');
   }
 
-  // 総合実績ランキング描画
   function renderStats() {
     const yearStr = document.getElementById('statsYear').value;
     const monthStr = document.getElementById('statsMonth').value;
     const sortMode = document.getElementById('statsSort').value;
-    
-    let targetMatches = [];
-    let daysList = [];
-    
+    let targetMatches = []; let daysList = [];
     Object.keys(historyData).forEach(date => {
-      const [y, m, d] = date.split('-');
+      const [y, m] = date.split('-');
       if (y === yearStr) {
         if (monthStr === 'all' || parseInt(m) === parseInt(monthStr)) {
           targetMatches = targetMatches.concat(historyData[date]);
@@ -446,37 +442,28 @@
         }
       }
     });
-    
     const list = calcStats(targetMatches);
     document.getElementById('statsRanking').innerHTML = generateRankingHTML(list, sortMode);
-    
-    // 日付リスト描画 (降順)
     daysList.sort((a,b) => b.localeCompare(a)); 
     const daysEl = document.getElementById('statsDays');
     if(daysList.length === 0) {
       daysEl.innerHTML = "<p style='text-align:center; color:var(--text-muted); font-size:12px;'>活動記録がありません</p>";
     } else {
-      daysEl.innerHTML = daysList.map(d => `<div style="padding:8px 0; border-bottom:1px dashed var(--border); font-size:13px; display:flex; justify-content:space-between;">
-        <span>🎾 ${d.replace(/-/g, '/')}</span>
-        <span style="font-weight:bold;">${historyData[d].length} 試合</span>
+      daysEl.innerHTML = daysList.map(d => `<div style="padding:10px 0; border-bottom:1px dashed var(--border); font-size:13px; display:flex; justify-content:space-between; align-items:center;">
+        <span>📅 ${d.replace(/-/g, '/')} (${historyData[d].length} 試合)</span>
+        <button class="small danger" onclick="deleteHistory('${d}')" style="padding:4px 8px;">🗑 削除</button>
       </div>`).join('');
     }
   }
 
   function copyRoomLink(){ navigator.clipboard.writeText(location.href); alert("コピーしました"); }
-  function createRoom(){ if(confirm("新部屋を作りますか？")) { location.href = window.location.origin + window.location.pathname; } }
-  
-  // Firebaseへのデータ保存に historyData を追加
+  function createRoom(){ if(confirm("新しい部屋を作りますか？現在のデータは引き継がれません。")) { location.href = window.location.origin + window.location.pathname; } }
   function saveData() { if(window.fbSave) window.fbSave({allMembers, schedule, showingRounds, currentSlots, historyData}); }
-  
   function loadData(data) {
     if(!data) return;
-    allMembers = data.allMembers || []; 
-    schedule = data.schedule || []; 
-    showingRounds = data.showingRounds || 5; 
-    currentSlots = data.currentSlots || [];
-    historyData = data.historyData || {}; // 実績データの読み込み
-    
+    allMembers = data.allMembers || []; schedule = data.schedule || []; 
+    showingRounds = data.showingRounds || 5; currentSlots = data.currentSlots || [];
+    historyData = data.historyData || {};
     renderMemberList();
     if(schedule.length > 0) {
       if(document.getElementById('screen-menu').classList.contains('active')) showScreen('match');
