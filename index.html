@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.0.6</title>
+  <title>🎾TenniMatch v4.0.7</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
@@ -48,7 +48,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.0.6</div>
+  <div id="headerTitle">🎾TenniMatch v4.0.7</div>
   <div id="roomInfo">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="copyRoomLink()">🔗コピー</button>
@@ -125,7 +125,6 @@
   if(!params.get("room")) { params.set("room", roomId); history.replaceState({}, "", location.pathname + "?" + params.toString()); }
   document.getElementById('roomIdDisplay').textContent = roomId;
 
-  // 追加: メニュー画面からの遷移コントロール
   function goToSetupOrMatch() {
     if (schedule.length > 0) {
       showScreen('match');
@@ -208,11 +207,10 @@
 
   function addSlot(name) { const idx = currentSlots.indexOf(null); if(idx !== -1) { currentSlots[idx] = name; renderSlots(); } }
   
-  // 修正: メンバー削除時に空き枠にせず、後ろを前に詰める（繰り上げ）
   function removeSlot(i) { 
     if(currentSlots[i] === null) return;
-    currentSlots.splice(i, 1); // 削除して詰める
-    currentSlots.push(null);   // 末尾に空き枠を追加
+    currentSlots.splice(i, 1);
+    currentSlots.push(null);
     renderSlots(); 
   }
   
@@ -225,22 +223,13 @@
     }
   }
 
-  function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-  }
-
-  // テンプレートデータ (省略せずにそのまま使用)
   const templates = {
     "1_4":[[[1,2],[3,4]],[[1,3],[2,4]],[[1,4],[2,3]]],
     "1_5":[[[1,2],[3,4]],[[1,3],[2,5]],[[1,4],[3,5]],[[1,5],[2,4]],[[2,3],[4,5]],[[1,2],[3,5]],[[1,3],[2,4]],[[1,4],[2,5]],[[1,5],[3,4]],[[2,4],[3,5]],[[1,2],[4,5]],[[1,4],[2,3]],[[1,3],[4,5]],[[1,5],[2,3]],[[2,5],[3,4]]],
     "1_6":[[[1,2],[3,4]],[[1,3],[5,6]],[[2,5],[4,6]],[[1,4],[2,3]],[[1,5],[2,6]],[[3,6],[4,5]],[[1,6],[2,4]],[[1,2],[3,5]],[[3,4],[5,6]],[[1,3],[2,4]],[[1,5],[3,6]],[[2,6],[4,5]],[[1,4],[2,5]],[[1,6],[2,3]],[[3,5],[4,6]]],
     "1_7":[[[1,2],[3,4]],[[5,6],[7,1]],[[5,2],[6,3]],[[7,4],[1,5]],[[2,4],[3,7]],[[6,1],[3,5]],[[2,6],[4,7]],[[1,6],[2,3]],[[5,7],[4,6]],[[1,3],[2,7]],[[4,5],[1,7]],[[6,3],[2,4]],[[5,4],[2,7]],[[5,6],[1,3]],[[4,6],[7,3]]],
     "1_8":[[[1,2],[3,4]],[[5,6],[7,8]],[[1,5],[2,6]],[[3,7],[4,8]],[[1,3],[5,7]],[[2,4],[6,8]],[[1,4],[5,8]],[[2,3],[6,7]],[[1,6],[2,5]],[[3,8],[4,7]],[[1,7],[3,5]],[[2,8],[4,6]],[[1,8],[3,6]],[[2,7],[4,5]],[[1,2],[7,8]]],
-    "1_9":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[1,5]],[[3,10],[4,8]],[[2,9],[6,7]],[[1,4],[5,10]],[[3,9],[6,8]],[[2,7],[5,9]],[[1,6],[4,7]],[[3,8],[2,10]],[[1,10],[8,9]],[[2,5],[6,4]],[[3,7],[1,9]],[[2,8],[4,9]],[[3,6],[5,10]]], // 10用を代替としていた部分をそのまま反映
+    "1_9":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[1,5]],[[3,10],[4,8]],[[2,9],[6,7]],[[1,4],[5,10]],[[3,9],[6,8]],[[2,7],[5,9]],[[1,6],[4,7]],[[3,8],[2,10]],[[1,10],[8,9]],[[2,5],[6,4]],[[3,7],[1,9]],[[2,8],[4,9]],[[3,6],[5,10]]],
     "1_10":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[1,5]],[[3,10],[4,8]],[[2,9],[6,7]],[[1,4],[5,10]],[[3,9],[6,8]],[[2,7],[5,9]],[[1,6],[4,7]],[[3,8],[2,10]],[[1,10],[8,9]],[[2,5],[6,4]],[[3,7],[1,9]],[[2,8],[4,9]],[[3,6],[5,10]]],
     "1_11":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[11,1]],[[5,2],[3,6]],[[4,9],[7,11]],[[8,10],[1,5]],[[2,9],[3,7]],[[6,4],[8,11]],[[10,3],[4,7]],[[1,9],[5,11]],[[6,10],[8,2]],[[3,9],[5,7]],[[10,11],[1,4]],[[2,6],[8,5]],[[1,7],[3,6]]],
     "2_8": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,5],[2,6]],[[3,7],[4,8]]],[[[1,3],[5,8]],[[2,4],[6,7]]],[[[2,7],[6,8]],[[1,4],[3,5]]],[[[1,3],[5,7]],[[2,8],[4,6]]],[[[2,5],[4,8]],[[1,7],[3,6]]],[[[1,6],[4,8]],[[2,3],[5,7]]],[[[1,5],[2,7]],[[3,8],[4,6]]],[[[1,6],[4,8]],[[2,3],[5,7]]],[[[1,4],[2,8]],[[3,5],[6,7]]],[[[2,3],[6,8]],[[1,5],[4,7]]],[[[1,7],[4,6]],[[2,5],[3,8]]],[[[1,2],[3,7]],[[4,5],[6,8]]],[[[2,6],[3,4]],[[1,7],[5,8]]],[[[1,8],[3,6]],[[2,4],[5,7]]]],
@@ -256,7 +245,10 @@
 
   function generate(mode) {
     let finalNames = currentSlots.map((n, i) => n || `ゲスト${i+1}`);
-    if(mode === 'reset') finalNames = shuffleArray(finalNames);
+    
+    // ▼ 今回の修正: シャッフル処理を完全に削除しました ▼
+    // if(mode === 'reset') finalNames = shuffleArray(finalNames);
+    
     const count = finalNames.length;
     const courts = parseInt(document.getElementById('courtCount').value);
     const base = templates[`${courts}_${count}`];
@@ -288,7 +280,6 @@
     const area = document.getElementById('matches');
     if(!area) return; area.innerHTML = '';
     if (schedule.length > 0) {
-      // 修正: 最上段のガイドを「最新のラウンドの参加者データ」から取得する
       const latestParticipants = schedule[schedule.length - 1].roundParticipants;
       const mappingHtml = latestParticipants.map((name, i) => `${circledNums[i]} ${name}`).join(' / ');
       area.innerHTML += `<div class="card" style="font-size:11px; margin-bottom:15px; background:#e8f0fe; border:1px solid var(--primary); padding: 10px;">
