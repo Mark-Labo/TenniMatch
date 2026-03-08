@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.2.1</title>
+  <title>🎾TenniMatch v4.3.0</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -26,7 +26,7 @@
     .screen.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .card { background: var(--surface); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-    input[type="text"], input[type="number"], select { width: 100%; box-sizing: border-box; border: 2px solid var(--border); border-radius: 10px; padding: 14px; font-size: 16px; margin-bottom: 12px; background: #fafafa; }
+    input[type="text"], input[type="password"], input[type="number"], select { width: 100%; box-sizing: border-box; border: 2px solid var(--border); border-radius: 10px; padding: 14px; font-size: 16px; margin-bottom: 12px; background: #fafafa; }
     button { background: var(--primary); color: #fff; border: none; padding: 14px 20px; border-radius: 24px; font-size: 15px; font-weight: 700; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
     button:active { transform: scale(0.96); }
     button.outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
@@ -55,7 +55,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js')
-          .then(reg => console.log('v4.2.0 PWA Registered!'))
+          .then(reg => console.log('v4.3.0 PWA Registered!'))
           .catch(err => console.error('PWA Registration failed:', err));
       });
     }
@@ -64,21 +64,42 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.2.1</div>
-  <div id="roomInfo">
+  <div id="headerTitle">🎾TenniMatch v4.3.0</div>
+  <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
-    <button class="small outline" onclick="copyRoomLink()">🔗コピー</button>
+    <button class="small outline" onclick="copyRoomLink()">🔗共有URL</button>
   </div>
 </header>
 
-<div id="screen-menu" class="screen active">
+<div id="screen-lobby" class="screen active">
+  <div class="card" style="text-align: center;">
+    <h2 style="color: var(--primary); margin-top: 0;">🎾 TenniMatch ロビー</h2>
+    <p style="font-size: 12px; color: var(--text-muted);">部屋を作成するか、既存の部屋に入室してください。</p>
+
+    <div style="margin-top: 20px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
+      <h3 style="margin-top:0; font-size:15px;">🆕 新しく部屋を作る</h3>
+      <input type="text" id="newRoomId" placeholder="希望の部屋名 (空欄で自動生成)">
+      <input type="password" id="newRoomPw" placeholder="パスワードを設定 (必須)">
+      <button onclick="handleCreateRoom()" style="width:100%;">✨ 部屋を作成</button>
+    </div>
+
+    <div style="margin-top: 20px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
+      <h3 style="margin-top:0; font-size:15px;">🚪 既存の部屋に入る</h3>
+      <input type="text" id="joinRoomId" placeholder="部屋名を入力">
+      <input type="password" id="joinRoomPw" placeholder="パスワードを入力">
+      <button onclick="handleJoinRoom()" class="secondary" style="width:100%;">入室する</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-menu" class="screen">
   <div class="card" style="text-align: center;">
     <h2>メインメニュー</h2>
     <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px;">
       <button onclick="goToSetupOrMatch()">✨ 組合せを作る・確認する</button>
       <button onclick="showScreen('stats')" class="secondary">📊 総合実績確認</button>
       <button onclick="showScreen('register')" class="outline">👥 メンバーを登録・編集</button>
-      <button onclick="createRoom()" class="muted small">🆕 新しい部屋を作る</button>
+      <button onclick="logoutRoom()" class="muted small">🚪 ロビーに戻る（退出）</button>
     </div>
   </div>
 </div>
@@ -181,10 +202,110 @@
   window.editMode = {};
   const circledNums = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮","⑯"];
 
-  const params = new URLSearchParams(window.location.search);
-  let roomId = params.get("room") || "r-" + Math.random().toString(36).substring(2,8);
-  if(!params.get("room")) { params.set("room", roomId); history.replaceState({}, "", location.pathname + "?" + params.toString()); }
-  document.getElementById('roomIdDisplay').textContent = roomId;
+  // 部屋情報のグローバル変数
+  let roomId = "";
+
+  // アプリの初期化（Firebase読み込み後に呼ばれます）
+  window.initApp = async function() {
+    const params = new URLSearchParams(window.location.search);
+    const urlRoom = params.get("room");
+
+    if (urlRoom) {
+      // URLに部屋名がある場合
+      document.getElementById("joinRoomId").value = urlRoom;
+      await checkLocalMemory(urlRoom);
+    } else {
+      // URLに部屋名がない場合（PWAアイコン起動など）
+      const localRoom = localStorage.getItem("lastTenniMatchRoom");
+      if (localRoom) {
+        await checkLocalMemory(localRoom);
+      } else {
+        showScreen('lobby');
+      }
+    }
+  };
+
+  async function checkLocalMemory(targetRoomId) {
+    const savedPw = localStorage.getItem("pw_" + targetRoomId);
+    if (savedPw) {
+      document.getElementById("joinRoomId").value = targetRoomId;
+      document.getElementById("joinRoomPw").value = savedPw;
+      await handleJoinRoom(true); // true = 自動ログインモード
+    } else {
+      document.getElementById("joinRoomId").value = targetRoomId;
+      showScreen('lobby');
+    }
+  }
+
+  // 部屋の新規作成処理
+  async function handleCreateRoom() {
+    let rId = document.getElementById("newRoomId").value.trim();
+    const pw = document.getElementById("newRoomPw").value;
+    
+    if(!pw) { alert("パスワードを設定してください（必須です）"); return; }
+    if(!rId) rId = "r-" + Math.random().toString(36).substring(2,8);
+
+    const status = await window.createNewRoomAuth(rId, pw);
+    if(status === "EXISTS") {
+      alert("⚠️ その部屋名は既に使われています。別の名前にしてください。");
+      return;
+    }
+    enterRoomSuccess(rId, pw);
+  }
+
+  // 既存の部屋へ入室処理
+  async function handleJoinRoom(isAuto = false) {
+    const rId = document.getElementById("joinRoomId").value.trim();
+    const pw = document.getElementById("joinRoomPw").value;
+    
+    if(!rId || !pw) { 
+      if(!isAuto) alert("部屋名とパスワードを入力してください"); 
+      return; 
+    }
+
+    const status = await window.checkRoomAuth(rId, pw);
+    if(status === "NOT_FOUND") {
+      if(!isAuto) alert("⚠️ 部屋が見つかりません。名前を確認してください。");
+      else showScreen('lobby');
+      return;
+    }
+    if(status === "WRONG_PW") {
+      if(!isAuto) alert("⚠️ パスワードが間違っています。");
+      else showScreen('lobby');
+      return;
+    }
+
+    // 認証成功
+    enterRoomSuccess(rId, pw);
+  }
+
+  // 入室成功後の共通処理
+  function enterRoomSuccess(rId, pw) {
+    roomId = rId;
+    
+    // スマホに記憶させる（自動ログイン用）
+    localStorage.setItem("lastTenniMatchRoom", rId);
+    localStorage.setItem("pw_" + rId, pw);
+
+    document.getElementById('roomIdDisplay').textContent = roomId;
+    document.getElementById('roomInfo').style.display = 'flex';
+
+    // URLを更新して共有しやすくする
+    const params = new URLSearchParams(window.location.search);
+    params.set("room", roomId);
+    history.replaceState({}, "", location.pathname + "?" + params.toString());
+
+    // Firebaseの同期を開始
+    window.startRoomSync(roomId);
+    showScreen('menu');
+  }
+
+  function logoutRoom() {
+    if(confirm("部屋から退出してロビーに戻りますか？")) {
+      // URLパラメーターを消してリロード（安全にロビーに戻る）
+      location.href = window.location.origin + window.location.pathname;
+    }
+  }
 
   function goToSetupOrMatch() {
     if (schedule.length > 0) { showScreen('match'); } 
@@ -205,6 +326,7 @@
   function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('screen-' + id).classList.add('active');
+    
     if(id === 'setup') { 
       if(!document.getElementById('playerCount').options.length) updateCourtLimit();
       document.getElementById('btnContinueGenerate').style.display = (schedule.length > 0) ? 'block' : 'none';
@@ -296,7 +418,6 @@
     }
   }
 
-  // 歴史削除機能
   function deleteHistory(dateKey) {
     if(confirm(`${dateKey.replace(/-/g,'/')} の実績データをすべて削除しますか？\n（この操作は取り消せません）`)) {
       delete historyData[dateKey];
@@ -324,10 +445,10 @@
     "2_15": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[1,15],[13,14]]],[[[2,5],[3,6]],[[4,7],[8,9]]],[[[10,11],[13,15]],[[1,14],[5,12]]],[[[2,6],[7,9]],[[3,13],[4,14]]],[[[8,12],[10,15]],[[1,5],[2,11]]],[[[3,7],[9,14]],[[6,10],[11,13]]],[[[4,8],[12,15]],[[1,13],[2,5]]],[[[3,10],[7,11]],[[4,6],[8,14]]],[[[5,15],[9,12]],[[2,3],[6,13]]],[[[1,4],[7,10]],[[8,15],[11,14]]],[[[3,9],[12,13]],[[1,6],[5,8]]],[[[2,10],[14,15]],[[4,9],[5,7]]],[[[3,12],[6,11]],[[1,8],[4,13]]],[[[2,9],[10,14]],[[5,8],[7,15]]]],
     "2_16": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[13,14],[15,16]]],[[[1,5],[2,6]],[[3,7],[4,8]]],[[[9,13],[10,14]],[[11,15],[12,16]]],[[[1,7],[2,8]],[[3,6],[4,10]]],[[[9,15],[10,16]],[[11,13],[12,14]]],[[[1,9],[7,14]],[[8,10],[2,13]]],[[[3,12],[5,16]],[[4,11],[6,15]]],[[[1,14],[10,13]],[[2,9],[8,11]]],[[[3,15],[6,16]],[[4,12],[7,14]]],[[[1,13],[4,12]],[[5,14],[6,8]]],[[[7,10],[11,16]],[[2,3],[9,15]]],[[[1,8],[5,13]],[[3,11],[4,16]]],[[[2,12],[6,14]],[[7,15],[9,10]]],[[[8,16],[2,11]],[[4,15],[5,10]]]]
   };
-
   function shuffleArray(array) {
     let a = [...array];
-    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]]; }
     return a;
   }
 
@@ -377,14 +498,17 @@
         const isEdit = window.editMode[`${ri}-${mi}`];
         const s0 = m.score[0], s1 = m.score[1], isLocked = !isEdit && s0 !== null;
         roundHtml += `<div style="margin-bottom:8px; padding:10px; background:#f8f9fa; border-radius:12px; ${isLocked?'border-left:4px solid var(--success);':''}">
-            ${r.matches.length > 1 ? `<div style="font-size:10px; font-weight:bold; color:var(--primary);">コート ${mi+1}</div>`:''}
+          
+          ${r.matches.length > 1 ? `<div style="font-size:10px; font-weight:bold; color:var(--primary);">コート ${mi+1}</div>`:''}
             <div class="match-flex">
               <div class="team-box">${circledNums[m.team1[0].pIdx-1]}${m.team1[0].name}<br>${circledNums[m.team1[1].pIdx-1]}${m.team1[1].name}</div>
               <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
                   <div class="score-container">
-                  ${!isLocked ? `<input type="number" id="s-${ri}-${mi}-0" class="score-input" value="${s0??''}" placeholder="0"><span style="font-weight:bold;">:</span><input type="number" id="s-${ri}-${mi}-1" class="score-input" value="${s1??''}" placeholder="0">` : `<div style="font-size:24px; font-weight:800;">${s0} - ${s1}</div>`}
+                  ${!isLocked ?
+ `<input type="number" id="s-${ri}-${mi}-0" class="score-input" value="${s0??''}" placeholder="0"><span style="font-weight:bold;">:</span><input type="number" id="s-${ri}-${mi}-1" class="score-input" value="${s1??''}" placeholder="0">` : `<div style="font-size:24px; font-weight:800;">${s0} - ${s1}</div>`}
                   </div>
-                  ${!isLocked ? `<button class="small" style="background:var(--success);" onclick="saveScore(${ri}, ${mi})">保存</button>` : `<button class="small outline" onclick="window.editMode['${ri}-${mi}']=true;renderMatches();">修正</button>`}
+                  ${!isLocked ?
+ `<button class="small" style="background:var(--success);" onclick="saveScore(${ri}, ${mi})">保存</button>` : `<button class="small outline" onclick="window.editMode['${ri}-${mi}']=true;renderMatches();">修正</button>`}
               </div>
               <div class="team-box">${circledNums[m.team2[0].pIdx-1]}${m.team2[0].name}<br>${circledNums[m.team2[1].pIdx-1]}${m.team2[1].name}</div>
             </div>
@@ -472,29 +596,73 @@
   }
 
   function copyRoomLink(){ navigator.clipboard.writeText(location.href); alert("コピーしました"); }
-  function createRoom(){ if(confirm("新しい部屋を作りますか？現在のデータは引き継がれません。")) { location.href = window.location.origin + window.location.pathname; } }
-  function saveData() { if(window.fbSave) window.fbSave({allMembers, schedule, showingRounds, currentSlots, historyData}); }
+  
+  function saveData() { 
+    if(window.fbSave) window.fbSave({allMembers, schedule, showingRounds, currentSlots, historyData});
+  }
+  
   function loadData(data) {
     if(!data) return;
-    allMembers = data.allMembers || []; schedule = data.schedule || []; 
+    allMembers = data.allMembers || []; schedule = data.schedule || [];
     showingRounds = data.showingRounds || 5; currentSlots = data.currentSlots || [];
     historyData = data.historyData || {};
     renderMemberList();
-    if(schedule.length > 0) {
-      if(document.getElementById('screen-menu').classList.contains('active')) showScreen('match');
-      else if(document.getElementById('screen-match').classList.contains('active')) renderMatches();
-    } else { initSetup(); }
+    
+    // ロビー画面から遷移した直後などに画面を切り替える
+    if(document.getElementById('screen-menu').classList.contains('active')) {
+      // メニューにいる時は何もしない（自由に選べる）
+    } else if(schedule.length > 0) {
+      if(document.getElementById('screen-match').classList.contains('active')) renderMatches();
+    } else { 
+      initSetup();
+    }
   }
 </script>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+  
   const firebaseConfig = { apiKey: "AIzaSyBXBOgFKYf5hOJXnxgT7xMwkQREv1tXxWg", authDomain: "tennis-match-ranking-man-58aee.firebaseapp.com", projectId: "tennis-match-ranking-man-58aee", storageBucket: "tennis-match-ranking-man-58aee.firebasestorage.app", messagingSenderId: "452972436558", appId: "1:452972436558:web:68357629ca021a6d6f771f" };
-  const app = initializeApp(firebaseConfig); const db = getFirestore(app);
-  const roomRef = doc(db, "rooms", roomId);
-  window.fbSave = (data) => setDoc(roomRef, data);
-  onSnapshot(roomRef, (snap) => { if(snap.exists()) loadData(snap.data()); });
+  const app = initializeApp(firebaseConfig); 
+  const db = getFirestore(app);
+  
+  let unsubscribe = null;
+  let roomRef = null;
+
+  // 1. パスワード認証機能
+  window.checkRoomAuth = async (rId, pw) => {
+    const snap = await getDoc(doc(db, "rooms", rId));
+    if(!snap.exists()) return "NOT_FOUND";
+    if(snap.data().password !== pw) return "WRONG_PW";
+    return "OK";
+  };
+
+  // 2. 部屋の新規作成（重複チェック付き）
+  window.createNewRoomAuth = async (rId, pw) => {
+    const snap = await getDoc(doc(db, "rooms", rId));
+    if(snap.exists()) return "EXISTS";
+    // 新規作成時はパスワードも一緒に保存する
+    await setDoc(doc(db, "rooms", rId), { password: pw, createdAt: new Date().toISOString() });
+    return "OK";
+  };
+
+  // 3. 認証成功後にリアルタイム同期を開始する機能
+  window.startRoomSync = (rId) => {
+    roomRef = doc(db, "rooms", rId);
+    
+    // パスワードを上書きして消さないように { merge: true } を付ける
+    window.fbSave = (data) => setDoc(roomRef, data, { merge: true });
+    
+    if(unsubscribe) unsubscribe(); // 以前のリスナーがあれば解除
+    unsubscribe = onSnapshot(roomRef, (snap) => { 
+      if(snap.exists()) loadData(snap.data()); 
+    });
+  };
+
+  // Firebaseの準備が整ったらアプリを起動する
+  if(window.initApp) window.initApp();
+
 </script>
 </body>
 </html>
