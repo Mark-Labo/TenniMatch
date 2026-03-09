@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.3.1</title>
+  <title>🎾TenniMatch v4.3.2</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -17,6 +17,9 @@
       --danger: #ea4335; --danger-bg: #fce8e6; --danger-text: #d93025;
       --success: #34a853; --bg: #f0f4f8;
       --surface: #ffffff; --text-main: #202124; --text-muted: #5f6368; --border: #dadce0;
+      /* 広告ボタン用のカラーを追加 */
+      --ad-color: #ff9900; 
+      --ad-color-dark: #e08800;
     }
     body { margin: 0; font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text-main); padding-bottom: 40px; }
     header { background: var(--surface); padding: 16px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
@@ -35,6 +38,17 @@
     button.danger { background: var(--danger); color: #fff; }
     button.secondary { background: var(--secondary); color: #000; }
     button.muted { background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-weight: 400; }
+    
+    /* アフィリエイトボタン用のスタイル */
+    .ad-btn {
+      display: block; width: 100%; background: var(--ad-color); color: #fff; 
+      text-align: center; text-decoration: none; padding: 14px 10px; 
+      border-radius: 12px; font-weight: 700; font-size: 13px; margin-bottom: 15px;
+      box-shadow: 0 4px 6px rgba(255, 153, 0, 0.2); transition: 0.2s;
+      box-sizing: border-box;
+    }
+    .ad-btn:active { background: var(--ad-color-dark); transform: translateY(2px); box-shadow: none; }
+    
     .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-bottom: 16px; }
     .guest-slot { border: 2px dashed var(--border); border-radius: 12px; padding: 14px 8px; text-align: center; font-size: 14px; color: var(--text-muted); cursor: pointer; background: #fdfdfd; }
     .guest-slot.selected { border-style: solid; border-color: var(--primary); background: #e8f0fe; color: var(--primary); font-weight: bold; }
@@ -54,7 +68,6 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        // --- 修正①：魔法の10行（動的PWAアイコン） ---
         const params = new URLSearchParams(window.location.search);
         const roomId = params.get("room");
         const manifestTag = document.querySelector('link[rel="manifest"]');
@@ -75,7 +88,7 @@
         }
 
         navigator.serviceWorker.register('sw.js')
-          .then(reg => console.log('v4.3.1 PWA Registered!'))
+          .then(reg => console.log('v4.3.2 PWA Registered!'))
           .catch(err => console.error('PWA Registration failed:', err));
       });
     }
@@ -84,7 +97,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.3.1</div>
+  <div id="headerTitle">🎾TenniMatch v4.3.2</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="copyRoomLink()">🔗共有URL</button>
@@ -168,6 +181,10 @@
       <button onclick="resetAllMatches()" class="danger-zone" style="flex:1; font-size:12px;">🗑️ 保存せず破棄</button>
     </div>
 
+    <a href="https://amzn.to/3OZGDtd" target="_blank" class="ad-btn">
+      🎾 休憩時間にボール・グリップの売れ筋をチェック！ 🎾
+    </a>
+
     <div id="matches"></div>
     <div id="post-reset-nav" style="display:none; text-align:center; padding:20px 0;">
       <p style="color:var(--text-muted); font-size:14px;">試合データはありません。</p>
@@ -206,6 +223,11 @@
         <option value="winRate">勝率順</option>
       </select>
     </div>
+
+    <a href="https://amzn.to/3OZGDtd" target="_blank" class="ad-btn" style="margin-top: 10px;">
+      🎾 次の試合に向けて！テニス用品ランキングをチェック 🎾
+    </a>
+
     <div id="statsRanking" style="overflow-x: auto;"></div>
     
     <div style="margin-top:20px;">
@@ -222,10 +244,8 @@
   window.editMode = {};
   const circledNums = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮","⑯"];
 
-  // 部屋情報のグローバル変数
   let roomId = "";
 
-  // アプリの初期化（Firebase読み込み後に呼ばれます）
   window.initApp = async function() {
     const params = new URLSearchParams(window.location.search);
     const urlRoom = params.get("room");
@@ -255,7 +275,6 @@
     }
   }
 
-  // 部屋の新規作成処理
   async function handleCreateRoom() {
     let rId = document.getElementById("newRoomId").value.trim();
     const pw = document.getElementById("newRoomPw").value;
@@ -271,7 +290,6 @@
     enterRoomSuccess(rId, pw);
   }
 
-  // 既存の部屋へ入室処理
   async function handleJoinRoom(isAuto = false) {
     const rId = document.getElementById("joinRoomId").value.trim();
     const pw = document.getElementById("joinRoomPw").value;
@@ -293,37 +311,29 @@
       return;
     }
 
-    // 認証成功
     enterRoomSuccess(rId, pw);
   }
 
-  // 入室成功後の共通処理
   function enterRoomSuccess(rId, pw) {
     roomId = rId;
     
-    // スマホに記憶させる（自動ログイン用）
     localStorage.setItem("lastTenniMatchRoom", rId);
     localStorage.setItem("pw_" + rId, pw);
 
     document.getElementById('roomIdDisplay').textContent = roomId;
     document.getElementById('roomInfo').style.display = 'flex';
 
-    // URLを更新して共有しやすくする
     const params = new URLSearchParams(window.location.search);
     params.set("room", roomId);
     history.replaceState({}, "", location.pathname + "?" + params.toString());
 
-    // Firebaseの同期を開始
     window.startRoomSync(roomId);
     showScreen('menu');
   }
 
-  // --- 修正②：ログアウト時の記憶消去 ---
   function logoutRoom() {
     if(confirm("部屋から退出してロビーに戻りますか？")) {
-      // 最後に開いた部屋の記憶を消す（パスワードは消さない）
       localStorage.removeItem("lastTenniMatchRoom");
-      // URLパラメーターを消してリロード
       location.href = window.location.origin + window.location.pathname;
     }
   }
@@ -629,9 +639,7 @@
     historyData = data.historyData || {};
     renderMemberList();
     
-    // ロビー画面から遷移した直後などに画面を切り替える
     if(document.getElementById('screen-menu').classList.contains('active')) {
-      // メニューにいる時は何もしない（自由に選べる）
     } else if(schedule.length > 0) {
       if(document.getElementById('screen-match').classList.contains('active')) renderMatches();
     } else { 
@@ -651,7 +659,6 @@
   let unsubscribe = null;
   let roomRef = null;
 
-  // 1. パスワード認証機能
   window.checkRoomAuth = async (rId, pw) => {
     const snap = await getDoc(doc(db, "rooms", rId));
     if(!snap.exists()) return "NOT_FOUND";
@@ -659,14 +666,11 @@
     return "OK";
   };
 
-  // --- 修正③：旧部屋へのパスワード上書きを許可 ---
   window.createNewRoomAuth = async (rId, pw) => {
     const snap = await getDoc(doc(db, "rooms", rId));
-    // 部屋が存在し、かつ既にパスワードが設定されている場合のみ「重複エラー」
     if (snap.exists() && snap.data().password) {
       return "EXISTS";
     }
-    // 新規、またはパスワード未設定の旧部屋なら、パスワードを設定して保存（merge: true で既存データを保護）
     await setDoc(doc(db, "rooms", rId), { 
       password: pw, 
       createdAt: new Date().toISOString() 
@@ -675,20 +679,17 @@
     return "OK";
   };
 
-  // 3. 認証成功後にリアルタイム同期を開始する機能
   window.startRoomSync = (rId) => {
     roomRef = doc(db, "rooms", rId);
     
-    // パスワードを上書きして消さないように { merge: true } を付ける
     window.fbSave = (data) => setDoc(roomRef, data, { merge: true });
     
-    if(unsubscribe) unsubscribe(); // 以前のリスナーがあれば解除
+    if(unsubscribe) unsubscribe(); 
     unsubscribe = onSnapshot(roomRef, (snap) => { 
       if(snap.exists()) loadData(snap.data()); 
     });
   };
 
-  // Firebaseの準備が整ったらアプリを起動する
   if(window.initApp) window.initApp();
 
 </script>
