@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.3.0</title>
+  <title>🎾TenniMatch v4.3.1</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -54,8 +54,28 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
+        // --- 修正①：魔法の10行（動的PWAアイコン） ---
+        const params = new URLSearchParams(window.location.search);
+        const roomId = params.get("room");
+        const manifestTag = document.querySelector('link[rel="manifest"]');
+        
+        if (roomId && manifestTag) {
+          const dynamicManifest = {
+            "name": `TenniMatch - ${roomId}`,
+            "short_name": roomId,
+            "start_url": window.location.href,
+            "display": "standalone",
+            "icons": [
+              { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+              { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+            ]
+          };
+          const blob = new Blob([JSON.stringify(dynamicManifest)], {type: 'application/json'});
+          manifestTag.setAttribute('href', URL.createObjectURL(blob));
+        }
+
         navigator.serviceWorker.register('sw.js')
-          .then(reg => console.log('v4.3.0 PWA Registered!'))
+          .then(reg => console.log('v4.3.1 PWA Registered!'))
           .catch(err => console.error('PWA Registration failed:', err));
       });
     }
@@ -64,7 +84,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.3.0</div>
+  <div id="headerTitle">🎾TenniMatch v4.3.1</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="copyRoomLink()">🔗共有URL</button>
@@ -211,11 +231,9 @@
     const urlRoom = params.get("room");
 
     if (urlRoom) {
-      // URLに部屋名がある場合
       document.getElementById("joinRoomId").value = urlRoom;
       await checkLocalMemory(urlRoom);
     } else {
-      // URLに部屋名がない場合（PWAアイコン起動など）
       const localRoom = localStorage.getItem("lastTenniMatchRoom");
       if (localRoom) {
         await checkLocalMemory(localRoom);
@@ -230,7 +248,7 @@
     if (savedPw) {
       document.getElementById("joinRoomId").value = targetRoomId;
       document.getElementById("joinRoomPw").value = savedPw;
-      await handleJoinRoom(true); // true = 自動ログインモード
+      await handleJoinRoom(true);
     } else {
       document.getElementById("joinRoomId").value = targetRoomId;
       showScreen('lobby');
@@ -300,9 +318,12 @@
     showScreen('menu');
   }
 
+  // --- 修正②：ログアウト時の記憶消去 ---
   function logoutRoom() {
     if(confirm("部屋から退出してロビーに戻りますか？")) {
-      // URLパラメーターを消してリロード（安全にロビーに戻る）
+      // 最後に開いた部屋の記憶を消す（パスワードは消さない）
+      localStorage.removeItem("lastTenniMatchRoom");
+      // URLパラメーターを消してリロード
       location.href = window.location.origin + window.location.pathname;
     }
   }
@@ -638,12 +659,19 @@
     return "OK";
   };
 
-  // 2. 部屋の新規作成（重複チェック付き）
+  // --- 修正③：旧部屋へのパスワード上書きを許可 ---
   window.createNewRoomAuth = async (rId, pw) => {
     const snap = await getDoc(doc(db, "rooms", rId));
-    if(snap.exists()) return "EXISTS";
-    // 新規作成時はパスワードも一緒に保存する
-    await setDoc(doc(db, "rooms", rId), { password: pw, createdAt: new Date().toISOString() });
+    // 部屋が存在し、かつ既にパスワードが設定されている場合のみ「重複エラー」
+    if (snap.exists() && snap.data().password) {
+      return "EXISTS";
+    }
+    // 新規、またはパスワード未設定の旧部屋なら、パスワードを設定して保存（merge: true で既存データを保護）
+    await setDoc(doc(db, "rooms", rId), { 
+      password: pw, 
+      createdAt: new Date().toISOString() 
+    }, { merge: true });
+    
     return "OK";
   };
 
