@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.3.4</title>
+  <title>🎾TenniMatch v4.3.5</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -43,13 +43,12 @@
       text-align: center; text-decoration: none; padding: 14px 10px; 
       border-radius: 12px; font-weight: 700; font-size: 13px; margin-bottom: 15px;
       box-shadow: 0 4px 6px rgba(255, 153, 0, 0.2); transition: 0.2s;
-      box-sizing: border-box; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      box-sizing: border-box; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .ad-btn:active { background: var(--ad-color-dark); transform: translateY(2px); box-shadow: none; }
     
     .slot-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
     .slot-item { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--border); padding: 8px 12px; border-radius: 10px; }
-    .slot-item select { margin-bottom: 0; padding: 8px; font-size: 14px; }
     .member-pool { display: flex; flex-wrap: wrap; gap: 8px; }
     .member-btn { background: #eef2f7; border: 1px solid var(--border); border-radius: 20px; padding: 10px 16px; font-size: 14px; color: #333; font-weight: 500; }
     .member-btn.assigned { background: var(--primary); color: #fff; border-color: var(--primary); }
@@ -96,7 +95,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.3.4 PWA Registered!');
+            console.log('v4.3.5 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -116,7 +115,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.3.4</div>
+  <div id="headerTitle">🎾TenniMatch v4.3.5</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="copyRoomLink()">🔗共有URL</button>
@@ -175,7 +174,6 @@
       <div style="flex:1;"><label>コート</label><select id="courtCount" onchange="updateCourtLimit()"><option value="1">1面</option><option value="2">2面</option></select></div>
       <div style="flex:1.5;"><label>人数</label><select id="playerCount" onchange="initSetup()"></select></div>
     </div>
-    <p style="font-size:11px; color:var(--text-muted); margin-bottom:5px;">※プレイヤー番号のプルダウンで直接メンバーを指定できます</p>
     <div id="guestArea" class="slot-list"></div>
     <p style="font-size:12px; color:var(--text-muted); font-weight:bold; margin-top:15px;">登録メンバー（タップで空き番に追加）:</p>
     <div id="memberButtons" class="member-pool"></div>
@@ -249,6 +247,12 @@
     </a>
 
     <div id="statsRanking" style="overflow-x: auto;"></div>
+
+    <div id="playerHistoryDetail" style="display:none; margin-top:15px; background:#fff; padding:15px; border-radius:12px; border:1px solid var(--border);">
+      <h4 id="playerHistoryTitle" style="margin-top:0; color:var(--primary); font-size:15px;"></h4>
+      <div id="playerHistoryList" style="display:flex; flex-direction:column; gap:8px; max-height: 350px; overflow-y: auto;"></div>
+      <button onclick="document.getElementById('playerHistoryDetail').style.display='none'" class="outline" style="width:100%; margin-top:15px;">閉じる</button>
+    </div>
     
     <div style="margin-top:20px;">
       <h4 style="border-bottom:2px solid var(--border); padding-bottom:5px; color:var(--text-muted); font-size:14px;">📅 この期間の活動履歴</h4>
@@ -467,10 +471,7 @@
     area.innerHTML = currentSlots.map((name, i) => `
       <div class="slot-item">
         <div style="width:30px; text-align:center; font-weight:bold; color:var(--primary);">${circledNums[i]}</div>
-        <select onchange="assignSlot(${i}, this.value)">
-          <option value="">（空き）</option>
-          ${allMembers.map(m => `<option value="${m}" ${name === m ? 'selected' : ''}>${m}</option>`).join('')}
-        </select>
+        <div style="flex:1; font-weight:500; font-size:15px;">${name ? name : '<span style="color:#aaa;">（空き）</span>'}</div>
         <button class="small outline danger" onclick="removeSlot(${i})" style="padding:6px; min-width:36px;">✕</button>
       </div>
     `).join('');
@@ -675,11 +676,14 @@
     return Object.keys(stats).map(name => ({ name, ...stats[name], winRate: stats[name].m ? (stats[name].w / stats[name].m) : 0, avg: stats[name].m ? (stats[name].games / stats[name].m) : 0 }));
   }
 
-  function generateRankingHTML(list, sortMode) {
+  function generateRankingHTML(list, sortMode, isStatsScreen = false) {
     list.sort((a,b) => sortMode==='winRate' ? (b.winRate - a.winRate || b.w - a.w) : (b.avg - a.avg || b.games - a.games));
     if(list.length === 0) return "<p style='text-align:center; color:var(--text-muted); padding:10px;'>データがありません。</p>";
     return `<table class="ranking-table"><tr><th>位</th><th>名前</th>${sortMode==='winRate'?'<th>勝</th><th>負</th><th>分</th><th>勝率</th>':'<th>合計G</th><th>平均G</th>'}<th>試合</th></tr>
-      ${list.map((p, i) => `<tr><td>${i+1}</td><td style="text-align:left;">${p.name}</td>${sortMode==='winRate'?`<td>${p.w}</td><td>${p.l}</td><td>${p.d}</td><td>${(p.winRate*100).toFixed(0)}%</td>`:`<td>${p.games}</td><td>${p.avg.toFixed(2)}</td>`}<td>${p.m}</td></tr>`).join('')}</table>`;
+      ${list.map((p, i) => {
+        const nameDisplay = isStatsScreen ? `<a href="javascript:void(0)" onclick="showPlayerHistory('${p.name}')" style="color:var(--primary); font-weight:bold; text-decoration:underline;">${p.name}</a>` : p.name;
+        return `<tr><td>${i+1}</td><td style="text-align:left;">${nameDisplay}</td>${sortMode==='winRate'?`<td>${p.w}</td><td>${p.l}</td><td>${p.d}</td><td>${(p.winRate*100).toFixed(0)}%</td>`:`<td>${p.games}</td><td>${p.avg.toFixed(2)}</td>`}<td>${p.m}</td></tr>`;
+      }).join('')}</table>`;
   }
 
   function updateRanking() {
@@ -688,7 +692,7 @@
     const list = calcStats(scoredMatches);
     const mode = document.getElementById('rankingSort').value;
     const tableEl = document.getElementById('ranking');
-    if(tableEl) tableEl.innerHTML = generateRankingHTML(list, mode);
+    if(tableEl) tableEl.innerHTML = generateRankingHTML(list, mode, false);
   }
 
   function initStatsYear() {
@@ -703,7 +707,7 @@
     const el = document.getElementById(`day-ranking-${date}`);
     if(el.style.display === 'none') {
       const list = calcStats(historyData[date]);
-      el.innerHTML = generateRankingHTML(list, 'avgScore');
+      el.innerHTML = generateRankingHTML(list, 'avgScore', false);
       el.style.display = 'block';
     } else {
       el.style.display = 'none';
@@ -725,7 +729,11 @@
       }
     });
     const list = calcStats(targetMatches);
-    document.getElementById('statsRanking').innerHTML = generateRankingHTML(list, sortMode);
+    document.getElementById('statsRanking').innerHTML = generateRankingHTML(list, sortMode, true);
+    
+    const detailDiv = document.getElementById('playerHistoryDetail');
+    if (detailDiv) detailDiv.style.display = 'none';
+
     daysList.sort((a,b) => b.localeCompare(a)); 
     const daysEl = document.getElementById('statsDays');
     if(daysList.length === 0) {
@@ -742,6 +750,74 @@
       `).join('');
     }
   }
+
+  window.showPlayerHistory = function(name) {
+    const yearStr = document.getElementById('statsYear').value;
+    const monthStr = document.getElementById('statsMonth').value;
+    
+    let targetMatches = [];
+    Object.keys(historyData).forEach(date => {
+      const [y, m] = date.split('-');
+      if (y === yearStr) {
+        if (monthStr === 'all' || parseInt(m) === parseInt(monthStr)) {
+          const datedMatches = historyData[date].map(match => ({...match, dateStr: date}));
+          targetMatches = targetMatches.concat(datedMatches);
+        }
+      }
+    });
+
+    const playerMatches = targetMatches.filter(m => 
+      m.team1.some(p => p.name === name) || m.team2.some(p => p.name === name)
+    );
+
+    const detailDiv = document.getElementById('playerHistoryDetail');
+    const titleEl = document.getElementById('playerHistoryTitle');
+    const listEl = document.getElementById('playerHistoryList');
+
+    const periodText = monthStr === 'all' ? `${yearStr}年 全体` : `${yearStr}年${monthStr}月`;
+    titleEl.innerHTML = `👤 ${name} の戦績 (${periodText})`;
+
+    if(playerMatches.length === 0) {
+      listEl.innerHTML = "<p style='font-size:12px; color:var(--text-muted);'>この期間の試合データがありません。</p>";
+    } else {
+      playerMatches.sort((a,b) => b.dateStr.localeCompare(a.dateStr));
+      listEl.innerHTML = playerMatches.map(m => {
+        const isTeam1 = m.team1.some(p => p.name === name);
+        const myTeam = isTeam1 ? m.team1 : m.team2;
+        const opTeam = isTeam1 ? m.team2 : m.team1;
+        const myScore = isTeam1 ? m.score[0] : m.score[1];
+        const opScore = isTeam1 ? m.score[1] : m.score[0];
+        
+        let resultStr = "引分";
+        let resultColor = "#fbbc04"; 
+        let bgColor = "#fefbf3";
+        if (myScore > opScore) { resultStr = "勝利"; resultColor = "var(--success)"; bgColor = "#f0fdf4"; }
+        else if (myScore < opScore) { resultStr = "敗北"; resultColor = "var(--danger)"; bgColor = "#fef2f2"; }
+
+        const partner = myTeam.find(p => p.name !== name)?.name || "なし";
+        const opponents = opTeam.map(p => p.name).join(" & ");
+
+        return `
+          <div style="background:${bgColor}; border-left:4px solid ${resultColor}; padding:10px; border-radius:8px; font-size:12px; border: 1px solid #eee;">
+            <div style="color:var(--text-muted); font-size:11px; margin-bottom:6px;">${m.dateStr.replace(/-/g,'/')}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="font-size: 14px; font-weight: bold;">
+                <span style="color:${resultColor}; margin-right:8px;">${resultStr}</span>
+                ${myScore} - ${opScore}
+              </div>
+              <div style="text-align:right; font-size:11px; color:var(--text-muted);">
+                味方: ${partner}<br>
+                相手: ${opponents}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    detailDiv.style.display = 'block';
+    detailDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   function copyRoomLink(){ navigator.clipboard.writeText(location.href); alert("コピーしました"); }
   
