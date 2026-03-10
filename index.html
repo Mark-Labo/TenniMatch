@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.3.2</title>
+  <title>🎾TenniMatch v4.3.3</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -39,13 +39,17 @@
     button.secondary { background: var(--secondary); color: #000; }
     button.muted { background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-weight: 400; }
     
-    /* アフィリエイトボタン用のスタイル */
+    /* アフィリエイトボタン用のスタイル（1行固定を追加） */
     .ad-btn {
       display: block; width: 100%; background: var(--ad-color); color: #fff; 
       text-align: center; text-decoration: none; padding: 14px 10px; 
       border-radius: 12px; font-weight: 700; font-size: 13px; margin-bottom: 15px;
       box-shadow: 0 4px 6px rgba(255, 153, 0, 0.2); transition: 0.2s;
       box-sizing: border-box;
+      /* ここを追加して1行に収める */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .ad-btn:active { background: var(--ad-color-dark); transform: translateY(2px); box-shadow: none; }
     
@@ -66,7 +70,17 @@
     .ranking-table td { border-bottom: 1px solid var(--border); padding: 12px 4px; text-align: center; }
   </style>
   <script>
+    let refreshing = false;
+
     if ('serviceWorker' in navigator) {
+      // SWが新しくアクティブになったらページを自動リロード
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          window.location.reload();
+          refreshing = true;
+        }
+      });
+
       window.addEventListener('load', () => {
         const params = new URLSearchParams(window.location.search);
         const roomId = params.get("room");
@@ -88,7 +102,21 @@
         }
 
         navigator.serviceWorker.register('sw.js')
-          .then(reg => console.log('v4.3.2 PWA Registered!'))
+          .then(reg => {
+            console.log('v4.3.3 PWA Registered!');
+            
+            // アップデートが見つかった場合の処理（ダイアログ表示）
+            reg.addEventListener('updatefound', () => {
+              const installingWorker = reg.installing;
+              installingWorker.addEventListener('statechange', () => {
+                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  if (confirm('新しいバージョンが利用可能です。最新の状態に更新しますか？')) {
+                    installingWorker.postMessage({ action: 'skipWaiting' });
+                  }
+                }
+              });
+            });
+          })
           .catch(err => console.error('PWA Registration failed:', err));
       });
     }
@@ -97,7 +125,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.3.2</div>
+  <div id="headerTitle">🎾TenniMatch v4.3.3</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="copyRoomLink()">🔗共有URL</button>
@@ -182,7 +210,7 @@
     </div>
 
     <a href="https://amzn.to/3OZGDtd" target="_blank" class="ad-btn">
-      🎾 休憩時間にボール・グリップの売れ筋をチェック！ 🎾
+      🎾休憩時間にボール・グリップの売筋チェック！🎾
     </a>
 
     <div id="matches"></div>
