@@ -1,38 +1,53 @@
-// キャッシュの名前（バージョン管理用）
-const CACHE_NAME = 'tennimatch-v4.2.0';
+// キャッシュのバージョン名（アップデートの際はこの名前を変更します）
+const CACHE_NAME = 'app-cache-v4.3.3';
 
-// オフラインで利用可能にするファイルのリスト
-const ASSETS_TO_CACHE = [
+// キャッシュするファイルのリスト
+const urlsToCache = [
+  './',
   './index.html',
-  './manifest.json',
-  './icon-192.png'
+  './manifest.json'
+  // 必要に応じて style.css や app.js などを追加してください
 ];
 
-// インストール時にファイルを保存する
-self.addEventListener('install', (event) => {
+// インストール時の処理：ファイルをキャッシュに保存
+self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        return cache.addAll(urlsToCache);
+      })
   );
 });
 
-// オフライン時は保存されたファイルを表示する
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
-  );
+// index.htmlから「skipWaiting」のメッセージを受け取ったら強制的にアクティブにする
+self.addEventListener('message', event => {
+  if (event.data && event.data.action === 'skipWaiting') {
+    self.skipWaiting();
+  }
 });
 
-// 古いキャッシュを削除する
-self.addEventListener('activate', (event) => {
+// アクティベート時の処理：古いバージョンのキャッシュを削除
+self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then((keys) => {
+    caches.keys().then(cacheNames => {
       return Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('古いキャッシュを削除します:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
       );
     })
+  );
+});
+
+// ネットワークリクエストの処理：キャッシュがあればそれを返し、無ければネットワークへ
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        return response || fetch(event.request);
+      })
   );
 });
