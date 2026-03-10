@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>🎾TenniMatch v4.3.3</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1a73e8; --primary-dark: #1557b0; --secondary: #fbbc04;
+      --danger: #ea4335; --danger-bg: #fce8e6; --danger-text: #d93025;
+      --success: #34a853; --bg: #f0f4f8;
+      --surface: #ffffff; --text-main: #202124; --text-muted: #5f6368; --border: #dadce0;
+      /* 広告ボタン用のカラーを追加 */
+      --ad-color: #ff9900; 
+      --ad-color-dark: #e08800;
+    }
+    body { margin: 0; font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text-main); padding-bottom: 40px; }
+    header { background: var(--surface); padding: 16px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
+    #headerTitle { font-size: 18px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+    #roomInfo { font-size: 12px; color: var(--text-muted); display: flex; justify-content: center; align-items: center; gap: 8px; }
+    .screen { display: none; animation: fadeIn 0.3s ease; padding: 12px; max-width: 600px; margin: 0 auto; }
+    .screen.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .card { background: var(--surface); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+    input[type="text"], input[type="password"], input[type="number"], select { width: 100%; box-sizing: border-box; border: 2px solid var(--border); border-radius: 10px; padding: 14px; font-size: 16px; margin-bottom: 12px; background: #fafafa; }
+    button { background: var(--primary); color: #fff; border: none; padding: 14px 20px; border-radius: 24px; font-size: 15px; font-weight: 700; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    button:active { transform: scale(0.96); }
+    button.outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+    button.small { padding: 6px 12px; border-radius: 16px; font-size: 12px; }
+    button.danger-zone { background: var(--danger-bg); color: var(--danger-text); border: 1px solid #f5c2c7; font-size: 11px; }
+    button.danger { background: var(--danger); color: #fff; }
+    button.secondary { background: var(--secondary); color: #000; }
+    button.muted { background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-weight: 400; }
+    
+    /* アフィリエイトボタン用のスタイル（1行固定を追加） */
+    .ad-btn {
+      display: block; width: 100%; background: var(--ad-color); color: #fff; 
+      text-align: center; text-decoration: none; padding: 14px 10px; 
+      border-radius: 12px; font-weight: 700; font-size: 13px; margin-bottom: 15px;
+      box-shadow: 0 4px 6px rgba(255, 153, 0, 0.2); transition: 0.2s;
+      box-sizing: border-box;
+      /* ここを追加して1行に収める */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ad-btn:active { background: var(--ad-color-dark); transform: translateY(2px); box-shadow: none; }
+    
+    .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .guest-slot { border: 2px dashed var(--border); border-radius: 12px; padding: 14px 8px; text-align: center; font-size: 14px; color: var(--text-muted); cursor: pointer; background: #fdfdfd; }
+    .guest-slot.selected { border-style: solid; border-color: var(--primary); background: #e8f0fe; color: var(--primary); font-weight: bold; }
+    .member-pool { display: flex; flex-wrap: wrap; gap: 8px; }
+    .member-btn { background: #eef2f7; border: 1px solid var(--border); border-radius: 20px; padding: 10px 16px; font-size: 14px; color: #333; font-weight: 500; }
+    .member-btn.assigned { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .match-card { border-radius: 16px; padding: 16px 10px; margin-bottom: 16px; border-left: 6px solid var(--primary); position: relative; }
+    .match-flex { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
+    .team-box { flex: 1; text-align: center; font-weight: 600; font-size: 13px; line-height: 1.4; word-break: break-all; }
+    .score-container { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
+    .score-input { width: 50px !important; height: 50px !important; text-align: center; font-size: 22px !important; padding: 0 !important; margin: 0 !important; border-radius: 8px !important; }
+    .rest-info { margin-top: 10px; font-size: 11px; color: var(--text-muted); text-align: center; border-top: 1px dashed var(--border); padding-top: 8px; }
+    .ranking-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .ranking-table th { background: #5f6368; color: #fff; padding: 8px 4px; }
+    .ranking-table td { border-bottom: 1px solid var(--border); padding: 12px 4px; text-align: center; }
+  </style>
+  <script>
+    let refreshing = false;
+
+    if ('serviceWorker' in navigator) {
+      // SWが新しくアクティブになったらページを自動リロード
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          window.location.reload();
+          refreshing = true;
+        }
+      });
+
+      window.addEventListener('load', () => {
+        const params = new URLSearchParams(window.location.search);
+        const roomId = params.get("room");
+        const manifestTag = document.querySelector('link[rel="manifest"]');
+        
+        if (roomId && manifestTag) {
+          const dynamicManifest = {
+            "name": `TenniMatch - ${roomId}`,
+            "short_name": roomId,
+            "start_url": window.location.href,
+            "display": "standalone",
+            "icons": [
+              { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+              { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+            ]
+          };
+          const blob = new Blob([JSON.stringify(dynamicManifest)], {type: 'application/json'});
+          manifestTag.setAttribute('href', URL.createObjectURL(blob));
+        }
+
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => {
+            console.log('v4.3.3 PWA Registered!');
+            
+            // アップデートが見つかった場合の処理（ダイアログ表示）
+            reg.addEventListener('updatefound', () => {
+              const installingWorker = reg.installing;
+              installingWorker.addEventListener('statechange', () => {
+                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  if (confirm('新しいバージョンが利用可能です。最新の状態に更新しますか？')) {
+                    installingWorker.postMessage({ action: 'skipWaiting' });
+                  }
+                }
+              });
+            });
+          })
+          .catch(err => console.error('PWA Registration failed:', err));
+      });
+    }
+  </script>
+</head>
+<body>
+
+<header>
+  <div id="headerTitle">🎾TenniMatch v4.3.3</div>
+  <div id="roomInfo" style="display:none;">
+    <span>部屋: <strong id="roomIdDisplay">---</strong></span>
+    <button class="small outline" onclick="copyRoomLink()">🔗共有URL</button>
+  </div>
+</header>
+
+<div id="screen-lobby" class="screen active">
+  <div class="card" style="text-align: center;">
+    <h2 style="color: var(--primary); margin-top: 0;">🎾 TenniMatch ロビー</h2>
+    <p style="font-size: 12px; color: var(--text-muted);">部屋を作成するか、既存の部屋に入室してください。</p>
+
+    <div style="margin-top: 20px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
+      <h3 style="margin-top:0; font-size:15px;">🆕 新しく部屋を作る</h3>
+      <input type="text" id="newRoomId" placeholder="希望の部屋名 (空欄で自動生成)">
+      <input type="password" id="newRoomPw" placeholder="パスワードを設定 (必須)">
+      <button onclick="handleCreateRoom()" style="width:100%;">✨ 部屋を作成</button>
+    </div>
+
+    <div style="margin-top: 20px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
+      <h3 style="margin-top:0; font-size:15px;">🚪 既存の部屋に入る</h3>
+      <input type="text" id="joinRoomId" placeholder="部屋名を入力">
+      <input type="password" id="joinRoomPw" placeholder="パスワードを入力">
+      <button onclick="handleJoinRoom()" class="secondary" style="width:100%;">入室する</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-menu" class="screen">
+  <div class="card" style="text-align: center;">
+    <h2>メインメニュー</h2>
+    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px;">
+      <button onclick="goToSetupOrMatch()">✨ 組合せを作る・確認する</button>
+      <button onclick="showScreen('stats')" class="secondary">📊 総合実績確認</button>
+      <button onclick="showScreen('register')" class="outline">👥 メンバーを登録・編集</button>
+      <button onclick="logoutRoom()" class="muted small">🚪 ロビーに戻る（退出）</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-register" class="screen">
+  <div class="card">
+    <h3>メンバー登録</h3>
+    <div style="display: flex; gap: 8px;">
+      <input id="newMember" type="text" placeholder="名前を入力">
+      <button onclick="addMember()" style="height:52px;">追加</button>
+    </div>
+    <div id="memberList" style="margin-top:15px; display:flex; flex-direction:column; gap:8px;"></div>
+    <button onclick="showScreen('menu')" class="outline" style="width:100%; margin-top:20px;">🔙 メニューに戻る</button>
+  </div>
+</div>
+
+<div id="screen-setup" class="screen">
+  <div class="card">
+    <h3>参加メンバー選択</h3>
+    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+      <div style="flex:1;"><label>コート</label><select id="courtCount" onchange="updateCourtLimit()"><option value="1">1面</option><option value="2">2面</option></select></div>
+      <div style="flex:1.5;"><label>人数</label><select id="playerCount" onchange="initSetup()"></select></div>
+    </div>
+    <div id="guestArea" class="slot-grid"></div>
+    <p style="font-size:12px; color:var(--text-muted); font-weight:bold;">登録メンバー（タップで追加）:</p>
+    <div id="memberButtons" class="member-pool"></div>
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 25px;">
+      <button onclick="generate('reset')">🚀 組合せを最初から生成</button>
+      <button id="btnContinueGenerate" onclick="generate('continue')" class="secondary" style="display:none;">🔄 続きから再生成(途中参加/退出)</button>
+      <button onclick="showScreen('menu')" class="outline">🔙 メニューに戻る</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-match" class="screen">
+  <div style="display:flex; gap:8px; margin-bottom:15px;">
+    <button onclick="showScreen('setup')" class="outline secondary" style="flex:1; font-size:11px;">👥 途中参加/退出</button>
+    <button onclick="showScreen('menu')" class="outline" style="flex:1; font-size:11px;">🔙 メニューへ戻る</button>
+  </div>
+
+  <div class="card" style="padding: 15px;">
+    <h3 style="margin: 0 0 15px 0; display:flex; align-items:center; gap:8px; color:var(--primary);">📋 試合組合せ＆スコア</h3>
+    
+    <div id="match-control-btns" style="display:flex; gap:8px; margin-bottom:15px;">
+      <button onclick="commitHistoryAndReset()" class="danger" style="flex:1.5; font-size:12px;">💾 実績保存＆リセット</button>
+      <button onclick="resetAllMatches()" class="danger-zone" style="flex:1; font-size:12px;">🗑️ 保存せず破棄</button>
+    </div>
+
+    <a href="https://amzn.to/3OZGDtd" target="_blank" class="ad-btn">
+      🎾休憩時間にボール・グリップの売筋チェック！🎾
+    </a>
+
+    <div id="matches"></div>
+    <div id="post-reset-nav" style="display:none; text-align:center; padding:20px 0;">
+      <p style="color:var(--text-muted); font-size:14px;">試合データはありません。</p>
+      <button onclick="showScreen('menu')" class="outline" style="width:100%;">← メニューに戻る</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h3 style="margin:0;">🏆 今日のランキング</h3>
+      <select id="rankingSort" onchange="updateRanking()" style="width:auto; margin:0; padding:5px; font-size:12px;">
+        <option value="avgScore" selected>平均ゲーム数順</option>
+        <option value="winRate">勝率順</option>
+      </select>
+    </div>
+    <div id="ranking" style="overflow-x: auto;"></div>
+  </div>
+</div>
+
+<div id="screen-stats" class="screen">
+  <div class="card">
+    <h3 style="margin-top:0;">📊 総合実績</h3>
+    <div style="display:flex; gap:10px; margin-bottom:10px;">
+      <select id="statsYear" onchange="renderStats()" style="margin-bottom:0;"></select>
+      <select id="statsMonth" onchange="renderStats()" style="margin-bottom:0;">
+        <option value="all">年間トータル</option>
+        <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+        <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+        <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+        <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+      </select>
+    </div>
+    <div style="text-align:right; margin-bottom:10px;">
+      <select id="statsSort" onchange="renderStats()" style="width:auto; padding:5px; font-size:12px; margin-bottom:0;">
+        <option value="avgScore">平均ゲーム数順</option>
+        <option value="winRate">勝率順</option>
+      </select>
+    </div>
+
+    <a href="https://amzn.to/3OZGDtd" target="_blank" class="ad-btn" style="margin-top: 10px;">
+      🎾 次の試合に向けて！テニス用品ランキングをチェック 🎾
+    </a>
+
+    <div id="statsRanking" style="overflow-x: auto;"></div>
+    
+    <div style="margin-top:20px;">
+      <h4 style="border-bottom:2px solid var(--border); padding-bottom:5px; color:var(--text-muted); font-size:14px;">📅 この期間の活動履歴</h4>
+      <div id="statsDays"></div>
+    </div>
+    <button onclick="showScreen('menu')" class="outline" style="width:100%; margin-top:20px;">🔙 メニューに戻る</button>
+  </div>
+</div>
+
+<script>
+  let allMembers = [], currentSlots = [], schedule = [], showingRounds = 5;
+  let historyData = {}; 
+  window.editMode = {};
+  const circledNums = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮","⑯"];
+
+  let roomId = "";
+
+  window.initApp = async function() {
+    const params = new URLSearchParams(window.location.search);
+    const urlRoom = params.get("room");
+
+    if (urlRoom) {
+      document.getElementById("joinRoomId").value = urlRoom;
+      await checkLocalMemory(urlRoom);
+    } else {
+      const localRoom = localStorage.getItem("lastTenniMatchRoom");
+      if (localRoom) {
+        await checkLocalMemory(localRoom);
+      } else {
+        showScreen('lobby');
+      }
+    }
+  };
+
+  async function checkLocalMemory(targetRoomId) {
+    const savedPw = localStorage.getItem("pw_" + targetRoomId);
+    if (savedPw) {
+      document.getElementById("joinRoomId").value = targetRoomId;
+      document.getElementById("joinRoomPw").value = savedPw;
+      await handleJoinRoom(true);
+    } else {
+      document.getElementById("joinRoomId").value = targetRoomId;
+      showScreen('lobby');
+    }
+  }
+
+  async function handleCreateRoom() {
+    let rId = document.getElementById("newRoomId").value.trim();
+    const pw = document.getElementById("newRoomPw").value;
+    
+    if(!pw) { alert("パスワードを設定してください（必須です）"); return; }
+    if(!rId) rId = "r-" + Math.random().toString(36).substring(2,8);
+
+    const status = await window.createNewRoomAuth(rId, pw);
+    if(status === "EXISTS") {
+      alert("⚠️ その部屋名は既に使われています。別の名前にしてください。");
+      return;
+    }
+    enterRoomSuccess(rId, pw);
+  }
+
+  async function handleJoinRoom(isAuto = false) {
+    const rId = document.getElementById("joinRoomId").value.trim();
+    const pw = document.getElementById("joinRoomPw").value;
+    
+    if(!rId || !pw) { 
+      if(!isAuto) alert("部屋名とパスワードを入力してください"); 
+      return; 
+    }
+
+    const status = await window.checkRoomAuth(rId, pw);
+    if(status === "NOT_FOUND") {
+      if(!isAuto) alert("⚠️ 部屋が見つかりません。名前を確認してください。");
+      else showScreen('lobby');
+      return;
+    }
+    if(status === "WRONG_PW") {
+      if(!isAuto) alert("⚠️ パスワードが間違っています。");
+      else showScreen('lobby');
+      return;
+    }
+
+    enterRoomSuccess(rId, pw);
+  }
+
+  function enterRoomSuccess(rId, pw) {
+    roomId = rId;
+    
+    localStorage.setItem("lastTenniMatchRoom", rId);
+    localStorage.setItem("pw_" + rId, pw);
+
+    document.getElementById('roomIdDisplay').textContent = roomId;
+    document.getElementById('roomInfo').style.display = 'flex';
+
+    const params = new URLSearchParams(window.location.search);
+    params.set("room", roomId);
+    history.replaceState({}, "", location.pathname + "?" + params.toString());
+
+    window.startRoomSync(roomId);
+    showScreen('menu');
+  }
+
+  function logoutRoom() {
+    if(confirm("部屋から退出してロビーに戻りますか？")) {
+      localStorage.removeItem("lastTenniMatchRoom");
+      location.href = window.location.origin + window.location.pathname;
+    }
+  }
+
+  function goToSetupOrMatch() {
+    if (schedule.length > 0) { showScreen('match'); } 
+    else { showScreen('setup'); }
+  }
+
+  function updateCourtLimit() {
+    const courts = document.getElementById('courtCount').value;
+    const pc = document.getElementById('playerCount');
+    const oldVal = pc.value;
+    pc.innerHTML = '';
+    if(courts === "1") { for(let i=4; i<=11; i++) pc.innerHTML += `<option value="${i}">${i}人</option>`; }
+    else { for(let i=8; i<=16; i++) pc.innerHTML += `<option value="${i}">${i}人</option>`; }
+    if(oldVal) pc.value = oldVal;
+    initSetup();
+  }
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+    
+    if(id === 'setup') { 
+      if(!document.getElementById('playerCount').options.length) updateCourtLimit();
+      document.getElementById('btnContinueGenerate').style.display = (schedule.length > 0) ? 'block' : 'none';
+    }
+    if(id === 'match') {
+        renderMatches();
+        document.getElementById('post-reset-nav').style.display = (schedule.length === 0) ? 'block' : 'none';
+        document.getElementById('match-control-btns').style.display = (schedule.length === 0) ? 'none' : 'flex';
+    }
+    if(id === 'stats') { initStatsYear(); renderStats(); }
+    window.scrollTo(0,0);
+  }
+
+  function addMember() {
+    const val = document.getElementById('newMember').value.trim();
+    if(val && !allMembers.includes(val)) {
+      allMembers.push(val); document.getElementById('newMember').value = "";
+      renderMemberList(); saveData();
+    }
+  }
+
+  function renderMemberList() {
+    const list = document.getElementById('memberList');
+    if(!list) return;
+    list.innerHTML = allMembers.map((m, i) => `
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; padding:8px 12px; border-radius:12px; border:1px solid #ddd;">
+        <span style="font-weight:bold;">${m}</span>
+        <div style="display:flex; gap:5px;">
+          <button class="small outline" onclick="const n=prompt('修正:', '${m}'); if(n){allMembers[${i}]=n;renderMemberList();saveData();}">修正</button>
+          <button class="small danger" onclick="if(confirm('${m}を削除?')){allMembers.splice(${i},1);renderMemberList();saveData();}">削除</button>
+        </div>
+      </div>`).join('');
+    renderMemberButtons();
+  }
+
+  function initSetup() {
+    const count = parseInt(document.getElementById('playerCount').value || 0);
+    if(currentSlots.length !== count) {
+        let newSlots = [];
+        for(let i=0; i<count; i++) newSlots.push(currentSlots[i] || null);
+        currentSlots = newSlots;
+    }
+    renderSlots();
+  }
+
+  function renderSlots() {
+    const area = document.getElementById('guestArea');
+    if(!area) return;
+    area.innerHTML = currentSlots.map((name, i) => `
+      <div class="guest-slot ${name?'selected':''}" onclick="removeSlot(${i})">${name || (i+1)}</div>
+    `).join('');
+    renderMemberButtons();
+  }
+
+  function renderMemberButtons() {
+    const area = document.getElementById('memberButtons');
+    if(!area) return;
+    area.innerHTML = allMembers.map(name => {
+      const isUsed = currentSlots.includes(name);
+      return `<button class="member-btn ${isUsed?'assigned':''}" onclick="${isUsed?'removeByName(\''+name+'\')':'addSlot(\''+name+'\')'}">${name}</button>`;
+    }).join('');
+  }
+
+  function addSlot(name) { const idx = currentSlots.indexOf(null); if(idx !== -1) { currentSlots[idx] = name; renderSlots(); } }
+  function removeSlot(i) { if(currentSlots[i] === null) return; currentSlots.splice(i, 1); currentSlots.push(null); renderSlots(); }
+  function removeByName(name) { const i = currentSlots.indexOf(name); if(i!==-1) removeSlot(i); }
+
+  function resetAllMatches() {
+    if(confirm("【注意】この日のスコアは実績に保存されずに消去されます。\n本当にリセットしますか？")) { 
+      schedule=[]; showingRounds=5; window.editMode={};
+      currentSlots = []; initSetup(); saveData(); showScreen('match'); 
+    }
+  }
+
+  function commitHistoryAndReset() {
+    const scoredMatches = [];
+    schedule.forEach(r => r.matches.forEach(m => { if(m.score[0] !== null) scoredMatches.push(m); }));
+    if(scoredMatches.length === 0) { alert("保存する試合データ（スコア入力済み）がありません！"); return; }
+    
+    if(confirm(`入力済みの ${scoredMatches.length} 試合を総合実績に保存し、本日の組合せをリセットしますか？`)) {
+      const d = new Date();
+      const dateKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      if(!historyData[dateKey]) historyData[dateKey] = [];
+      historyData[dateKey] = historyData[dateKey].concat(scoredMatches);
+      schedule=[]; showingRounds=5; window.editMode={};
+      currentSlots = []; initSetup(); saveData();
+      alert("実績を保存しました！お疲れ様でした🎾");
+      showScreen('match'); 
+    }
+  }
+
+  function deleteHistory(dateKey) {
+    if(confirm(`${dateKey.replace(/-/g,'/')} の実績データをすべて削除しますか？\n（この操作は取り消せません）`)) {
+      delete historyData[dateKey];
+      saveData();
+      renderStats();
+    }
+  }
+
+  const templates = {
+    "1_4":[[[1,2],[3,4]],[[1,3],[2,4]],[[1,4],[2,3]]],
+    "1_5":[[[1,2],[3,4]],[[1,3],[2,5]],[[1,4],[3,5]],[[1,5],[2,4]],[[2,3],[4,5]],[[1,2],[3,5]],[[1,3],[2,4]],[[1,4],[2,5]],[[1,5],[3,4]],[[2,4],[3,5]],[[1,2],[4,5]],[[1,4],[2,3]],[[1,3],[4,5]],[[1,5],[2,3]],[[2,5],[3,4]]],
+    "1_6":[[[1,2],[3,4]],[[1,3],[5,6]],[[2,5],[4,6]],[[1,4],[2,3]],[[1,5],[2,6]],[[3,6],[4,5]],[[1,6],[2,4]],[[1,2],[3,5]],[[3,4],[5,6]],[[1,3],[2,4]],[[1,5],[3,6]],[[2,6],[4,5]],[[1,4],[2,5]],[[1,6],[2,3]],[[3,5],[4,6]]],
+    "1_7":[[[1,2],[3,4]],[[5,6],[7,1]],[[5,2],[6,3]],[[7,4],[1,5]],[[2,4],[3,7]],[[6,1],[3,5]],[[2,6],[4,7]],[[1,6],[2,3]],[[5,7],[4,6]],[[1,3],[2,7]],[[4,5],[1,7]],[[6,3],[2,4]],[[5,4],[2,7]],[[5,6],[1,3]],[[4,6],[7,3]]],
+    "1_8":[[[1,2],[3,4]],[[5,6],[7,8]],[[1,5],[2,6]],[[3,7],[4,8]],[[1,3],[5,7]],[[2,4],[6,8]],[[1,4],[5,8]],[[2,3],[6,7]],[[1,6],[2,5]],[[3,8],[4,7]],[[1,7],[3,5]],[[2,8],[4,6]],[[1,8],[3,6]],[[2,7],[4,5]],[[1,2],[7,8]]],
+    "1_9":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[1,5]],[[3,10],[4,8]],[[2,9],[6,7]],[[1,4],[5,10]],[[3,9],[6,8]],[[2,7],[5,9]],[[1,6],[4,7]],[[3,8],[2,10]],[[1,10],[8,9]],[[2,5],[6,4]],[[3,7],[1,9]],[[2,8],[4,9]],[[3,6],[5,10]]],
+    "1_10":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[1,5]],[[3,10],[4,8]],[[2,9],[6,7]],[[1,4],[5,10]],[[3,9],[6,8]],[[2,7],[5,9]],[[1,6],[4,7]],[[3,8],[2,10]],[[1,10],[8,9]],[[2,5],[6,4]],[[3,7],[1,9]],[[2,8],[4,9]],[[3,6],[5,10]]],
+    "1_11":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[11,1]],[[5,2],[3,6]],[[4,9],[7,11]],[[8,10],[1,5]],[[2,9],[3,7]],[[6,4],[8,11]],[[10,3],[4,7]],[[1,9],[5,11]],[[6,10],[8,2]],[[3,9],[5,7]],[[10,11],[1,4]],[[2,6],[8,5]],[[1,7],[3,6]]],
+    "2_8": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,5],[2,6]],[[3,7],[4,8]]],[[[1,3],[5,8]],[[2,4],[6,7]]],[[[2,7],[6,8]],[[1,4],[3,5]]],[[[1,3],[5,7]],[[2,8],[4,6]]],[[[2,5],[4,8]],[[1,7],[3,6]]],[[[1,6],[4,8]],[[2,3],[5,7]]],[[[1,5],[2,7]],[[3,8],[4,6]]],[[[1,6],[4,8]],[[2,3],[5,7]]],[[[1,4],[2,8]],[[3,5],[6,7]]],[[[2,3],[6,8]],[[1,5],[4,7]]],[[[1,7],[4,6]],[[2,5],[3,8]]],[[[1,2],[3,7]],[[4,5],[6,8]]],[[[2,6],[3,4]],[[1,7],[5,8]]],[[[1,8],[3,6]],[[2,4],[5,7]]]],
+    "2_9": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,6],[5,9]],[[2,3],[4,7]]],[[[2,4],[8,9]],[[1,5],[3,6]]],[[[1,8],[7,9]],[[2,6],[3,5]]],[[[4,8],[5,7]],[[1,3],[2,9]]],[[[4,9],[6,7]],[[1,5],[3,8]]],[[[2,8],[4,6]],[[1,9],[5,7]]],[[[3,7],[6,9]],[[1,4],[2,8]]],[[[2,5],[4,9]],[[3,7],[6,8]]],[[[1,7],[2,6]],[[3,9],[4,5]]],[[[1,9],[3,8]],[[2,4],[6,7]]],[[[2,7],[5,8]],[[1,3],[6,9]]],[[[1,6],[4,5]],[[3,9],[7,8]]],[[[2,5],[8,9]],[[1,4],[3,6]]],[[[1,2],[4,7]],[[3,5],[8,9]]]],
+    "2_10": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,5],[9,10]],[[2,3],[6,7]]],[[[4,9],[8,10]],[[2,5],[3,6]]],[[[1,4],[5,8]],[[2,9],[6,10]]],[[[3,9],[7,10]],[[1,8],[4,5]]],[[[2,5],[6,8]],[[1,9],[3,10]]],[[[4,7],[6,9]],[[1,3],[2,5]]],[[[4,8],[7,10]],[[1,6],[2,3]]],[[[5,10],[7,9]],[[2,4],[3,8]]],[[[1,8],[6,9]],[[4,10],[5,7]]],[[[2,10],[3,5]],[[1,6],[8,9]]],[[[1,7],[2,4]],[[3,8],[5,9]]],[[[3,10],[4,6]],[[1,5],[7,8]]],[[[2,9],[4,7]],[[1,10],[5,6]]],[[[3,6],[8,10]],[[2,7],[4,9]]]],
+    "2_11": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,11],[9,10]],[[2,5],[3,6]]],[[[4,7],[8,9]],[[1,10],[2,11]]],[[[1,5],[6,11]],[[2,9],[7,10]]],[[[2,8],[3,9]],[[1,7],[5,11]]],[[[4,10],[6,8]],[[1,3],[2,11]]],[[[5,10],[7,9]],[[2,6],[4,8]]],[[[1,8],[3,11]],[[6,7],[9,10]]],[[[2,4],[5,11]],[[3,8],[7,9]]],[[[1,10],[4,6]],[[3,5],[8,9]]],[[[2,6],[7,11]],[[1,10],[4,5]]],[[[3,9],[4,8]],[[1,6],[7,11]]],[[[2,10],[5,8]],[[1,11],[6,9]]],[[[3,7],[4,10]],[[1,2],[5,6]]],[[[4,9],[8,11]],[[2,10],[5,7]]]],
+    "2_12": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[1,5],[2,6]]],[[[3,7],[4,8]],[[9,11],[10,12]]],[[[1,6],[2,5]],[[3,9],[7,10]]],[[[4,11],[8,12]],[[1,3],[5,6]]],[[[2,10],[7,9]],[[1,8],[4,12]]],[[[3,6],[5,11]],[[4,7],[9,10]]],[[[1,12],[2,8]],[[3,10],[7,11]]],[[[4,5],[6,9]],[[2,12],[8,11]]],[[[1,10],[3,7]],[[5,8],[6,12]]],[[[2,11],[4,9]],[[1,7],[3,5]]],[[[6,10],[8,12]],[[2,3],[4,9]]],[[[1,11],[5,7]],[[2,4],[10,12]]],[[[3,9],[6,8]],[[1,2],[10,11]]],[[[4,7],[5,12]],[[8,9],[3,6]]]],
+    "2_13": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[1,6],[5,13]]],[[[2,7],[3,8]],[[4,9],[10,13]]],[[[1,11],[5,12]],[[2,4],[6,7]]],[[[3,9],[8,13]],[[1,10],[2,11]]],[[[1,5],[4,7]],[[2,9],[10,12]]],[[[3,8],[11,13]],[[1,12],[4,6]]],[[[2,10],[5,9]],[[1,8],[7,13]]],[[[1,4],[8,12]],[[2,5],[6,11]]],[[[2,13],[5,10]],[[1,11],[3,9]]],[[[1,7],[9,11]],[[2,8],[4,10]]],[[[3,5],[6,13]],[[2,4],[9,12]]],[[[1,8],[7,10]],[[3,5],[9,11]]],[[[2,12],[6,9]],[[1,13],[7,8]]],[[[4,10],[5,11]],[[3,6],[8,9]]]],
+    "2_14": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[1,5],[13,14]]],[[[2,3],[6,7]],[[4,8],[9,13]]],[[[10,11],[12,14]],[[1,6],[4,5]]],[[[2,9],[8,13]],[[3,7],[10,14]]],[[[1,11],[6,12]],[[2,10],[5,9]]],[[[3,12],[11,14]],[[1,8],[7,13]]],[[[2,5],[4,12]],[[3,10],[6,11]]],[[[1,10],[8,11]],[[2,13],[3,14]]],[[[4,9],[5,12]],[[1,7],[3,11]]],[[[6,14],[10,13]],[[2,4],[8,12]]],[[[3,5],[9,11]],[[1,4],[7,13]]],[[[2,8],[6,10]],[[1,12],[5,14]]],[[[3,9],[4,7]],[[2,11],[5,13]]],[[[1,2],[10,11]],[[3,6],[8,14]]]],
+    "2_15": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[1,15],[13,14]]],[[[2,5],[3,6]],[[4,7],[8,9]]],[[[10,11],[13,15]],[[1,14],[5,12]]],[[[2,6],[7,9]],[[3,13],[4,14]]],[[[8,12],[10,15]],[[1,5],[2,11]]],[[[3,7],[9,14]],[[6,10],[11,13]]],[[[4,8],[12,15]],[[1,13],[2,5]]],[[[3,10],[7,11]],[[4,6],[8,14]]],[[[5,15],[9,12]],[[2,3],[6,13]]],[[[1,4],[7,10]],[[8,15],[11,14]]],[[[3,9],[12,13]],[[1,6],[5,8]]],[[[2,10],[14,15]],[[4,9],[5,7]]],[[[3,12],[6,11]],[[1,8],[4,13]]],[[[2,9],[10,14]],[[5,8],[7,15]]]],
+    "2_16": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[13,14],[15,16]]],[[[1,5],[2,6]],[[3,7],[4,8]]],[[[9,13],[10,14]],[[11,15],[12,16]]],[[[1,7],[2,8]],[[3,6],[4,10]]],[[[9,15],[10,16]],[[11,13],[12,14]]],[[[1,9],[7,14]],[[8,10],[2,13]]],[[[3,12],[5,16]],[[4,11],[6,15]]],[[[1,14],[10,13]],[[2,9],[8,11]]],[[[3,15],[6,16]],[[4,12],[7,14]]],[[[1,13],[4,12]],[[5,14],[6,8]]],[[[7,10],[11,16]],[[2,3],[9,15]]],[[[1,8],[5,13]],[[3,11],[4,16]]],[[[2,12],[6,14]],[[7,15],[9,10]]],[[[8,16],[2,11]],[[4,15],[5,10]]]]
+  };
+  function shuffleArray(array) {
+    let a = [...array];
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+
+  function generate(mode) {
+    let finalNames = currentSlots.map((n, i) => n || `ゲスト${i+1}`);
+    if(mode === 'reset') { finalNames = shuffleArray(finalNames); currentSlots = [...finalNames]; }
+    const count = finalNames.length;
+    const courts = parseInt(document.getElementById('courtCount').value);
+    const base = templates[`${courts}_${count}`];
+    if(!base) return;
+    
+    let nextRoundStart = 0; let oldSchedule = [];
+    if(mode === 'continue') {
+      const lastScoredIdx = schedule.findLastIndex(r => r.matches.some(m => m.score[0] !== null));
+      nextRoundStart = lastScoredIdx + 1;
+      oldSchedule = schedule.slice(0, nextRoundStart);
+    }
+    let newPart = [];
+    for(let i = nextRoundStart; i < nextRoundStart + 15; i++) {
+      const t = base[i % base.length];
+      const matchDataArr = Array.isArray(t[0][0]) ? t : [t];
+      const roundMatches = matchDataArr.map(m => ({
+          team1: m[0].map(pIdx => ({ pIdx, name: finalNames[pIdx-1] })),
+          team2: m[1].map(pIdx => ({ pIdx, name: finalNames[pIdx-1] })),
+          score: [null, null]
+      }));
+      newPart.push({ roundParticipants: [...finalNames], matches: roundMatches });
+    }
+    schedule = oldSchedule.concat(newPart);
+    showingRounds = nextRoundStart + 5;
+    saveData(); showScreen('match');
+  }
+
+  function renderMatches() {
+    const area = document.getElementById('matches');
+    if(!area) return; area.innerHTML = '';
+    if (schedule.length > 0) {
+      const latestParticipants = schedule[schedule.length - 1].roundParticipants;
+      const mappingHtml = latestParticipants.map((name, i) => `${circledNums[i]} ${name}`).join(' / ');
+      area.innerHTML += `<div class="card" style="font-size:11px; margin-bottom:15px; background:#e8f0fe; border:1px solid var(--primary); padding: 10px;">
+          <strong style="color:var(--primary);">【現在のプレイヤー番号ガイド】</strong><br>${mappingHtml}</div>`;
+    }
+    schedule.forEach((r, ri) => {
+      if(ri >= showingRounds) return;
+      let roundHtml = `<div class="card match-card"><div style="font-weight:700; color:var(--text-muted); font-size:11px; margin-bottom:10px;">MATCH ${ri+1}</div>`;
+      r.matches.forEach((m, mi) => {
+        const isEdit = window.editMode[`${ri}-${mi}`];
+        const s0 = m.score[0], s1 = m.score[1], isLocked = !isEdit && s0 !== null;
+        roundHtml += `<div style="margin-bottom:8px; padding:10px; background:#f8f9fa; border-radius:12px; ${isLocked?'border-left:4px solid var(--success);':''}">
+          
+          ${r.matches.length > 1 ? `<div style="font-size:10px; font-weight:bold; color:var(--primary);">コート ${mi+1}</div>`:''}
+            <div class="match-flex">
+              <div class="team-box">${circledNums[m.team1[0].pIdx-1]}${m.team1[0].name}<br>${circledNums[m.team1[1].pIdx-1]}${m.team1[1].name}</div>
+              <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                  <div class="score-container">
+                  ${!isLocked ?
+ `<input type="number" id="s-${ri}-${mi}-0" class="score-input" value="${s0??''}" placeholder="0"><span style="font-weight:bold;">:</span><input type="number" id="s-${ri}-${mi}-1" class="score-input" value="${s1??''}" placeholder="0">` : `<div style="font-size:24px; font-weight:800;">${s0} - ${s1}</div>`}
+                  </div>
+                  ${!isLocked ?
+ `<button class="small" style="background:var(--success);" onclick="saveScore(${ri}, ${mi})">保存</button>` : `<button class="small outline" onclick="window.editMode['${ri}-${mi}']=true;renderMatches();">修正</button>`}
+              </div>
+              <div class="team-box">${circledNums[m.team2[0].pIdx-1]}${m.team2[0].name}<br>${circledNums[m.team2[1].pIdx-1]}${m.team2[1].name}</div>
+            </div>
+          </div>`;
+      });
+      const playing = r.matches.flatMap(m => [...m.team1, ...m.team2].map(p => p.name));
+      const resting = (r.roundParticipants || []).filter(n => !playing.includes(n));
+      if(resting.length > 0) roundHtml += `<div class="rest-info">休み: ${resting.join(', ')}</div>`;
+      area.innerHTML += roundHtml + `</div>`;
+    });
+    if(showingRounds < schedule.length) area.innerHTML += `<button class="outline" style="width:100%; margin-bottom:15px;" onclick="showingRounds+=5;saveData();renderMatches();">もっと見る (+5)</button>`;
+    updateRanking();
+  }
+
+  function saveScore(ri, mi) {
+    const v0 = document.getElementById(`s-${ri}-${mi}-0`).value;
+    const v1 = document.getElementById(`s-${ri}-${mi}-1`).value;
+    window.editMode[`${ri}-${mi}`] = false;
+    if(v0 !== '' && v1 !== '') { schedule[ri].matches[mi].score = [parseInt(v0), parseInt(v1)]; saveData(); }
+    renderMatches();
+  }
+
+  function calcStats(matches) {
+    const stats = {};
+    matches.forEach(m => {
+      [...m.team1, ...m.team2].forEach(p => { if(!stats[p.name]) stats[p.name]={w:0, l:0, d:0, games:0, m:0}; });
+      if(m.score[0] === null) return;
+      const s0 = m.score[0], s1 = m.score[1];
+      const update = (names, myS, opS) => { names.forEach(n => { const st = stats[n.name]; st.m++; st.games += myS; if(myS > opS) st.w++; else if(myS < opS) st.l++; else st.d++; }); };
+      update(m.team1, s0, s1); update(m.team2, s1, s0);
+    });
+    return Object.keys(stats).map(name => ({ name, ...stats[name], winRate: stats[name].m ? (stats[name].w / stats[name].m) : 0, avg: stats[name].m ? (stats[name].games / stats[name].m) : 0 }));
+  }
+
+  function generateRankingHTML(list, sortMode) {
+    list.sort((a,b) => sortMode==='winRate' ? (b.winRate - a.winRate || b.w - a.w) : (b.avg - a.avg || b.games - a.games));
+    if(list.length === 0) return "<p style='text-align:center; color:var(--text-muted); padding:10px;'>データがありません。</p>";
+    return `<table class="ranking-table"><tr><th>位</th><th>名前</th>${sortMode==='winRate'?'<th>勝</th><th>負</th><th>分</th><th>勝率</th>':'<th>合計G</th><th>平均G</th>'}<th>試合</th></tr>
+      ${list.map((p, i) => `<tr><td>${i+1}</td><td style="text-align:left;">${p.name}</td>${sortMode==='winRate'?`<td>${p.w}</td><td>${p.l}</td><td>${p.d}</td><td>${(p.winRate*100).toFixed(0)}%</td>`:`<td>${p.games}</td><td>${p.avg.toFixed(2)}</td>`}<td>${p.m}</td></tr>`).join('')}</table>`;
+  }
+
+  function updateRanking() {
+    const scoredMatches = [];
+    schedule.forEach(r => r.matches.forEach(m => { if(m.score[0] !== null) scoredMatches.push(m); }));
+    const list = calcStats(scoredMatches);
+    const mode = document.getElementById('rankingSort').value;
+    const tableEl = document.getElementById('ranking');
+    if(tableEl) tableEl.innerHTML = generateRankingHTML(list, mode);
+  }
+
+  function initStatsYear() {
+    const yearSelect = document.getElementById('statsYear');
+    let years = new Set();
+    Object.keys(historyData).forEach(d => years.add(d.split('-')[0]));
+    if(years.size === 0) years.add(new Date().getFullYear().toString());
+    yearSelect.innerHTML = Array.from(years).sort().reverse().map(y => `<option value="${y}">${y}年</option>`).join('');
+  }
+
+  function renderStats() {
+    const yearStr = document.getElementById('statsYear').value;
+    const monthStr = document.getElementById('statsMonth').value;
+    const sortMode = document.getElementById('statsSort').value;
+    let targetMatches = []; let daysList = [];
+    Object.keys(historyData).forEach(date => {
+      const [y, m] = date.split('-');
+      if (y === yearStr) {
+        if (monthStr === 'all' || parseInt(m) === parseInt(monthStr)) {
+          targetMatches = targetMatches.concat(historyData[date]);
+          daysList.push(date);
+        }
+      }
+    });
+    const list = calcStats(targetMatches);
+    document.getElementById('statsRanking').innerHTML = generateRankingHTML(list, sortMode);
+    daysList.sort((a,b) => b.localeCompare(a)); 
+    const daysEl = document.getElementById('statsDays');
+    if(daysList.length === 0) {
+      daysEl.innerHTML = "<p style='text-align:center; color:var(--text-muted); font-size:12px;'>活動記録がありません</p>";
+    } else {
+      daysEl.innerHTML = daysList.map(d => `<div style="padding:10px 0; border-bottom:1px dashed var(--border); font-size:13px; display:flex; justify-content:space-between; align-items:center;">
+        <span>📅 ${d.replace(/-/g, '/')} (${historyData[d].length} 試合)</span>
+        <button class="small danger" onclick="deleteHistory('${d}')" style="padding:4px 8px;">🗑 削除</button>
+      </div>`).join('');
+    }
+  }
+
+  function copyRoomLink(){ navigator.clipboard.writeText(location.href); alert("コピーしました"); }
+  
+  function saveData() { 
+    if(window.fbSave) window.fbSave({allMembers, schedule, showingRounds, currentSlots, historyData});
+  }
+  
+  function loadData(data) {
+    if(!data) return;
+    allMembers = data.allMembers || []; schedule = data.schedule || [];
+    showingRounds = data.showingRounds || 5; currentSlots = data.currentSlots || [];
+    historyData = data.historyData || {};
+    renderMemberList();
+    
+    if(document.getElementById('screen-menu').classList.contains('active')) {
+    } else if(schedule.length > 0) {
+      if(document.getElementById('screen-match').classList.contains('active')) renderMatches();
+    } else { 
+      initSetup();
+    }
+  }
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+  
+  const firebaseConfig = { apiKey: "AIzaSyBXBOgFKYf5hOJXnxgT7xMwkQREv1tXxWg", authDomain: "tennis-match-ranking-man-58aee.firebaseapp.com", projectId: "tennis-match-ranking-man-58aee", storageBucket: "tennis-match-ranking-man-58aee.firebasestorage.app", messagingSenderId: "452972436558", appId: "1:452972436558:web:68357629ca021a6d6f771f" };
+  const app = initializeApp(firebaseConfig); 
+  const db = getFirestore(app);
+  
+  let unsubscribe = null;
+  let roomRef = null;
+
+  window.checkRoomAuth = async (rId, pw) => {
+    const snap = await getDoc(doc(db, "rooms", rId));
+    if(!snap.exists()) return "NOT_FOUND";
+    if(snap.data().password !== pw) return "WRONG_PW";
+    return "OK";
+  };
+
+  window.createNewRoomAuth = async (rId, pw) => {
+    const snap = await getDoc(doc(db, "rooms", rId));
+    if (snap.exists() && snap.data().password) {
+      return "EXISTS";
+    }
+    await setDoc(doc(db, "rooms", rId), { 
+      password: pw, 
+      createdAt: new Date().toISOString() 
+    }, { merge: true });
+    
+    return "OK";
+  };
+
+  window.startRoomSync = (rId) => {
+    roomRef = doc(db, "rooms", rId);
+    
+    window.fbSave = (data) => setDoc(roomRef, data, { merge: true });
+    
+    if(unsubscribe) unsubscribe(); 
+    unsubscribe = onSnapshot(roomRef, (snap) => { 
+      if(snap.exists()) loadData(snap.data()); 
+    });
+  };
+
+  if(window.initApp) window.initApp();
+
+</script>
+</body>
+</html>
