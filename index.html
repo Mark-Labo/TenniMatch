@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.3.3</title>
+  <title>🎾TenniMatch v4.3.4</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -17,7 +17,6 @@
       --danger: #ea4335; --danger-bg: #fce8e6; --danger-text: #d93025;
       --success: #34a853; --bg: #f0f4f8;
       --surface: #ffffff; --text-main: #202124; --text-muted: #5f6368; --border: #dadce0;
-      /* 広告ボタン用のカラーを追加 */
       --ad-color: #ff9900; 
       --ad-color-dark: #e08800;
     }
@@ -39,23 +38,18 @@
     button.secondary { background: var(--secondary); color: #000; }
     button.muted { background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-weight: 400; }
     
-    /* アフィリエイトボタン用のスタイル（1行固定を追加） */
     .ad-btn {
       display: block; width: 100%; background: var(--ad-color); color: #fff; 
       text-align: center; text-decoration: none; padding: 14px 10px; 
       border-radius: 12px; font-weight: 700; font-size: 13px; margin-bottom: 15px;
       box-shadow: 0 4px 6px rgba(255, 153, 0, 0.2); transition: 0.2s;
-      box-sizing: border-box;
-      /* ここを追加して1行に収める */
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      box-sizing: border-box; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .ad-btn:active { background: var(--ad-color-dark); transform: translateY(2px); box-shadow: none; }
     
-    .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-bottom: 16px; }
-    .guest-slot { border: 2px dashed var(--border); border-radius: 12px; padding: 14px 8px; text-align: center; font-size: 14px; color: var(--text-muted); cursor: pointer; background: #fdfdfd; }
-    .guest-slot.selected { border-style: solid; border-color: var(--primary); background: #e8f0fe; color: var(--primary); font-weight: bold; }
+    .slot-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .slot-item { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--border); padding: 8px 12px; border-radius: 10px; }
+    .slot-item select { margin-bottom: 0; padding: 8px; font-size: 14px; }
     .member-pool { display: flex; flex-wrap: wrap; gap: 8px; }
     .member-btn { background: #eef2f7; border: 1px solid var(--border); border-radius: 20px; padding: 10px 16px; font-size: 14px; color: #333; font-weight: 500; }
     .member-btn.assigned { background: var(--primary); color: #fff; border-color: var(--primary); }
@@ -73,7 +67,6 @@
     let refreshing = false;
 
     if ('serviceWorker' in navigator) {
-      // SWが新しくアクティブになったらページを自動リロード
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (!refreshing) {
           window.location.reload();
@@ -103,9 +96,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.3.3 PWA Registered!');
-            
-            // アップデートが見つかった場合の処理（ダイアログ表示）
+            console.log('v4.3.4 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -125,7 +116,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.3.3</div>
+  <div id="headerTitle">🎾TenniMatch v4.3.4</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="copyRoomLink()">🔗共有URL</button>
@@ -138,17 +129,17 @@
     <p style="font-size: 12px; color: var(--text-muted);">部屋を作成するか、既存の部屋に入室してください。</p>
 
     <div style="margin-top: 20px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
-      <h3 style="margin-top:0; font-size:15px;">🆕 新しく部屋を作る</h3>
-      <input type="text" id="newRoomId" placeholder="希望の部屋名 (空欄で自動生成)">
-      <input type="password" id="newRoomPw" placeholder="パスワードを設定 (必須)">
-      <button onclick="handleCreateRoom()" style="width:100%;">✨ 部屋を作成</button>
-    </div>
-
-    <div style="margin-top: 20px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
       <h3 style="margin-top:0; font-size:15px;">🚪 既存の部屋に入る</h3>
       <input type="text" id="joinRoomId" placeholder="部屋名を入力">
       <input type="password" id="joinRoomPw" placeholder="パスワードを入力">
       <button onclick="handleJoinRoom()" class="secondary" style="width:100%;">入室する</button>
+    </div>
+
+    <div style="margin-top: 20px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
+      <h3 style="margin-top:0; font-size:15px;">🆕 新しく部屋を作る</h3>
+      <input type="text" id="newRoomId" placeholder="希望の部屋名 (空欄で自動生成)">
+      <input type="password" id="newRoomPw" placeholder="パスワードを設定 (必須)">
+      <button onclick="handleCreateRoom()" style="width:100%;">✨ 部屋を作成</button>
     </div>
   </div>
 </div>
@@ -184,8 +175,9 @@
       <div style="flex:1;"><label>コート</label><select id="courtCount" onchange="updateCourtLimit()"><option value="1">1面</option><option value="2">2面</option></select></div>
       <div style="flex:1.5;"><label>人数</label><select id="playerCount" onchange="initSetup()"></select></div>
     </div>
-    <div id="guestArea" class="slot-grid"></div>
-    <p style="font-size:12px; color:var(--text-muted); font-weight:bold;">登録メンバー（タップで追加）:</p>
+    <p style="font-size:11px; color:var(--text-muted); margin-bottom:5px;">※プレイヤー番号のプルダウンで直接メンバーを指定できます</p>
+    <div id="guestArea" class="slot-list"></div>
+    <p style="font-size:12px; color:var(--text-muted); font-weight:bold; margin-top:15px;">登録メンバー（タップで空き番に追加）:</p>
     <div id="memberButtons" class="member-pool"></div>
     <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 25px;">
       <button onclick="generate('reset')">🚀 組合せを最初から生成</button>
@@ -271,6 +263,7 @@
   let historyData = {}; 
   window.editMode = {};
   const circledNums = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮","⑯"];
+  let matchDateStr = "";
 
   let roomId = "";
 
@@ -407,6 +400,34 @@
     }
   }
 
+  window.editMemberName = function(idx) {
+    const oldName = allMembers[idx];
+    const newName = prompt('名前を修正:', oldName);
+    if(!newName || newName === oldName) return;
+    
+    allMembers[idx] = newName;
+    currentSlots = currentSlots.map(s => s === oldName ? newName : s);
+    
+    schedule.forEach(r => {
+      if(r.roundParticipants) r.roundParticipants = r.roundParticipants.map(p => p === oldName ? newName : p);
+      r.matches.forEach(m => {
+        m.team1.forEach(p => { if(p.name === oldName) p.name = newName; });
+        m.team2.forEach(p => { if(p.name === oldName) p.name = newName; });
+      });
+    });
+    
+    Object.keys(historyData).forEach(date => {
+      historyData[date].forEach(m => {
+        m.team1.forEach(p => { if(p.name === oldName) p.name = newName; });
+        m.team2.forEach(p => { if(p.name === oldName) p.name = newName; });
+      });
+    });
+    
+    renderMemberList();
+    if(schedule.length > 0) renderMatches();
+    saveData();
+  };
+
   function renderMemberList() {
     const list = document.getElementById('memberList');
     if(!list) return;
@@ -414,7 +435,7 @@
       <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; padding:8px 12px; border-radius:12px; border:1px solid #ddd;">
         <span style="font-weight:bold;">${m}</span>
         <div style="display:flex; gap:5px;">
-          <button class="small outline" onclick="const n=prompt('修正:', '${m}'); if(n){allMembers[${i}]=n;renderMemberList();saveData();}">修正</button>
+          <button class="small outline" onclick="editMemberName(${i})">修正</button>
           <button class="small danger" onclick="if(confirm('${m}を削除?')){allMembers.splice(${i},1);renderMemberList();saveData();}">削除</button>
         </div>
       </div>`).join('');
@@ -431,11 +452,27 @@
     renderSlots();
   }
 
+  window.assignSlot = function(idx, val) {
+    if(val) {
+      const existIdx = currentSlots.indexOf(val);
+      if(existIdx !== -1 && existIdx !== idx) currentSlots[existIdx] = null;
+    }
+    currentSlots[idx] = val || null;
+    renderSlots();
+  };
+
   function renderSlots() {
     const area = document.getElementById('guestArea');
     if(!area) return;
     area.innerHTML = currentSlots.map((name, i) => `
-      <div class="guest-slot ${name?'selected':''}" onclick="removeSlot(${i})">${name || (i+1)}</div>
+      <div class="slot-item">
+        <div style="width:30px; text-align:center; font-weight:bold; color:var(--primary);">${circledNums[i]}</div>
+        <select onchange="assignSlot(${i}, this.value)">
+          <option value="">（空き）</option>
+          ${allMembers.map(m => `<option value="${m}" ${name === m ? 'selected' : ''}>${m}</option>`).join('')}
+        </select>
+        <button class="small outline danger" onclick="removeSlot(${i})" style="padding:6px; min-width:36px;">✕</button>
+      </div>
     `).join('');
     renderMemberButtons();
   }
@@ -450,13 +487,16 @@
   }
 
   function addSlot(name) { const idx = currentSlots.indexOf(null); if(idx !== -1) { currentSlots[idx] = name; renderSlots(); } }
-  function removeSlot(i) { if(currentSlots[i] === null) return; currentSlots.splice(i, 1); currentSlots.push(null); renderSlots(); }
+  function removeSlot(i) { currentSlots[i] = null; renderSlots(); }
   function removeByName(name) { const i = currentSlots.indexOf(name); if(i!==-1) removeSlot(i); }
 
   function resetAllMatches() {
     if(confirm("【注意】この日のスコアは実績に保存されずに消去されます。\n本当にリセットしますか？")) { 
-      schedule=[]; showingRounds=5; window.editMode={};
-      currentSlots = []; initSetup(); saveData(); showScreen('match'); 
+      schedule=[]; showingRounds=5; window.editMode={}; matchDateStr="";
+      currentSlots = []; initSetup(); saveData(); 
+      document.getElementById('post-reset-nav').style.display = 'block';
+      document.getElementById('match-control-btns').style.display = 'none';
+      renderMatches();
     }
   }
 
@@ -470,10 +510,14 @@
       const dateKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
       if(!historyData[dateKey]) historyData[dateKey] = [];
       historyData[dateKey] = historyData[dateKey].concat(scoredMatches);
-      schedule=[]; showingRounds=5; window.editMode={};
+      
+      schedule=[]; showingRounds=5; window.editMode={}; matchDateStr="";
       currentSlots = []; initSetup(); saveData();
       alert("実績を保存しました！お疲れ様でした🎾");
-      showScreen('match'); 
+      
+      document.getElementById('post-reset-nav').style.display = 'block';
+      document.getElementById('match-control-btns').style.display = 'none';
+      renderMatches();
     }
   }
 
@@ -513,7 +557,11 @@
 
   function generate(mode) {
     let finalNames = currentSlots.map((n, i) => n || `ゲスト${i+1}`);
-    if(mode === 'reset') { finalNames = shuffleArray(finalNames); currentSlots = [...finalNames]; }
+    if(mode === 'reset' || schedule.length === 0) { 
+      finalNames = shuffleArray(finalNames); 
+      currentSlots = [...finalNames]; 
+      matchDateStr = new Date().toLocaleDateString('ja-JP');
+    }
     const count = finalNames.length;
     const courts = parseInt(document.getElementById('courtCount').value);
     const base = templates[`${courts}_${count}`];
@@ -541,35 +589,68 @@
     saveData(); showScreen('match');
   }
 
+  window.changePlayer = function(ri, mi, team, pIndex, newName) {
+     const newPIdx = schedule[ri].roundParticipants.indexOf(newName) + 1;
+     schedule[ri].matches[mi][team][pIndex] = { pIdx: newPIdx, name: newName };
+     saveData();
+  };
+
+  window.autoSaveScore = function(ri, mi) {
+    const v0 = document.getElementById(`s-${ri}-${mi}-0`).value;
+    const v1 = document.getElementById(`s-${ri}-${mi}-1`).value;
+    if(v0 !== '' && v1 !== '') { 
+      schedule[ri].matches[mi].score = [parseInt(v0), parseInt(v1)]; 
+      window.editMode[`${ri}-${mi}`] = false;
+      saveData(); 
+      renderMatches(); 
+    }
+  };
+
   function renderMatches() {
     const area = document.getElementById('matches');
     if(!area) return; area.innerHTML = '';
+    
     if (schedule.length > 0) {
+      area.innerHTML += `<div style="text-align:center; font-weight:bold; color:var(--text-muted); margin-bottom:10px; font-size:13px;">📅 生成日: ${matchDateStr || '未設定'}</div>`;
+      
       const latestParticipants = schedule[schedule.length - 1].roundParticipants;
       const mappingHtml = latestParticipants.map((name, i) => `${circledNums[i]} ${name}`).join(' / ');
       area.innerHTML += `<div class="card" style="font-size:11px; margin-bottom:15px; background:#e8f0fe; border:1px solid var(--primary); padding: 10px;">
           <strong style="color:var(--primary);">【現在のプレイヤー番号ガイド】</strong><br>${mappingHtml}</div>`;
     }
+    
     schedule.forEach((r, ri) => {
       if(ri >= showingRounds) return;
       let roundHtml = `<div class="card match-card"><div style="font-weight:700; color:var(--text-muted); font-size:11px; margin-bottom:10px;">MATCH ${ri+1}</div>`;
+      
       r.matches.forEach((m, mi) => {
         const isEdit = window.editMode[`${ri}-${mi}`];
         const s0 = m.score[0], s1 = m.score[1], isLocked = !isEdit && s0 !== null;
+        
+        const renderTeam = (teamKey) => {
+          if (isLocked) {
+             return `${circledNums[m[teamKey][0].pIdx-1]} ${m[teamKey][0].name}<br>${circledNums[m[teamKey][1].pIdx-1]} ${m[teamKey][1].name}`;
+          } else {
+             const getOpts = (curP) => r.roundParticipants.map((n, idx) => `<option value="${n}" ${curP.name===n?'selected':''}>${circledNums[idx]} ${n}</option>`).join('');
+             return `
+               <select onchange="changePlayer(${ri}, ${mi}, '${teamKey}', 0, this.value)" style="width:100%; margin-bottom:4px; font-size:12px; padding:4px;">${getOpts(m[teamKey][0])}</select>
+               <select onchange="changePlayer(${ri}, ${mi}, '${teamKey}', 1, this.value)" style="width:100%; margin-bottom:0; font-size:12px; padding:4px;">${getOpts(m[teamKey][1])}</select>
+             `;
+          }
+        };
+
         roundHtml += `<div style="margin-bottom:8px; padding:10px; background:#f8f9fa; border-radius:12px; ${isLocked?'border-left:4px solid var(--success);':''}">
-          
           ${r.matches.length > 1 ? `<div style="font-size:10px; font-weight:bold; color:var(--primary);">コート ${mi+1}</div>`:''}
             <div class="match-flex">
-              <div class="team-box">${circledNums[m.team1[0].pIdx-1]}${m.team1[0].name}<br>${circledNums[m.team1[1].pIdx-1]}${m.team1[1].name}</div>
+              <div class="team-box" style="padding-right:5px;">${renderTeam('team1')}</div>
               <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
                   <div class="score-container">
                   ${!isLocked ?
- `<input type="number" id="s-${ri}-${mi}-0" class="score-input" value="${s0??''}" placeholder="0"><span style="font-weight:bold;">:</span><input type="number" id="s-${ri}-${mi}-1" class="score-input" value="${s1??''}" placeholder="0">` : `<div style="font-size:24px; font-weight:800;">${s0} - ${s1}</div>`}
+ `<input type="number" id="s-${ri}-${mi}-0" class="score-input" value="${s0??''}" placeholder="＊" onchange="autoSaveScore(${ri}, ${mi})"><span style="font-weight:bold;">:</span><input type="number" id="s-${ri}-${mi}-1" class="score-input" value="${s1??''}" placeholder="＊" onchange="autoSaveScore(${ri}, ${mi})">` : `<div style="font-size:24px; font-weight:800;">${s0} - ${s1}</div>`}
                   </div>
-                  ${!isLocked ?
- `<button class="small" style="background:var(--success);" onclick="saveScore(${ri}, ${mi})">保存</button>` : `<button class="small outline" onclick="window.editMode['${ri}-${mi}']=true;renderMatches();">修正</button>`}
+                  ${!isLocked ? `` : `<button class="small outline" onclick="window.editMode['${ri}-${mi}']=true;renderMatches();">修正</button>`}
               </div>
-              <div class="team-box">${circledNums[m.team2[0].pIdx-1]}${m.team2[0].name}<br>${circledNums[m.team2[1].pIdx-1]}${m.team2[1].name}</div>
+              <div class="team-box" style="padding-left:5px;">${renderTeam('team2')}</div>
             </div>
           </div>`;
       });
@@ -580,14 +661,6 @@
     });
     if(showingRounds < schedule.length) area.innerHTML += `<button class="outline" style="width:100%; margin-bottom:15px;" onclick="showingRounds+=5;saveData();renderMatches();">もっと見る (+5)</button>`;
     updateRanking();
-  }
-
-  function saveScore(ri, mi) {
-    const v0 = document.getElementById(`s-${ri}-${mi}-0`).value;
-    const v1 = document.getElementById(`s-${ri}-${mi}-1`).value;
-    window.editMode[`${ri}-${mi}`] = false;
-    if(v0 !== '' && v1 !== '') { schedule[ri].matches[mi].score = [parseInt(v0), parseInt(v1)]; saveData(); }
-    renderMatches();
   }
 
   function calcStats(matches) {
@@ -626,6 +699,17 @@
     yearSelect.innerHTML = Array.from(years).sort().reverse().map(y => `<option value="${y}">${y}年</option>`).join('');
   }
 
+  window.toggleDayRanking = function(date) {
+    const el = document.getElementById(`day-ranking-${date}`);
+    if(el.style.display === 'none') {
+      const list = calcStats(historyData[date]);
+      el.innerHTML = generateRankingHTML(list, 'avgScore');
+      el.style.display = 'block';
+    } else {
+      el.style.display = 'none';
+    }
+  };
+
   function renderStats() {
     const yearStr = document.getElementById('statsYear').value;
     const monthStr = document.getElementById('statsMonth').value;
@@ -647,32 +731,60 @@
     if(daysList.length === 0) {
       daysEl.innerHTML = "<p style='text-align:center; color:var(--text-muted); font-size:12px;'>活動記録がありません</p>";
     } else {
-      daysEl.innerHTML = daysList.map(d => `<div style="padding:10px 0; border-bottom:1px dashed var(--border); font-size:13px; display:flex; justify-content:space-between; align-items:center;">
-        <span>📅 ${d.replace(/-/g, '/')} (${historyData[d].length} 試合)</span>
-        <button class="small danger" onclick="deleteHistory('${d}')" style="padding:4px 8px;">🗑 削除</button>
-      </div>`).join('');
+      daysEl.innerHTML = daysList.map(d => `
+        <div style="padding:10px 0; border-bottom:1px dashed var(--border); font-size:13px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleDayRanking('${d}')">
+            <span style="font-weight:bold; color:var(--primary);">📅 ${d.replace(/-/g, '/')} (${historyData[d].length} 試合) ▼</span>
+            <button class="small danger" onclick="event.stopPropagation(); deleteHistory('${d}')" style="padding:4px 8px;">🗑 削除</button>
+          </div>
+          <div id="day-ranking-${d}" style="display:none; margin-top:10px; background:#f8f9fa; padding:10px; border-radius:8px;"></div>
+        </div>
+      `).join('');
     }
   }
 
   function copyRoomLink(){ navigator.clipboard.writeText(location.href); alert("コピーしました"); }
   
   function saveData() { 
-    if(window.fbSave) window.fbSave({allMembers, schedule, showingRounds, currentSlots, historyData});
+    if(window.fbSave) window.fbSave({allMembers, schedule, showingRounds, currentSlots, historyData, matchDateStr});
   }
   
   function loadData(data) {
     if(!data) return;
-    allMembers = data.allMembers || []; schedule = data.schedule || [];
-    showingRounds = data.showingRounds || 5; currentSlots = data.currentSlots || [];
+    allMembers = data.allMembers || []; 
+    schedule = data.schedule || [];
+    showingRounds = data.showingRounds || 5; 
+    currentSlots = data.currentSlots || [];
     historyData = data.historyData || {};
+    matchDateStr = data.matchDateStr || "";
+
     renderMemberList();
     
-    if(document.getElementById('screen-menu').classList.contains('active')) {
-    } else if(schedule.length > 0) {
-      if(document.getElementById('screen-match').classList.contains('active')) renderMatches();
+    const isMatchScreen = document.getElementById('screen-match').classList.contains('active');
+    const isSetupScreen = document.getElementById('screen-setup').classList.contains('active');
+
+    if(schedule.length > 0) {
+      if(isMatchScreen) {
+        renderMatches();
+        document.getElementById('post-reset-nav').style.display = 'none';
+        document.getElementById('match-control-btns').style.display = 'flex';
+      }
+      if(isSetupScreen) {
+        document.getElementById('btnContinueGenerate').style.display = 'block';
+      }
     } else { 
       initSetup();
+      if(isMatchScreen) {
+        renderMatches();
+        document.getElementById('post-reset-nav').style.display = 'block';
+        document.getElementById('match-control-btns').style.display = 'none';
+      }
+      if(isSetupScreen) {
+        document.getElementById('btnContinueGenerate').style.display = 'none';
+      }
     }
+    
+    if(document.getElementById('screen-stats').classList.contains('active')) renderStats();
   }
 </script>
 
