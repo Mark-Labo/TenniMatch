@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.3.5</title>
+  <title>🎾TenniMatch v4.3.8</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -40,15 +40,18 @@
     
     .ad-btn {
       display: block; width: 100%; background: var(--ad-color); color: #fff; 
-      text-align: center; text-decoration: none; padding: 14px 10px; 
-      border-radius: 12px; font-weight: 700; font-size: 13px; margin-bottom: 15px;
-      box-shadow: 0 4px 6px rgba(255, 153, 0, 0.2); transition: 0.2s;
-      box-sizing: border-box; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      text-align: center; text-decoration: none; padding: 10px; 
+      border-radius: 8px; font-weight: 700; font-size: 13px; margin-bottom: 15px;
+      box-shadow: 0 2px 4px rgba(255, 153, 0, 0.2); transition: 0.2s;
+      box-sizing: border-box; line-height: 1.4;
     }
     .ad-btn:active { background: var(--ad-color-dark); transform: translateY(2px); box-shadow: none; }
     
-    .slot-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
-    .slot-item { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--border); padding: 8px 12px; border-radius: 10px; }
+    .slot-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .slot-item { display: flex; align-items: center; justify-content: center; background: #fff; border: 1px solid var(--border); padding: 8px; border-radius: 8px; font-size: 14px; cursor: pointer; transition: 0.2s; box-sizing: border-box; }
+    .slot-item.empty { width: calc(33.333% - 6px); color: #aaa; background: #f8f9fa; font-weight: bold; }
+    .slot-item.filled { background: #e8f0fe; color: var(--primary); border-color: var(--primary); font-weight: 600; padding: 8px 12px; }
+    
     .member-pool { display: flex; flex-wrap: wrap; gap: 8px; }
     .member-btn { background: #eef2f7; border: 1px solid var(--border); border-radius: 20px; padding: 10px 16px; font-size: 14px; color: #333; font-weight: 500; }
     .member-btn.assigned { background: var(--primary); color: #fff; border-color: var(--primary); }
@@ -95,7 +98,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.3.5 PWA Registered!');
+            console.log('v4.3.8 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -115,7 +118,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.3.5</div>
+  <div id="headerTitle">🎾TenniMatch v4.3.8</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="copyRoomLink()">🔗共有URL</button>
@@ -175,7 +178,7 @@
       <div style="flex:1.5;"><label>人数</label><select id="playerCount" onchange="initSetup()"></select></div>
     </div>
     <div id="guestArea" class="slot-list"></div>
-    <p style="font-size:12px; color:var(--text-muted); font-weight:bold; margin-top:15px;">登録メンバー（タップで空き番に追加）:</p>
+    <p style="font-size:12px; color:var(--text-muted); font-weight:bold; margin-top:15px;">登録メンバー（タップで移動）:</p>
     <div id="memberButtons" class="member-pool"></div>
     <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 25px;">
       <button onclick="generate('reset')">🚀 組合せを最初から生成</button>
@@ -200,7 +203,7 @@
     </div>
 
     <a href="https://amzn.to/3OZGDtd" target="_blank" class="ad-btn">
-      🎾休憩時間にボール・グリップの売筋チェック！🎾
+      【Amazon広告】休憩時間にチェック！<br>🎾ボール・ガット・グリップの売筋🎾
     </a>
 
     <div id="matches"></div>
@@ -243,7 +246,7 @@
     </div>
 
     <a href="https://amzn.to/3OZGDtd" target="_blank" class="ad-btn" style="margin-top: 10px;">
-      🎾 次の試合に向けて！テニス用品ランキングをチェック 🎾
+      【Amazon広告】次の試合に向けて！<br>🎾ボール・ラケットの売筋チェック🎾
     </a>
 
     <div id="statsRanking" style="overflow-x: auto;"></div>
@@ -468,13 +471,13 @@
   function renderSlots() {
     const area = document.getElementById('guestArea');
     if(!area) return;
-    area.innerHTML = currentSlots.map((name, i) => `
-      <div class="slot-item">
-        <div style="width:30px; text-align:center; font-weight:bold; color:var(--primary);">${circledNums[i]}</div>
-        <div style="flex:1; font-weight:500; font-size:15px;">${name ? name : '<span style="color:#aaa;">（空き）</span>'}</div>
-        <button class="small outline danger" onclick="removeSlot(${i})" style="padding:6px; min-width:36px;">✕</button>
-      </div>
-    `).join('');
+    area.innerHTML = currentSlots.map((name, i) => {
+      if (name) {
+        return `<div class="slot-item filled" onclick="removeSlot(${i})">${i+1}. ${name}</div>`;
+      } else {
+        return `<div class="slot-item empty">${i+1}</div>`;
+      }
+    }).join('');
     renderMemberButtons();
   }
 
@@ -536,7 +539,7 @@
     "1_6":[[[1,2],[3,4]],[[1,3],[5,6]],[[2,5],[4,6]],[[1,4],[2,3]],[[1,5],[2,6]],[[3,6],[4,5]],[[1,6],[2,4]],[[1,2],[3,5]],[[3,4],[5,6]],[[1,3],[2,4]],[[1,5],[3,6]],[[2,6],[4,5]],[[1,4],[2,5]],[[1,6],[2,3]],[[3,5],[4,6]]],
     "1_7":[[[1,2],[3,4]],[[5,6],[7,1]],[[5,2],[6,3]],[[7,4],[1,5]],[[2,4],[3,7]],[[6,1],[3,5]],[[2,6],[4,7]],[[1,6],[2,3]],[[5,7],[4,6]],[[1,3],[2,7]],[[4,5],[1,7]],[[6,3],[2,4]],[[5,4],[2,7]],[[5,6],[1,3]],[[4,6],[7,3]]],
     "1_8":[[[1,2],[3,4]],[[5,6],[7,8]],[[1,5],[2,6]],[[3,7],[4,8]],[[1,3],[5,7]],[[2,4],[6,8]],[[1,4],[5,8]],[[2,3],[6,7]],[[1,6],[2,5]],[[3,8],[4,7]],[[1,7],[3,5]],[[2,8],[4,6]],[[1,8],[3,6]],[[2,7],[4,5]],[[1,2],[7,8]]],
-    "1_9":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[1,5]],[[3,10],[4,8]],[[2,9],[6,7]],[[1,4],[5,10]],[[3,9],[6,8]],[[2,7],[5,9]],[[1,6],[4,7]],[[3,8],[2,10]],[[1,10],[8,9]],[[2,5],[6,4]],[[3,7],[1,9]],[[2,8],[4,9]],[[3,6],[5,10]]],
+    "1_9":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,1],[2,5]],[[3,6],[4,7]],[[8,9],[1,6]],[[2,4],[5,7]],[[3,8],[1,9]],[[2,7],[6,8]],[[1,4],[5,9]],[[3,7],[2,8]],[[4,6],[1,5]],[[2,9],[6,7]],[[3,5],[4,8]],[[1,7],[8,9]],[[2,6],[3,9]]],
     "1_10":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[1,5]],[[3,10],[4,8]],[[2,9],[6,7]],[[1,4],[5,10]],[[3,9],[6,8]],[[2,7],[5,9]],[[1,6],[4,7]],[[3,8],[2,10]],[[1,10],[8,9]],[[2,5],[6,4]],[[3,7],[1,9]],[[2,8],[4,9]],[[3,6],[5,10]]],
     "1_11":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[11,1]],[[5,2],[3,6]],[[4,9],[7,11]],[[8,10],[1,5]],[[2,9],[3,7]],[[6,4],[8,11]],[[10,3],[4,7]],[[1,9],[5,11]],[[6,10],[8,2]],[[3,9],[5,7]],[[10,11],[1,4]],[[2,6],[8,5]],[[1,7],[3,6]]],
     "2_8": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,5],[2,6]],[[3,7],[4,8]]],[[[1,3],[5,8]],[[2,4],[6,7]]],[[[2,7],[6,8]],[[1,4],[3,5]]],[[[1,3],[5,7]],[[2,8],[4,6]]],[[[2,5],[4,8]],[[1,7],[3,6]]],[[[1,6],[4,8]],[[2,3],[5,7]]],[[[1,5],[2,7]],[[3,8],[4,6]]],[[[1,6],[4,8]],[[2,3],[5,7]]],[[[1,4],[2,8]],[[3,5],[6,7]]],[[[2,3],[6,8]],[[1,5],[4,7]]],[[[1,7],[4,6]],[[2,5],[3,8]]],[[[1,2],[3,7]],[[4,5],[6,8]]],[[[2,6],[3,4]],[[1,7],[5,8]]],[[[1,8],[3,6]],[[2,4],[5,7]]]],
