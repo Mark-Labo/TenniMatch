@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.3.5</title>
+  <title>🎾TenniMatch v4.3.6</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -38,19 +38,27 @@
     button.secondary { background: var(--secondary); color: #000; }
     button.muted { background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-weight: 400; }
     
+    /* 広告ボタン：2行表示対応、高さ小さめ */
     .ad-btn {
       display: block; width: 100%; background: var(--ad-color); color: #fff; 
-      text-align: center; text-decoration: none; padding: 14px 10px; 
-      border-radius: 12px; font-weight: 700; font-size: 13px; margin-bottom: 15px;
-      box-shadow: 0 4px 6px rgba(255, 153, 0, 0.2); transition: 0.2s;
-      box-sizing: border-box; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      text-align: center; text-decoration: none; padding: 8px 10px; 
+      border-radius: 10px; font-weight: 700; font-size: 13px; margin-bottom: 12px;
+      box-shadow: 0 3px 6px rgba(255, 153, 0, 0.16); transition: 0.15s;
+      box-sizing: border-box; line-height: 1.15;
+      white-space: normal; word-break: keep-all;
     }
-    .ad-btn:active { background: var(--ad-color-dark); transform: translateY(2px); box-shadow: none; }
+    .ad-btn small { display:block; font-weight:700; }
+    .ad-btn:active { background: var(--ad-color-dark); transform: translateY(1px); box-shadow: none; }
     
-    .slot-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
-    .slot-item { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--border); padding: 8px 12px; border-radius: 10px; }
+    /* 参加スロット（グリッド） */
+    .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .guest-slot { border: 2px dashed var(--border); border-radius: 12px; padding: 10px 8px; text-align: center; font-size: 14px; color: var(--text-muted); cursor: pointer; background: #fdfdfd; display:flex; flex-direction:column; align-items:center; gap:6px; min-height:58px; box-sizing:border-box; }
+    .guest-slot.selected { border-style: solid; border-color: var(--primary); background: #e8f0fe; color: var(--primary); font-weight:700; }
+    .slot-num { font-weight:700; color:var(--primary); font-size:14px; }
+    .slot-name { font-weight:600; font-size:15px; color: #222; word-break: break-word; }
+    
     .member-pool { display: flex; flex-wrap: wrap; gap: 8px; }
-    .member-btn { background: #eef2f7; border: 1px solid var(--border); border-radius: 20px; padding: 10px 16px; font-size: 14px; color: #333; font-weight: 500; }
+    .member-btn { background: #eef2f7; border: 1px solid var(--border); border-radius: 20px; padding: 10px 16px; font-size: 14px; color: #333; font-weight: 500; cursor: pointer; }
     .member-btn.assigned { background: var(--primary); color: #fff; border-color: var(--primary); }
     .match-card { border-radius: 16px; padding: 16px 10px; margin-bottom: 16px; border-left: 6px solid var(--primary); position: relative; }
     .match-flex { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
@@ -95,7 +103,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.3.5 PWA Registered!');
+            console.log('v4.3.6 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -115,7 +123,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.3.5</div>
+  <div id="headerTitle">🎾TenniMatch v4.3.6</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="copyRoomLink()">🔗共有URL</button>
@@ -174,8 +182,8 @@
       <div style="flex:1;"><label>コート</label><select id="courtCount" onchange="updateCourtLimit()"><option value="1">1面</option><option value="2">2面</option></select></div>
       <div style="flex:1.5;"><label>人数</label><select id="playerCount" onchange="initSetup()"></select></div>
     </div>
-    <div id="guestArea" class="slot-list"></div>
-    <p style="font-size:12px; color:var(--text-muted); font-weight:bold; margin-top:15px;">登録メンバー（タップで空き番に追加）:</p>
+    <div id="guestArea" class="slot-grid"></div>
+    <p style="font-size:12px; color:var(--text-muted); font-weight:bold; margin-top:15px;">登録メンバー（タップで空き番に追加 / スロットの名前をタップで戻す）:</p>
     <div id="memberButtons" class="member-pool"></div>
     <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 25px;">
       <button onclick="generate('reset')">🚀 組合せを最初から生成</button>
@@ -199,8 +207,9 @@
       <button onclick="resetAllMatches()" class="danger-zone" style="flex:1; font-size:12px;">🗑️ 保存せず破棄</button>
     </div>
 
-    <a href="https://amzn.to/3OZGDtd" target="_blank" class="ad-btn">
-      🎾休憩時間にボール・グリップの売筋チェック！🎾
+    <a href="https://amzn.to/3OZGDtd" target="_blank" class="ad-btn" aria-label="Amazon広告（試合画面）">
+      <small>【Amazon広告】休憩時間にチェック！</small>
+      🎾ボール・ガット・グリップの売筋🎾
     </a>
 
     <div id="matches"></div>
@@ -242,8 +251,9 @@
       </select>
     </div>
 
-    <a href="https://amzn.to/3OZGDtd" target="_blank" class="ad-btn" style="margin-top: 10px;">
-      🎾 次の試合に向けて！テニス用品ランキングをチェック 🎾
+    <a href="https://amzn.to/3OZGDtd" target="_blank" class="ad-btn" aria-label="Amazon広告（総合実績）" style="margin-top: 10px;">
+      <small>【Amazon広告】次の試合に向けて！</small>
+      🎾ボール・ラケットの売筋チェック🎾
     </a>
 
     <div id="statsRanking" style="overflow-x: auto;"></div>
@@ -437,10 +447,10 @@
     if(!list) return;
     list.innerHTML = allMembers.map((m, i) => `
       <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; padding:8px 12px; border-radius:12px; border:1px solid #ddd;">
-        <span style="font-weight:bold;">${m}</span>
+        <span style="font-weight:bold;">${escapeHtml(m)}</span>
         <div style="display:flex; gap:5px;">
           <button class="small outline" onclick="editMemberName(${i})">修正</button>
-          <button class="small danger" onclick="if(confirm('${m}を削除?')){allMembers.splice(${i},1);renderMemberList();saveData();}">削除</button>
+          <button class="small danger" onclick="if(confirm('${escapeSingleQuote(m)}を削除?')){allMembers.splice(${i},1);renderMemberList();saveData();}">削除</button>
         </div>
       </div>`).join('');
     renderMemberButtons();
@@ -456,6 +466,7 @@
     renderSlots();
   }
 
+  // assignSlot used by older code paths: keep for compatibility
   window.assignSlot = function(idx, val) {
     if(val) {
       const existIdx = currentSlots.indexOf(val);
@@ -465,31 +476,73 @@
     renderSlots();
   };
 
+  // addSlot: find first null and fill
+  function addSlot(name) { 
+    const idx = currentSlots.indexOf(null); 
+    if(idx !== -1) { currentSlots[idx] = name; renderSlots(); } 
+  }
+
+  // removeSlot: v4.3.3 behavior — remove element, then push null (詰める)
+  function removeSlot(i) { 
+    if(currentSlots[i] === null) return; 
+    currentSlots.splice(i, 1); 
+    currentSlots.push(null); 
+    renderSlots(); 
+  }
+
+  function removeByName(name) { const i = currentSlots.indexOf(name); if(i!==-1) removeSlot(i); }
+
+  // renderSlots: grid layout; clicking a slot with a name returns it to pool (removeSlot)
   function renderSlots() {
     const area = document.getElementById('guestArea');
     if(!area) return;
-    area.innerHTML = currentSlots.map((name, i) => `
-      <div class="slot-item">
-        <div style="width:30px; text-align:center; font-weight:bold; color:var(--primary);">${circledNums[i]}</div>
-        <div style="flex:1; font-weight:500; font-size:15px;">${name ? name : '<span style="color:#aaa;">（空き）</span>'}</div>
-        <button class="small outline danger" onclick="removeSlot(${i})" style="padding:6px; min-width:36px;">✕</button>
-      </div>
-    `).join('');
+    area.innerHTML = currentSlots.map((name, i) => {
+      const cls = name ? 'guest-slot selected' : 'guest-slot';
+      const displayName = name ? escapeHtml(name) : `（空き）`;
+      return `<div class="${cls}" data-idx="${i}">
+        <div class="slot-num">${circledNums[i]}</div>
+        <div class="slot-name">${displayName}</div>
+      </div>`;
+    }).join('');
+    // attach click handlers
+    area.querySelectorAll('.guest-slot').forEach(el => {
+      el.onclick = (e) => {
+        const idx = parseInt(el.getAttribute('data-idx'));
+        if(currentSlots[idx]) {
+          // slot occupied → 戻す（スロットから削除）
+          removeSlot(idx);
+        } else {
+          // 空欄をクリックしても何もしない（名前は下のリストをタップして入れる想定）
+        }
+      };
+    });
     renderMemberButtons();
   }
 
+  // renderMemberButtons: uses data-name and event listeners so names with quotes are safe
   function renderMemberButtons() {
     const area = document.getElementById('memberButtons');
     if(!area) return;
     area.innerHTML = allMembers.map(name => {
       const isUsed = currentSlots.includes(name);
-      return `<button class="member-btn ${isUsed?'assigned':''}" onclick="${isUsed?'removeByName(\''+name+'\')':'addSlot(\''+name+'\')'}">${name}</button>`;
+      const cls = `member-btn ${isUsed ? 'assigned' : ''}`;
+      return `<button class="${cls}" data-name="${escapeHtmlAttr(name)}">${escapeHtml(name)}</button>`;
     }).join('');
+    // attach events
+    area.querySelectorAll('.member-btn').forEach(btn => {
+      btn.onclick = () => {
+        const name = btn.getAttribute('data-name');
+        const isUsed = currentSlots.includes(name);
+        if(isUsed) removeByName(name);
+        else addSlot(name);
+      };
+    });
   }
 
-  function addSlot(name) { const idx = currentSlots.indexOf(null); if(idx !== -1) { currentSlots[idx] = name; renderSlots(); } }
-  function removeSlot(i) { currentSlots[i] = null; renderSlots(); }
-  function removeByName(name) { const i = currentSlots.indexOf(name); if(i!==-1) removeSlot(i); }
+  // helper to escape single quotes for inline confirm strings
+  function escapeSingleQuote(s) { return s.replace(/'/g, "\\'").replace(/"/g, '\\"'); }
+  function escapeHtml(s) { if(!s && s !== '') return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function escapeHtmlAttr(s) { return escapeHtml(s).replace(/'/g,"&#39;"); }
 
   function resetAllMatches() {
     if(confirm("【注意】この日のスコアは実績に保存されずに消去されます。\n本当にリセットしますか？")) { 
@@ -615,7 +668,7 @@
       area.innerHTML += `<div style="text-align:center; font-weight:bold; color:var(--text-muted); margin-bottom:10px; font-size:13px;">📅 生成日: ${matchDateStr || '未設定'}</div>`;
       
       const latestParticipants = schedule[schedule.length - 1].roundParticipants;
-      const mappingHtml = latestParticipants.map((name, i) => `${circledNums[i]} ${name}`).join(' / ');
+      const mappingHtml = latestParticipants.map((name, i) => `${circledNums[i]} ${escapeHtml(name)}`).join(' / ');
       area.innerHTML += `<div class="card" style="font-size:11px; margin-bottom:15px; background:#e8f0fe; border:1px solid var(--primary); padding: 10px;">
           <strong style="color:var(--primary);">【現在のプレイヤー番号ガイド】</strong><br>${mappingHtml}</div>`;
     }
@@ -630,9 +683,9 @@
         
         const renderTeam = (teamKey) => {
           if (isLocked) {
-             return `${circledNums[m[teamKey][0].pIdx-1]} ${m[teamKey][0].name}<br>${circledNums[m[teamKey][1].pIdx-1]} ${m[teamKey][1].name}`;
+             return `${circledNums[m[teamKey][0].pIdx-1]} ${escapeHtml(m[teamKey][0].name)}<br>${circledNums[m[teamKey][1].pIdx-1]} ${escapeHtml(m[teamKey][1].name)}`;
           } else {
-             const getOpts = (curP) => r.roundParticipants.map((n, idx) => `<option value="${n}" ${curP.name===n?'selected':''}>${circledNums[idx]} ${n}</option>`).join('');
+             const getOpts = (curP) => r.roundParticipants.map((n, idx) => `<option value="${escapeHtmlAttr(n)}" ${curP.name===n?'selected':''}>${circledNums[idx]} ${escapeHtml(n)}</option>`).join('');
              return `
                <select onchange="changePlayer(${ri}, ${mi}, '${teamKey}', 0, this.value)" style="width:100%; margin-bottom:4px; font-size:12px; padding:4px;">${getOpts(m[teamKey][0])}</select>
                <select onchange="changePlayer(${ri}, ${mi}, '${teamKey}', 1, this.value)" style="width:100%; margin-bottom:0; font-size:12px; padding:4px;">${getOpts(m[teamKey][1])}</select>
@@ -657,7 +710,7 @@
       });
       const playing = r.matches.flatMap(m => [...m.team1, ...m.team2].map(p => p.name));
       const resting = (r.roundParticipants || []).filter(n => !playing.includes(n));
-      if(resting.length > 0) roundHtml += `<div class="rest-info">休み: ${resting.join(', ')}</div>`;
+      if(resting.length > 0) roundHtml += `<div class="rest-info">休み: ${resting.map(n=>escapeHtml(n)).join(', ')}</div>`;
       area.innerHTML += roundHtml + `</div>`;
     });
     if(showingRounds < schedule.length) area.innerHTML += `<button class="outline" style="width:100%; margin-bottom:15px;" onclick="showingRounds+=5;saveData();renderMatches();">もっと見る (+5)</button>`;
@@ -681,7 +734,7 @@
     if(list.length === 0) return "<p style='text-align:center; color:var(--text-muted); padding:10px;'>データがありません。</p>";
     return `<table class="ranking-table"><tr><th>位</th><th>名前</th>${sortMode==='winRate'?'<th>勝</th><th>負</th><th>分</th><th>勝率</th>':'<th>合計G</th><th>平均G</th>'}<th>試合</th></tr>
       ${list.map((p, i) => {
-        const nameDisplay = isStatsScreen ? `<a href="javascript:void(0)" onclick="showPlayerHistory('${p.name}')" style="color:var(--primary); font-weight:bold; text-decoration:underline;">${p.name}</a>` : p.name;
+        const nameDisplay = isStatsScreen ? `<a href="javascript:void(0)" onclick="showPlayerHistory('${escapeHtmlAttr(p.name)}')" style="color:var(--primary); font-weight:bold; text-decoration:underline;">${escapeHtml(p.name)}</a>` : escapeHtml(p.name);
         return `<tr><td>${i+1}</td><td style="text-align:left;">${nameDisplay}</td>${sortMode==='winRate'?`<td>${p.w}</td><td>${p.l}</td><td>${p.d}</td><td>${(p.winRate*100).toFixed(0)}%</td>`:`<td>${p.games}</td><td>${p.avg.toFixed(2)}</td>`}<td>${p.m}</td></tr>`;
       }).join('')}</table>`;
   }
@@ -775,7 +828,7 @@
     const listEl = document.getElementById('playerHistoryList');
 
     const periodText = monthStr === 'all' ? `${yearStr}年 全体` : `${yearStr}年${monthStr}月`;
-    titleEl.innerHTML = `👤 ${name} の戦績 (${periodText})`;
+    titleEl.innerHTML = `👤 ${escapeHtml(name)} の戦績 (${periodText})`;
 
     if(playerMatches.length === 0) {
       listEl.innerHTML = "<p style='font-size:12px; color:var(--text-muted);'>この期間の試合データがありません。</p>";
@@ -806,8 +859,8 @@
                 ${myScore} - ${opScore}
               </div>
               <div style="text-align:right; font-size:11px; color:var(--text-muted);">
-                味方: ${partner}<br>
-                相手: ${opponents}
+                味方: ${escapeHtml(partner)}<br>
+                相手: ${escapeHtml(opponents)}
               </div>
             </div>
           </div>
