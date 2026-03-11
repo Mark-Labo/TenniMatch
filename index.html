@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.3.7</title>
+  <title>🎾TenniMatch v4.3.5</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -38,33 +38,25 @@
     button.secondary { background: var(--secondary); color: #000; }
     button.muted { background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-weight: 400; }
     
-    /* 広告バナー：2行、控えめ高さ */
     .ad-btn {
       display: block; width: 100%; background: var(--ad-color); color: #fff; 
-      text-align: center; text-decoration: none; padding: 8px 10px; 
-      border-radius: 10px; font-weight: 700; font-size: 13px; margin-bottom: 12px;
-      box-shadow: 0 3px 6px rgba(255, 153, 0, 0.16); transition: 0.15s;
-      box-sizing: border-box; line-height: 1.15;
-      white-space: normal; word-break: keep-all;
+      text-align: center; text-decoration: none; padding: 14px 10px; 
+      border-radius: 12px; font-weight: 700; font-size: 13px; margin-bottom: 15px;
+      box-shadow: 0 4px 6px rgba(255, 153, 0, 0.2); transition: 0.2s;
+      box-sizing: border-box; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .ad-btn small { display:block; font-weight:700; }
-    .ad-btn:active { background: var(--ad-color-dark); transform: translateY(1px); box-shadow: none; }
+    .ad-btn:active { background: var(--ad-color-dark); transform: translateY(2px); box-shadow: none; }
     
-    /* スロット（コンパクトに） */
-    .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 10px; margin-bottom: 16px; }
-    .guest-slot { border: 2px dashed var(--border); border-radius: 12px; padding: 8px 6px; text-align: center; font-size: 13px; color: var(--text-muted); cursor: pointer; background: #fdfdfd; display:flex; flex-direction:column; align-items:center; gap:4px; min-height:48px; box-sizing:border-box; }
-    .guest-slot.selected { border-style: solid; border-color: var(--primary); background: #e8f0fe; color: var(--primary); font-weight:700; }
-    .slot-num { font-weight:700; color:var(--text-muted); font-size:14px; }
-    .slot-name { font-weight:600; font-size:13px; color: #222; word-break: break-word; }
-    
-    .member-pool { display: flex; flex-wrap: wrap; gap: 8px; margin-top:10px; }
-    .member-btn { background: #eef2f7; border: 1px solid var(--border); border-radius: 20px; padding: 8px 14px; font-size: 13px; color: #333; font-weight: 500; cursor: pointer; }
+    .slot-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .slot-item { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--border); padding: 8px 12px; border-radius: 10px; }
+    .member-pool { display: flex; flex-wrap: wrap; gap: 8px; }
+    .member-btn { background: #eef2f7; border: 1px solid var(--border); border-radius: 20px; padding: 10px 16px; font-size: 14px; color: #333; font-weight: 500; }
     .member-btn.assigned { background: var(--primary); color: #fff; border-color: var(--primary); }
     .match-card { border-radius: 16px; padding: 16px 10px; margin-bottom: 16px; border-left: 6px solid var(--primary); position: relative; }
     .match-flex { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
     .team-box { flex: 1; text-align: center; font-weight: 600; font-size: 13px; line-height: 1.4; word-break: break-all; }
     .score-container { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
-    .score-input { width: 48px !important; height: 44px !important; text-align: center; font-size: 20px !important; padding: 0 !important; margin: 0 !important; border-radius: 8px !important; }
+    .score-input { width: 50px !important; height: 50px !important; text-align: center; font-size: 22px !important; padding: 0 !important; margin: 0 !important; border-radius: 8px !important; }
     .rest-info { margin-top: 10px; font-size: 11px; color: var(--text-muted); text-align: center; border-top: 1px dashed var(--border); padding-top: 8px; }
     .ranking-table { width: 100%; border-collapse: collapse; font-size: 12px; }
     .ranking-table th { background: #5f6368; color: #fff; padding: 8px 4px; }
@@ -103,7 +95,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.3.7 PWA Registered!');
+            console.log('v4.3.5 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -123,7 +115,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.3.7</div>
+  <div id="headerTitle">🎾TenniMatch v4.3.5</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="copyRoomLink()">🔗共有URL</button>
@@ -178,14 +170,14 @@
 <div id="screen-setup" class="screen">
   <div class="card">
     <h3>参加メンバー選択</h3>
-    <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
       <div style="flex:1;"><label>コート</label><select id="courtCount" onchange="updateCourtLimit()"><option value="1">1面</option><option value="2">2面</option></select></div>
       <div style="flex:1.5;"><label>人数</label><select id="playerCount" onchange="initSetup()"></select></div>
     </div>
-    <div id="guestArea" class="slot-grid"></div>
-    <p style="font-size:12px; color:var(--text-muted); font-weight:bold; margin-top:6px;">登録メンバー（タップで空き番に追加 / スロット名をタップで戻す）:</p>
+    <div id="guestArea" class="slot-list"></div>
+    <p style="font-size:12px; color:var(--text-muted); font-weight:bold; margin-top:15px;">登録メンバー（タップで空き番に追加）:</p>
     <div id="memberButtons" class="member-pool"></div>
-    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 18px;">
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 25px;">
       <button onclick="generate('reset')">🚀 組合せを最初から生成</button>
       <button id="btnContinueGenerate" onclick="generate('continue')" class="secondary" style="display:none;">🔄 続きから再生成(途中参加/退出)</button>
       <button onclick="showScreen('menu')" class="outline">🔙 メニューに戻る</button>
@@ -207,9 +199,8 @@
       <button onclick="resetAllMatches()" class="danger-zone" style="flex:1; font-size:12px;">🗑️ 保存せず破棄</button>
     </div>
 
-    <a href="https://amzn.to/3OZGDtd" target="_blank" class="ad-btn" aria-label="Amazon広告（試合画面）">
-      <small>【Amazon広告】休憩時間にチェック！</small>
-      🎾ボール・ガット・グリップの売筋🎾
+    <a href="https://amzn.to/3OZGDtd" target="_blank" class="ad-btn">
+      🎾休憩時間にボール・グリップの売筋チェック！🎾
     </a>
 
     <div id="matches"></div>
@@ -251,9 +242,8 @@
       </select>
     </div>
 
-    <a href="https://amzn.to/3OZGDtd" target="_blank" class="ad-btn" aria-label="Amazon広告（総合実績）" style="margin-top: 10px;">
-      <small>【Amazon広告】次の試合に向けて！</small>
-      🎾ボール・ラケットの売筋チェック🎾
+    <a href="https://amzn.to/3OZGDtd" target="_blank" class="ad-btn" style="margin-top: 10px;">
+      🎾 次の試合に向けて！テニス用品ランキングをチェック 🎾
     </a>
 
     <div id="statsRanking" style="overflow-x: auto;"></div>
@@ -447,10 +437,10 @@
     if(!list) return;
     list.innerHTML = allMembers.map((m, i) => `
       <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; padding:8px 12px; border-radius:12px; border:1px solid #ddd;">
-        <span style="font-weight:bold;">${escapeHtml(m)}</span>
+        <span style="font-weight:bold;">${m}</span>
         <div style="display:flex; gap:5px;">
           <button class="small outline" onclick="editMemberName(${i})">修正</button>
-          <button class="small danger" onclick="if(confirm('${escapeSingleQuote(m)}を削除?')){allMembers.splice(${i},1);renderMemberList();saveData();}">削除</button>
+          <button class="small danger" onclick="if(confirm('${m}を削除?')){allMembers.splice(${i},1);renderMemberList();saveData();}">削除</button>
         </div>
       </div>`).join('');
     renderMemberButtons();
@@ -475,39 +465,16 @@
     renderSlots();
   };
 
-  function addSlot(name) { 
-    const idx = currentSlots.indexOf(null); 
-    if(idx !== -1) { currentSlots[idx] = name; renderSlots(); } 
-  }
-
-  function removeSlot(i) { 
-    if(currentSlots[i] === null) return; 
-    currentSlots.splice(i, 1); 
-    currentSlots.push(null); 
-    renderSlots(); 
-  }
-
-  function removeByName(name) { const i = currentSlots.indexOf(name); if(i!==-1) removeSlot(i); }
-
   function renderSlots() {
     const area = document.getElementById('guestArea');
     if(!area) return;
-    area.innerHTML = currentSlots.map((name, i) => {
-      const cls = name ? 'guest-slot selected' : 'guest-slot';
-      const displayName = name ? escapeHtml(name) : `${i+1}`;
-      return `<div class="${cls}" data-idx="${i}">
-        <div class="slot-num">${circledNums[i]}</div>
-        <div class="slot-name">${displayName}</div>
-      </div>`;
-    }).join('');
-    area.querySelectorAll('.guest-slot').forEach(el => {
-      el.onclick = (e) => {
-        const idx = parseInt(el.getAttribute('data-idx'));
-        if(currentSlots[idx]) {
-          removeSlot(idx);
-        }
-      };
-    });
+    area.innerHTML = currentSlots.map((name, i) => `
+      <div class="slot-item">
+        <div style="width:30px; text-align:center; font-weight:bold; color:var(--primary);">${circledNums[i]}</div>
+        <div style="flex:1; font-weight:500; font-size:15px;">${name ? name : '<span style="color:#aaa;">（空き）</span>'}</div>
+        <button class="small outline danger" onclick="removeSlot(${i})" style="padding:6px; min-width:36px;">✕</button>
+      </div>
+    `).join('');
     renderMemberButtons();
   }
 
@@ -516,28 +483,80 @@
     if(!area) return;
     area.innerHTML = allMembers.map(name => {
       const isUsed = currentSlots.includes(name);
-      const cls = `member-btn ${isUsed ? 'assigned' : ''}`;
-      return `<button class="${cls}" data-name="${escapeHtmlAttr(name)}">${escapeHtml(name)}</button>`;
+      return `<button class="member-btn ${isUsed?'assigned':''}" onclick="${isUsed?'removeByName(\''+name+'\')':'addSlot(\''+name+'\')'}">${name}</button>`;
     }).join('');
-    area.querySelectorAll('.member-btn').forEach(btn => {
-      btn.onclick = () => {
-        const name = btn.getAttribute('data-name');
-        const isUsed = currentSlots.includes(name);
-        if(isUsed) removeByName(name);
-        else addSlot(name);
-      };
-    });
   }
 
-  function escapeSingleQuote(s) { return s.replace(/'/g, "\\'").replace(/"/g, '\\"'); }
-  function escapeHtml(s) { if(!s && s !== '') return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  function escapeHtmlAttr(s) { return escapeHtml(s).replace(/'/g,"&#39;"); }
+  function addSlot(name) { const idx = currentSlots.indexOf(null); if(idx !== -1) { currentSlots[idx] = name; renderSlots(); } }
+  function removeSlot(i) { currentSlots[i] = null; renderSlots(); }
+  function removeByName(name) { const i = currentSlots.indexOf(name); if(i!==-1) removeSlot(i); }
 
-  // --- generate: ensure initSetup() called so currentSlots length matches playerCount
+  function resetAllMatches() {
+    if(confirm("【注意】この日のスコアは実績に保存されずに消去されます。\n本当にリセットしますか？")) { 
+      schedule=[]; showingRounds=5; window.editMode={}; matchDateStr="";
+      currentSlots = []; initSetup(); saveData(); 
+      document.getElementById('post-reset-nav').style.display = 'block';
+      document.getElementById('match-control-btns').style.display = 'none';
+      renderMatches();
+    }
+  }
+
+  function commitHistoryAndReset() {
+    const scoredMatches = [];
+    schedule.forEach(r => r.matches.forEach(m => { if(m.score[0] !== null) scoredMatches.push(m); }));
+    if(scoredMatches.length === 0) { alert("保存する試合データ（スコア入力済み）がありません！"); return; }
+    
+    if(confirm(`入力済みの ${scoredMatches.length} 試合を総合実績に保存し、本日の組合せをリセットしますか？`)) {
+      const d = new Date();
+      const dateKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      if(!historyData[dateKey]) historyData[dateKey] = [];
+      historyData[dateKey] = historyData[dateKey].concat(scoredMatches);
+      
+      schedule=[]; showingRounds=5; window.editMode={}; matchDateStr="";
+      currentSlots = []; initSetup(); saveData();
+      alert("実績を保存しました！お疲れ様でした🎾");
+      
+      document.getElementById('post-reset-nav').style.display = 'block';
+      document.getElementById('match-control-btns').style.display = 'none';
+      renderMatches();
+    }
+  }
+
+  function deleteHistory(dateKey) {
+    if(confirm(`${dateKey.replace(/-/g,'/')} の実績データをすべて削除しますか？\n（この操作は取り消せません）`)) {
+      delete historyData[dateKey];
+      saveData();
+      renderStats();
+    }
+  }
+
+  const templates = {
+    "1_4":[[[1,2],[3,4]],[[1,3],[2,4]],[[1,4],[2,3]]],
+    "1_5":[[[1,2],[3,4]],[[1,3],[2,5]],[[1,4],[3,5]],[[1,5],[2,4]],[[2,3],[4,5]],[[1,2],[3,5]],[[1,3],[2,4]],[[1,4],[2,5]],[[1,5],[3,4]],[[2,4],[3,5]],[[1,2],[4,5]],[[1,4],[2,3]],[[1,3],[4,5]],[[1,5],[2,3]],[[2,5],[3,4]]],
+    "1_6":[[[1,2],[3,4]],[[1,3],[5,6]],[[2,5],[4,6]],[[1,4],[2,3]],[[1,5],[2,6]],[[3,6],[4,5]],[[1,6],[2,4]],[[1,2],[3,5]],[[3,4],[5,6]],[[1,3],[2,4]],[[1,5],[3,6]],[[2,6],[4,5]],[[1,4],[2,5]],[[1,6],[2,3]],[[3,5],[4,6]]],
+    "1_7":[[[1,2],[3,4]],[[5,6],[7,1]],[[5,2],[6,3]],[[7,4],[1,5]],[[2,4],[3,7]],[[6,1],[3,5]],[[2,6],[4,7]],[[1,6],[2,3]],[[5,7],[4,6]],[[1,3],[2,7]],[[4,5],[1,7]],[[6,3],[2,4]],[[5,4],[2,7]],[[5,6],[1,3]],[[4,6],[7,3]]],
+    "1_8":[[[1,2],[3,4]],[[5,6],[7,8]],[[1,5],[2,6]],[[3,7],[4,8]],[[1,3],[5,7]],[[2,4],[6,8]],[[1,4],[5,8]],[[2,3],[6,7]],[[1,6],[2,5]],[[3,8],[4,7]],[[1,7],[3,5]],[[2,8],[4,6]],[[1,8],[3,6]],[[2,7],[4,5]],[[1,2],[7,8]]],
+    "1_9":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[1,5]],[[3,10],[4,8]],[[2,9],[6,7]],[[1,4],[5,10]],[[3,9],[6,8]],[[2,7],[5,9]],[[1,6],[4,7]],[[3,8],[2,10]],[[1,10],[8,9]],[[2,5],[6,4]],[[3,7],[1,9]],[[2,8],[4,9]],[[3,6],[5,10]]],
+    "1_10":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[1,5]],[[3,10],[4,8]],[[2,9],[6,7]],[[1,4],[5,10]],[[3,9],[6,8]],[[2,7],[5,9]],[[1,6],[4,7]],[[3,8],[2,10]],[[1,10],[8,9]],[[2,5],[6,4]],[[3,7],[1,9]],[[2,8],[4,9]],[[3,6],[5,10]]],
+    "1_11":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[11,1]],[[5,2],[3,6]],[[4,9],[7,11]],[[8,10],[1,5]],[[2,9],[3,7]],[[6,4],[8,11]],[[10,3],[4,7]],[[1,9],[5,11]],[[6,10],[8,2]],[[3,9],[5,7]],[[10,11],[1,4]],[[2,6],[8,5]],[[1,7],[3,6]]],
+    "2_8": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,5],[2,6]],[[3,7],[4,8]]],[[[1,3],[5,8]],[[2,4],[6,7]]],[[[2,7],[6,8]],[[1,4],[3,5]]],[[[1,3],[5,7]],[[2,8],[4,6]]],[[[2,5],[4,8]],[[1,7],[3,6]]],[[[1,6],[4,8]],[[2,3],[5,7]]],[[[1,5],[2,7]],[[3,8],[4,6]]],[[[1,6],[4,8]],[[2,3],[5,7]]],[[[1,4],[2,8]],[[3,5],[6,7]]],[[[2,3],[6,8]],[[1,5],[4,7]]],[[[1,7],[4,6]],[[2,5],[3,8]]],[[[1,2],[3,7]],[[4,5],[6,8]]],[[[2,6],[3,4]],[[1,7],[5,8]]],[[[1,8],[3,6]],[[2,4],[5,7]]]],
+    "2_9": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,6],[5,9]],[[2,3],[4,7]]],[[[2,4],[8,9]],[[1,5],[3,6]]],[[[1,8],[7,9]],[[2,6],[3,5]]],[[[4,8],[5,7]],[[1,3],[2,9]]],[[[4,9],[6,7]],[[1,5],[3,8]]],[[[2,8],[4,6]],[[1,9],[5,7]]],[[[3,7],[6,9]],[[1,4],[2,8]]],[[[2,5],[4,9]],[[3,7],[6,8]]],[[[1,7],[2,6]],[[3,9],[4,5]]],[[[1,9],[3,8]],[[2,4],[6,7]]],[[[2,7],[5,8]],[[1,3],[6,9]]],[[[1,6],[4,5]],[[3,9],[7,8]]],[[[2,5],[8,9]],[[1,4],[3,6]]],[[[1,2],[4,7]],[[3,5],[8,9]]]],
+    "2_10": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,5],[9,10]],[[2,3],[6,7]]],[[[4,9],[8,10]],[[2,5],[3,6]]],[[[1,4],[5,8]],[[2,9],[6,10]]],[[[3,9],[7,10]],[[1,8],[4,5]]],[[[2,5],[6,8]],[[1,9],[3,10]]],[[[4,7],[6,9]],[[1,3],[2,5]]],[[[4,8],[7,10]],[[1,6],[2,3]]],[[[5,10],[7,9]],[[2,4],[3,8]]],[[[1,8],[6,9]],[[4,10],[5,7]]],[[[2,10],[3,5]],[[1,6],[8,9]]],[[[1,7],[2,4]],[[3,8],[5,9]]],[[[3,10],[4,6]],[[1,5],[7,8]]],[[[2,9],[4,7]],[[1,10],[5,6]]],[[[3,6],[8,10]],[[2,7],[4,9]]]],
+    "2_11": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,11],[9,10]],[[2,5],[3,6]]],[[[4,7],[8,9]],[[1,10],[2,11]]],[[[1,5],[6,11]],[[2,9],[7,10]]],[[[2,8],[3,9]],[[1,7],[5,11]]],[[[4,10],[6,8]],[[1,3],[2,11]]],[[[5,10],[7,9]],[[2,6],[4,8]]],[[[1,8],[3,11]],[[6,7],[9,10]]],[[[2,4],[5,11]],[[3,8],[7,9]]],[[[1,10],[4,6]],[[3,5],[8,9]]],[[[2,6],[7,11]],[[1,10],[4,5]]],[[[3,9],[4,8]],[[1,6],[7,11]]],[[[2,10],[5,8]],[[1,11],[6,9]]],[[[3,7],[4,10]],[[1,2],[5,6]]],[[[4,9],[8,11]],[[2,10],[5,7]]]],
+    "2_12": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[1,5],[2,6]]],[[[3,7],[4,8]],[[9,11],[10,12]]],[[[1,6],[2,5]],[[3,9],[7,10]]],[[[4,11],[8,12]],[[1,3],[5,6]]],[[[2,10],[7,9]],[[1,8],[4,12]]],[[[3,6],[5,11]],[[4,7],[9,10]]],[[[1,12],[2,8]],[[3,10],[7,11]]],[[[4,5],[6,9]],[[2,12],[8,11]]],[[[1,10],[3,7]],[[5,8],[6,12]]],[[[2,11],[4,9]],[[1,7],[3,5]]],[[[6,10],[8,12]],[[2,3],[4,9]]],[[[1,11],[5,7]],[[2,4],[10,12]]],[[[3,9],[6,8]],[[1,2],[10,11]]],[[[4,7],[5,12]],[[8,9],[3,6]]]],
+    "2_13": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[1,6],[5,13]]],[[[2,7],[3,8]],[[4,9],[10,13]]],[[[1,11],[5,12]],[[2,4],[6,7]]],[[[3,9],[8,13]],[[1,10],[2,11]]],[[[1,5],[4,7]],[[2,9],[10,12]]],[[[3,8],[11,13]],[[1,12],[4,6]]],[[[2,10],[5,9]],[[1,8],[7,13]]],[[[1,4],[8,12]],[[2,5],[6,11]]],[[[2,13],[5,10]],[[1,11],[3,9]]],[[[1,7],[9,11]],[[2,8],[4,10]]],[[[3,5],[6,13]],[[2,4],[9,12]]],[[[1,8],[7,10]],[[3,5],[9,11]]],[[[2,12],[6,9]],[[1,13],[7,8]]],[[[4,10],[5,11]],[[3,6],[8,9]]]],
+    "2_14": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[1,5],[13,14]]],[[[2,3],[6,7]],[[4,8],[9,13]]],[[[10,11],[12,14]],[[1,6],[4,5]]],[[[2,9],[8,13]],[[3,7],[10,14]]],[[[1,11],[6,12]],[[2,10],[5,9]]],[[[3,12],[11,14]],[[1,8],[7,13]]],[[[2,5],[4,12]],[[3,10],[6,11]]],[[[1,10],[8,11]],[[2,13],[3,14]]],[[[4,9],[5,12]],[[1,7],[3,11]]],[[[6,14],[10,13]],[[2,4],[8,12]]],[[[3,5],[9,11]],[[1,4],[7,13]]],[[[2,8],[6,10]],[[1,12],[5,14]]],[[[3,9],[4,7]],[[2,11],[5,13]]],[[[1,2],[10,11]],[[3,6],[8,14]]]],
+    "2_15": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[1,15],[13,14]]],[[[2,5],[3,6]],[[4,7],[8,9]]],[[[10,11],[13,15]],[[1,14],[5,12]]],[[[2,6],[7,9]],[[3,13],[4,14]]],[[[8,12],[10,15]],[[1,5],[2,11]]],[[[3,7],[9,14]],[[6,10],[11,13]]],[[[4,8],[12,15]],[[1,13],[2,5]]],[[[3,10],[7,11]],[[4,6],[8,14]]],[[[5,15],[9,12]],[[2,3],[6,13]]],[[[1,4],[7,10]],[[8,15],[11,14]]],[[[3,9],[12,13]],[[1,6],[5,8]]],[[[2,10],[14,15]],[[4,9],[5,7]]],[[[3,12],[6,11]],[[1,8],[4,13]]],[[[2,9],[10,14]],[[5,8],[7,15]]]],
+    "2_16": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[13,14],[15,16]]],[[[1,5],[2,6]],[[3,7],[4,8]]],[[[9,13],[10,14]],[[11,15],[12,16]]],[[[1,7],[2,8]],[[3,6],[4,10]]],[[[9,15],[10,16]],[[11,13],[12,14]]],[[[1,9],[7,14]],[[8,10],[2,13]]],[[[3,12],[5,16]],[[4,11],[6,15]]],[[[1,14],[10,13]],[[2,9],[8,11]]],[[[3,15],[6,16]],[[4,12],[7,14]]],[[[1,13],[4,12]],[[5,14],[6,8]]],[[[7,10],[11,16]],[[2,3],[9,15]]],[[[1,8],[5,13]],[[3,11],[4,16]]],[[[2,12],[6,14]],[[7,15],[9,10]]],[[[8,16],[2,11]],[[4,15],[5,10]]]]
+  };
+  function shuffleArray(array) {
+    let a = [...array];
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+
   function generate(mode) {
-    // ensure slots reflect chosen playerCount
-    initSetup();
-
     let finalNames = currentSlots.map((n, i) => n || `ゲスト${i+1}`);
     if(mode === 'reset' || schedule.length === 0) { 
       finalNames = shuffleArray(finalNames); 
@@ -547,10 +566,7 @@
     const count = finalNames.length;
     const courts = parseInt(document.getElementById('courtCount').value);
     const base = templates[`${courts}_${count}`];
-    if(!base) {
-      alert("選択された人数とコート数の組み合わせに対応するテンプレートがありません。");
-      return;
-    }
+    if(!base) return;
     
     let nextRoundStart = 0; let oldSchedule = [];
     if(mode === 'continue') {
@@ -571,10 +587,7 @@
     }
     schedule = oldSchedule.concat(newPart);
     showingRounds = nextRoundStart + 5;
-    saveData();
-    // show match screen and force render (fix: 9人で生成しても即表示されない不具合を防ぐ)
-    showScreen('match');
-    renderMatches();
+    saveData(); showScreen('match');
   }
 
   window.changePlayer = function(ri, mi, team, pIndex, newName) {
@@ -583,13 +596,9 @@
      saveData();
   };
 
-  // auto save score when both fields are filled; used on input change and Enter key
   window.autoSaveScore = function(ri, mi) {
-    const el0 = document.getElementById(`s-${ri}-${mi}-0`);
-    const el1 = document.getElementById(`s-${ri}-${mi}-1`);
-    if(!el0 || !el1) return;
-    const v0 = el0.value;
-    const v1 = el1.value;
+    const v0 = document.getElementById(`s-${ri}-${mi}-0`).value;
+    const v1 = document.getElementById(`s-${ri}-${mi}-1`).value;
     if(v0 !== '' && v1 !== '') { 
       schedule[ri].matches[mi].score = [parseInt(v0), parseInt(v1)]; 
       window.editMode[`${ri}-${mi}`] = false;
@@ -597,15 +606,6 @@
       renderMatches(); 
     }
   };
-
-  // explicit save function (kept for backward compatibility)
-  function saveScore(ri, mi) {
-    const v0 = document.getElementById(`s-${ri}-${mi}-0`).value;
-    const v1 = document.getElementById(`s-${ri}-${mi}-1`).value;
-    window.editMode[`${ri}-${mi}`] = false;
-    if(v0 !== '' && v1 !== '') { schedule[ri].matches[mi].score = [parseInt(v0), parseInt(v1)]; saveData(); }
-    renderMatches();
-  }
 
   function renderMatches() {
     const area = document.getElementById('matches');
@@ -615,7 +615,7 @@
       area.innerHTML += `<div style="text-align:center; font-weight:bold; color:var(--text-muted); margin-bottom:10px; font-size:13px;">📅 生成日: ${matchDateStr || '未設定'}</div>`;
       
       const latestParticipants = schedule[schedule.length - 1].roundParticipants;
-      const mappingHtml = latestParticipants.map((name, i) => `${circledNums[i]} ${escapeHtml(name)}`).join(' / ');
+      const mappingHtml = latestParticipants.map((name, i) => `${circledNums[i]} ${name}`).join(' / ');
       area.innerHTML += `<div class="card" style="font-size:11px; margin-bottom:15px; background:#e8f0fe; border:1px solid var(--primary); padding: 10px;">
           <strong style="color:var(--primary);">【現在のプレイヤー番号ガイド】</strong><br>${mappingHtml}</div>`;
     }
@@ -630,9 +630,9 @@
         
         const renderTeam = (teamKey) => {
           if (isLocked) {
-             return `${circledNums[m[teamKey][0].pIdx-1]} ${escapeHtml(m[teamKey][0].name)}<br>${circledNums[m[teamKey][1].pIdx-1]} ${escapeHtml(m[teamKey][1].name)}`;
+             return `${circledNums[m[teamKey][0].pIdx-1]} ${m[teamKey][0].name}<br>${circledNums[m[teamKey][1].pIdx-1]} ${m[teamKey][1].name}`;
           } else {
-             const getOpts = (curP) => r.roundParticipants.map((n, idx) => `<option value="${escapeHtmlAttr(n)}" ${curP.name===n?'selected':''}>${circledNums[idx]} ${escapeHtml(n)}</option>`).join('');
+             const getOpts = (curP) => r.roundParticipants.map((n, idx) => `<option value="${n}" ${curP.name===n?'selected':''}>${circledNums[idx]} ${n}</option>`).join('');
              return `
                <select onchange="changePlayer(${ri}, ${mi}, '${teamKey}', 0, this.value)" style="width:100%; margin-bottom:4px; font-size:12px; padding:4px;">${getOpts(m[teamKey][0])}</select>
                <select onchange="changePlayer(${ri}, ${mi}, '${teamKey}', 1, this.value)" style="width:100%; margin-bottom:0; font-size:12px; padding:4px;">${getOpts(m[teamKey][1])}</select>
@@ -640,17 +640,16 @@
           }
         };
 
-        // inputs: onchange + onkeydown Enter call autoSaveScore to finalize quickly
         roundHtml += `<div style="margin-bottom:8px; padding:10px; background:#f8f9fa; border-radius:12px; ${isLocked?'border-left:4px solid var(--success);':''}">
           ${r.matches.length > 1 ? `<div style="font-size:10px; font-weight:bold; color:var(--primary);">コート ${mi+1}</div>`:''}
             <div class="match-flex">
               <div class="team-box" style="padding-right:5px;">${renderTeam('team1')}</div>
-              <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+              <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
                   <div class="score-container">
                   ${!isLocked ?
- `<input type="number" id="s-${ri}-${mi}-0" class="score-input" value="${s0??''}" placeholder="＊" onchange="autoSaveScore(${ri}, ${mi})" onkeydown="if(event.key==='Enter'){autoSaveScore(${ri}, ${mi});}"><span style="font-weight:bold;">:</span><input type="number" id="s-${ri}-${mi}-1" class="score-input" value="${s1??''}" placeholder="＊" onchange="autoSaveScore(${ri}, ${mi})" onkeydown="if(event.key==='Enter'){autoSaveScore(${ri}, ${mi});}">` : `<div style="font-size:24px; font-weight:800;">${s0} - ${s1}</div>`}
+ `<input type="number" id="s-${ri}-${mi}-0" class="score-input" value="${s0??''}" placeholder="＊" onchange="autoSaveScore(${ri}, ${mi})"><span style="font-weight:bold;">:</span><input type="number" id="s-${ri}-${mi}-1" class="score-input" value="${s1??''}" placeholder="＊" onchange="autoSaveScore(${ri}, ${mi})">` : `<div style="font-size:24px; font-weight:800;">${s0} - ${s1}</div>`}
                   </div>
-                  ${!isLocked ? `<div style="display:flex; gap:6px;"><button class="small" onclick="saveScore(${ri}, ${mi})">保存</button><button class="small outline" onclick="window.editMode['${ri}-${mi}']=true;renderMatches();">編集</button></div>` : `<button class="small outline" onclick="window.editMode['${ri}-${mi}']=true;renderMatches();">修正</button>`}
+                  ${!isLocked ? `` : `<button class="small outline" onclick="window.editMode['${ri}-${mi}']=true;renderMatches();">修正</button>`}
               </div>
               <div class="team-box" style="padding-left:5px;">${renderTeam('team2')}</div>
             </div>
@@ -658,7 +657,7 @@
       });
       const playing = r.matches.flatMap(m => [...m.team1, ...m.team2].map(p => p.name));
       const resting = (r.roundParticipants || []).filter(n => !playing.includes(n));
-      if(resting.length > 0) roundHtml += `<div class="rest-info">休み: ${resting.map(n=>escapeHtml(n)).join(', ')}</div>`;
+      if(resting.length > 0) roundHtml += `<div class="rest-info">休み: ${resting.join(', ')}</div>`;
       area.innerHTML += roundHtml + `</div>`;
     });
     if(showingRounds < schedule.length) area.innerHTML += `<button class="outline" style="width:100%; margin-bottom:15px;" onclick="showingRounds+=5;saveData();renderMatches();">もっと見る (+5)</button>`;
@@ -682,7 +681,7 @@
     if(list.length === 0) return "<p style='text-align:center; color:var(--text-muted); padding:10px;'>データがありません。</p>";
     return `<table class="ranking-table"><tr><th>位</th><th>名前</th>${sortMode==='winRate'?'<th>勝</th><th>負</th><th>分</th><th>勝率</th>':'<th>合計G</th><th>平均G</th>'}<th>試合</th></tr>
       ${list.map((p, i) => {
-        const nameDisplay = isStatsScreen ? `<a href="javascript:void(0)" onclick="showPlayerHistory('${escapeHtmlAttr(p.name)}')" style="color:var(--primary); font-weight:bold; text-decoration:underline;">${escapeHtml(p.name)}</a>` : escapeHtml(p.name);
+        const nameDisplay = isStatsScreen ? `<a href="javascript:void(0)" onclick="showPlayerHistory('${p.name}')" style="color:var(--primary); font-weight:bold; text-decoration:underline;">${p.name}</a>` : p.name;
         return `<tr><td>${i+1}</td><td style="text-align:left;">${nameDisplay}</td>${sortMode==='winRate'?`<td>${p.w}</td><td>${p.l}</td><td>${p.d}</td><td>${(p.winRate*100).toFixed(0)}%</td>`:`<td>${p.games}</td><td>${p.avg.toFixed(2)}</td>`}<td>${p.m}</td></tr>`;
       }).join('')}</table>`;
   }
@@ -776,7 +775,7 @@
     const listEl = document.getElementById('playerHistoryList');
 
     const periodText = monthStr === 'all' ? `${yearStr}年 全体` : `${yearStr}年${monthStr}月`;
-    titleEl.innerHTML = `👤 ${escapeHtml(name)} の戦績 (${periodText})`;
+    titleEl.innerHTML = `👤 ${name} の戦績 (${periodText})`;
 
     if(playerMatches.length === 0) {
       listEl.innerHTML = "<p style='font-size:12px; color:var(--text-muted);'>この期間の試合データがありません。</p>";
@@ -807,8 +806,8 @@
                 ${myScore} - ${opScore}
               </div>
               <div style="text-align:right; font-size:11px; color:var(--text-muted);">
-                味方: ${escapeHtml(partner)}<br>
-                相手: ${escapeHtml(opponents)}
+                味方: ${partner}<br>
+                相手: ${opponents}
               </div>
             </div>
           </div>
@@ -863,35 +862,6 @@
     
     if(document.getElementById('screen-stats').classList.contains('active')) renderStats();
   }
-
-  // --- utility shuffle
-  function shuffleArray(array) {
-    let a = [...array];
-    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]]; }
-    return a;
-  }
-
-  // --- templates (unchanged)
-  const templates = {
-    "1_4":[[[1,2],[3,4]],[[1,3],[2,4]],[[1,4],[2,3]]],
-    "1_5":[[[1,2],[3,4]],[[1,3],[2,5]],[[1,4],[3,5]],[[1,5],[2,4]],[[2,3],[4,5]],[[1,2],[3,5]],[[1,3],[2,4]],[[1,4],[2,5]],[[1,5],[3,4]],[[2,4],[3,5]],[[1,2],[4,5]],[[1,4],[2,3]],[[1,3],[4,5]],[[1,5],[2,3]],[[2,5],[3,4]]],
-    "1_6":[[[1,2],[3,4]],[[1,3],[5,6]],[[2,5],[4,6]],[[1,4],[2,3]],[[1,5],[2,6]],[[3,6],[4,5]],[[1,6],[2,4]],[[1,2],[3,5]],[[3,4],[5,6]],[[1,3],[2,4]],[[1,5],[3,6]],[[2,6],[4,5]],[[1,4],[2,5]],[[1,6],[2,3]],[[3,5],[4,6]]],
-    "1_7":[[[1,2],[3,4]],[[5,6],[7,1]],[[5,2],[6,3]],[[7,4],[1,5]],[[2,4],[3,7]],[[6,1],[3,5]],[[2,6],[4,7]],[[1,6],[2,3]],[[5,7],[4,6]],[[1,3],[2,7]],[[4,5],[1,7]],[[6,3],[2,4]],[[5,4],[2,7]],[[5,6],[1,3]],[[4,6],[7,3]]],
-    "1_8":[[[1,2],[3,4]],[[5,6],[7,8]],[[1,5],[2,6]],[[3,7],[4,8]],[[1,3],[5,7]],[[2,4],[6,8]],[[1,4],[5,8]],[[2,3],[6,7]],[[1,6],[2,5]],[[3,8],[4,7]],[[1,7],[3,5]],[[2,8],[4,6]],[[1,8],[3,6]],[[2,7],[4,5]],[[1,2],[7,8]]],
-    "1_9":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[1,5]],[[3,10],[4,8]],[[2,9],[6,7]],[[1,4],[5,10]],[[3,9],[6,8]],[[2,7],[5,9]],[[1,6],[4,7]],[[3,8],[2,10]],[[1,10],[8,9]],[[2,5],[6,4]],[[3,7],[1,9]],[[2,8],[4,9]],[[3,6],[5,10]]],
-    "1_10":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[1,5]],[[3,10],[4,8]],[[2,9],[6,7]],[[1,4],[5,10]],[[3,9],[6,8]],[[2,7],[5,9]],[[1,6],[4,7]],[[3,8],[2,10]],[[1,10],[8,9]],[[2,5],[6,4]],[[3,7],[1,9]],[[2,8],[4,9]],[[3,6],[5,10]]],
-    "1_11":[[[1,2],[3,4]],[[5,6],[7,8]],[[9,10],[11,1]],[[5,2],[3,6]],[[4,9],[7,11]],[[8,10],[1,5]],[[2,9],[3,7]],[[6,4],[8,11]],[[10,3],[4,7]],[[1,9],[5,11]],[[6,10],[8,2]],[[3,9],[5,7]],[[10,11],[1,4]],[[2,6],[8,5]],[[1,7],[3,6]]],
-    "2_8": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,5],[2,6]],[[3,7],[4,8]]],[[[1,3],[5,8]],[[2,4],[6,7]]],[[[2,7],[6,8]],[[1,4],[3,5]]],[[[1,3],[5,7]],[[2,8],[4,6]]],[[[2,5],[4,8]],[[1,7],[3,6]]],[[[1,6],[4,8]],[[2,3],[5,7]]],[[[1,5],[2,7]],[[3,8],[4,6]]],[[[1,6],[4,8]],[[2,3],[5,7]]],[[[1,4],[2,8]],[[3,5],[6,7]]],[[[2,3],[6,8]],[[1,5],[4,7]]],[[[1,7],[4,6]],[[2,5],[3,8]]],[[[1,2],[3,7]],[[4,5],[6,8]]],[[[2,6],[3,4]],[[1,7],[5,8]]],[[[1,8],[3,6]],[[2,4],[5,7]]]],
-    "2_9": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,6],[5,9]],[[2,3],[4,7]]],[[[2,4],[8,9]],[[1,5],[3,6]]],[[[1,8],[7,9]],[[2,6],[3,5]]],[[[4,8],[5,7]],[[1,3],[2,9]]],[[[4,9],[6,7]],[[1,5],[3,8]]],[[[2,8],[4,6]],[[1,9],[5,7]]],[[[3,7],[6,9]],[[1,4],[2,8]]],[[[2,5],[4,9]],[[3,7],[6,8]]],[[[1,7],[2,6]],[[3,9],[4,5]]],[[[1,9],[3,8]],[[2,4],[6,7]]],[[[2,7],[5,8]],[[1,3],[6,9]]],[[[1,6],[4,5]],[[3,9],[7,8]]],[[[2,5],[8,9]],[[1,4],[3,6]]],[[[1,2],[4,7]],[[3,5],[8,9]]]],
-    "2_10": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,5],[9,10]],[[2,3],[6,7]]],[[[4,9],[8,10]],[[2,5],[3,6]]],[[[1,4],[5,8]],[[2,9],[6,10]]],[[[3,9],[7,10]],[[1,8],[4,5]]],[[[2,5],[6,8]],[[1,9],[3,10]]],[[[4,7],[6,9]],[[1,3],[2,5]]],[[[4,8],[7,10]],[[1,6],[2,3]]],[[[5,10],[7,9]],[[2,4],[3,8]]],[[[1,8],[6,9]],[[4,10],[5,7]]],[[[2,10],[3,5]],[[1,6],[8,9]]],[[[1,7],[2,4]],[[3,8],[5,9]]],[[[3,10],[4,6]],[[1,5],[7,8]]],[[[2,9],[4,7]],[[1,10],[5,6]]],[[[3,6],[8,10]],[[2,7],[4,9]]]],
-    "2_11": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[1,11],[9,10]],[[2,5],[3,6]]],[[[4,7],[8,9]],[[1,10],[2,11]]],[[[1,5],[6,11]],[[2,9],[7,10]]],[[[2,8],[3,9]],[[1,7],[5,11]]],[[[4,10],[6,8]],[[1,3],[2,11]]],[[[5,10],[7,9]],[[2,6],[4,8]]],[[[1,8],[3,11]],[[6,7],[9,10]]],[[[2,4],[5,11]],[[3,8],[7,9]]],[[[1,10],[4,6]],[[3,5],[8,9]]],[[[2,6],[7,11]],[[1,10],[4,5]]],[[[3,9],[4,8]],[[1,6],[7,11]]],[[[2,10],[5,8]],[[1,11],[6,9]]],[[[3,7],[4,10]],[[1,2],[5,6]]],[[[4,9],[8,11]],[[2,10],[5,7]]]],
-    "2_12": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[1,5],[2,6]]],[[[3,7],[4,8]],[[9,11],[10,12]]],[[[1,6],[2,5]],[[3,9],[7,10]]],[[[4,11],[8,12]],[[1,3],[5,6]]],[[[2,10],[7,9]],[[1,8],[4,12]]],[[[3,6],[5,11]],[[4,7],[9,10]]],[[[1,12],[2,8]],[[3,10],[7,11]]],[[[4,5],[6,9]],[[2,12],[8,11]]],[[[1,10],[3,7]],[[5,8],[6,12]]],[[[2,11],[4,9]],[[1,7],[3,5]]],[[[6,10],[8,12]],[[2,3],[4,9]]],[[[1,11],[5,7]],[[2,4],[10,12]]],[[[3,9],[6,8]],[[1,2],[10,11]]],[[[4,7],[5,12]],[[8,9],[3,6]]]],
-    "2_13": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[1,6],[5,13]]],[[[2,7],[3,8]],[[4,9],[10,13]]],[[[1,11],[5,12]],[[2,4],[6,7]]],[[[3,9],[8,13]],[[1,10],[2,11]]],[[[1,5],[4,7]],[[2,9],[10,12]]],[[[3,8],[11,13]],[[1,12],[4,6]]],[[[2,10],[5,9]],[[1,8],[7,13]]],[[[1,4],[8,12]],[[2,5],[6,11]]],[[[2,13],[5,10]],[[1,11],[3,9]]],[[[1,7],[9,11]],[[2,8],[4,10]]],[[[3,5],[6,13]],[[2,4],[9,12]]],[[[1,8],[7,10]],[[3,5],[9,11]]],[[[2,12],[6,9]],[[1,13],[7,8]]],[[[4,10],[5,11]],[[3,6],[8,9]]]],
-    "2_14": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[1,5],[13,14]]],[[[2,3],[6,7]],[[4,8],[9,13]]],[[[10,11],[12,14]],[[1,6],[4,5]]],[[[2,9],[8,13]],[[3,7],[10,14]]],[[[1,11],[6,12]],[[2,10],[5,9]]],[[[3,12],[11,14]],[[1,8],[7,13]]],[[[2,5],[4,12]],[[3,10],[6,11]]],[[[1,10],[8,11]],[[2,13],[3,14]]],[[[4,9],[5,12]],[[1,7],[3,11]]],[[[6,14],[10,13]],[[2,4],[8,12]]],[[[3,5],[9,11]],[[1,4],[7,13]]],[[[2,8],[6,10]],[[1,12],[5,14]]],[[[3,9],[4,7]],[[2,11],[5,13]]],[[[1,2],[10,11]],[[3,6],[8,14]]]],
-    "2_15": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[1,15],[13,14]]],[[[2,5],[3,6]],[[4,7],[8,9]]],[[[10,11],[13,15]],[[1,14],[5,12]]],[[[2,6],[7,9]],[[3,13],[4,14]]],[[[8,12],[10,15]],[[1,5],[2,11]]],[[[3,7],[9,14]],[[6,10],[11,13]]],[[[4,8],[12,15]],[[1,13],[2,5]]],[[[3,10],[7,11]],[[4,6],[8,14]]],[[[5,15],[9,12]],[[2,3],[6,13]]],[[[1,4],[7,10]],[[8,15],[11,14]]],[[[3,9],[12,13]],[[1,6],[5,8]]],[[[2,10],[14,15]],[[4,9],[5,7]]],[[[3,12],[6,11]],[[1,8],[4,13]]],[[[2,9],[10,14]],[[5,8],[7,15]]]],
-    "2_16": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[13,14],[15,16]]],[[[1,5],[2,6]],[[3,7],[4,8]]],[[[9,13],[10,14]],[[11,15],[12,16]]],[[[1,7],[2,8]],[[3,6],[4,10]]],[[[9,15],[10,16]],[[11,13],[12,14]]],[[[1,9],[7,14]],[[8,10],[2,13]]],[[[3,12],[5,16]],[[4,11],[6,15]]],[[[1,14],[10,13]],[[2,9],[8,11]]],[[[3,15],[6,16]],[[4,12],[7,14]]],[[[1,13],[4,12]],[[5,14],[6,8]]],[[[7,10],[11,16]],[[2,3],[9,15]]],[[[1,8],[5,13]],[[3,11],[4,16]]],[[[2,12],[6,14]],[[7,15],[9,10]]],[[[8,16],[2,11]],[[4,15],[5,10]]]]
-  };
 </script>
 
 <script type="module">
