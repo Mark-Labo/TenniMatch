@@ -1,5 +1,5 @@
 // キャッシュのバージョン名（アップデートの際はこの名前を変更します）
-const CACHE_NAME = 'app-cache-v4.3.5';
+const CACHE_NAME = 'app-cache-v4.3.8';
 
 // キャッシュするファイルのリスト
 const urlsToCache = [
@@ -51,6 +51,7 @@ self.addEventListener('fetch', event => {
       })
   );
 });
+
 
 
 
