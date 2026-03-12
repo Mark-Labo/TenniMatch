@@ -1,0 +1,22 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // roomsコレクション（部屋データ）に対するルール
+    match /rooms/{roomId} {
+      
+      // 個別の部屋データの読み取り(get)と、作成・更新(write)を許可
+      allow get, write: if true;
+      
+      // 重要：部屋の一覧取得(list)は禁止
+      // これにより、部屋名（ID）を知らない人が勝手に全データを覗き見るのを防ぎます
+      allow list: if false;
+    }
+    
+    // それ以外の場所はすべて読み書き禁止
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
