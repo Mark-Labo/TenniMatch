@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.4.0</title>
+  <title>🎾TenniMatch v4.4.1</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -13,25 +13,36 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #1a73e8; --primary-dark: #1557b0; --secondary: #fbbc04;
+      --primary: #1a73e8;
+      --primary-dark: #1557b0; --secondary: #fbbc04;
       --danger: #ea4335; --danger-bg: #fce8e6; --danger-text: #d93025;
       --success: #34a853; --bg: #f0f4f8;
-      --surface: #ffffff; --text-main: #202124; --text-muted: #5f6368; --border: #dadce0;
+      --surface: #ffffff; --text-main: #202124; --text-muted: #5f6368;
+      --border: #dadce0;
       --ad-color: #ff9900; 
       --ad-color-dark: #e08800;
     }
-    body { margin: 0; font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text-main); padding-bottom: 40px; }
-    header { background: var(--surface); padding: 16px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
-    #headerTitle { font-size: 18px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
-    #roomInfo { font-size: 12px; color: var(--text-muted); display: flex; justify-content: center; align-items: center; gap: 8px; }
-    .screen { display: none; animation: fadeIn 0.3s ease; padding: 12px; max-width: 600px; margin: 0 auto; }
+    body { margin: 0; font-family: 'Noto Sans JP', sans-serif;
+      background: var(--bg); color: var(--text-main); padding-bottom: 40px; }
+    header { background: var(--surface); padding: 16px; text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
+    #headerTitle { font-size: 18px;
+      font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+    #roomInfo { font-size: 12px; color: var(--text-muted); display: flex; justify-content: center;
+      align-items: center; gap: 8px; }
+    .screen { display: none; animation: fadeIn 0.3s ease; padding: 12px; max-width: 600px;
+      margin: 0 auto; }
     .screen.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .card { background: var(--surface); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-    input[type="text"], input[type="password"], input[type="number"], select { width: 100%; box-sizing: border-box; border: 2px solid var(--border); border-radius: 10px; padding: 14px; font-size: 16px; margin-bottom: 12px; background: #fafafa; }
-    button { background: var(--primary); color: #fff; border: none; padding: 14px 20px; border-radius: 24px; font-size: 15px; font-weight: 700; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    input[type="text"], input[type="password"], input[type="number"], select { width: 100%; box-sizing: border-box; border: 2px solid var(--border); border-radius: 10px;
+      padding: 14px; font-size: 16px; margin-bottom: 12px; background: #fafafa; }
+    button { background: var(--primary); color: #fff; border: none;
+      padding: 14px 20px; border-radius: 24px; font-size: 15px; font-weight: 700; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; }
     button:active { transform: scale(0.96); }
-    button.outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+    button.outline { background: transparent;
+      border: 2px solid var(--primary); color: var(--primary); }
     button.small { padding: 6px 12px; border-radius: 16px; font-size: 12px; }
     button.danger-zone { background: var(--danger-bg); color: var(--danger-text); border: 1px solid #f5c2c7; font-size: 11px; }
     button.danger { background: var(--danger); color: #fff; }
@@ -39,7 +50,8 @@
     button.muted { background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-weight: 400; }
     
     .ad-btn {
-      display: block; width: 100%; background: var(--ad-color); color: #fff; 
+      display: block; width: 100%;
+      background: var(--ad-color); color: #fff; 
       text-align: center; text-decoration: none; padding: 10px; 
       border-radius: 8px; font-weight: 700; font-size: 13px; margin-bottom: 15px;
       box-shadow: 0 2px 4px rgba(255, 153, 0, 0.2); transition: 0.2s;
@@ -48,26 +60,31 @@
     .ad-btn:active { background: var(--ad-color-dark); transform: translateY(2px); box-shadow: none; }
     
     .slot-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-    .slot-item { display: flex; align-items: center; justify-content: center; background: #fff; border: 1px solid var(--border); padding: 8px; border-radius: 8px; font-size: 14px; cursor: pointer; transition: 0.2s; box-sizing: border-box; }
-    .slot-item.empty { width: calc(33.333% - 6px); color: #aaa; background: #f8f9fa; font-weight: bold; }
-    .slot-item.filled { background: #e8f0fe; color: var(--primary); border-color: var(--primary); font-weight: 600; padding: 8px 12px; }
+    .slot-item { display: flex; align-items: center; justify-content: center; background: #fff; border: 1px solid var(--border); padding: 8px;
+      border-radius: 8px; font-size: 14px; cursor: pointer; transition: 0.2s; box-sizing: border-box; }
+    .slot-item.empty { width: calc(33.333% - 6px);
+      color: #aaa; background: #f8f9fa; font-weight: bold; }
+    .slot-item.filled { background: #e8f0fe; color: var(--primary); border-color: var(--primary); font-weight: 600;
+      padding: 8px 12px; }
     
     .member-pool { display: flex; flex-wrap: wrap; gap: 8px; }
-    .member-btn { background: #eef2f7; border: 1px solid var(--border); border-radius: 20px; padding: 10px 16px; font-size: 14px; color: #333; font-weight: 500; }
+    .member-btn { background: #eef2f7; border: 1px solid var(--border); border-radius: 20px; padding: 10px 16px; font-size: 14px;
+      color: #333; font-weight: 500; }
     .member-btn.assigned { background: var(--primary); color: #fff; border-color: var(--primary); }
     .match-card { border-radius: 16px; padding: 16px 10px; margin-bottom: 16px; border-left: 6px solid var(--primary); position: relative; }
     .match-flex { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
     .team-box { flex: 1; text-align: center; font-weight: 600; font-size: 13px; line-height: 1.4; word-break: break-all; }
     .score-container { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
-    .score-input { width: 50px !important; height: 50px !important; text-align: center; font-size: 22px !important; padding: 0 !important; margin: 0 !important; border-radius: 8px !important; }
-    .rest-info { margin-top: 10px; font-size: 11px; color: var(--text-muted); text-align: center; border-top: 1px dashed var(--border); padding-top: 8px; }
+    .score-input { width: 50px !important; height: 50px !important; text-align: center; font-size: 22px !important; padding: 0 !important;
+      margin: 0 !important; border-radius: 8px !important; }
+    .rest-info { margin-top: 10px; font-size: 11px; color: var(--text-muted); text-align: center;
+      border-top: 1px dashed var(--border); padding-top: 8px; }
     .ranking-table { width: 100%; border-collapse: collapse; font-size: 12px; }
     .ranking-table th { background: #5f6368; color: #fff; padding: 8px 4px; }
     .ranking-table td { border-bottom: 1px solid var(--border); padding: 12px 4px; text-align: center; }
   </style>
   <script>
     let refreshing = false;
-
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (!refreshing) {
@@ -75,7 +92,6 @@
           refreshing = true;
         }
       });
-
       window.addEventListener('load', () => {
         const params = new URLSearchParams(window.location.search);
         const roomId = params.get("room");
@@ -98,7 +114,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.4.0 PWA Registered!');
+            console.log('v4.4.1 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -118,10 +134,10 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.4.0</div>
+  <div id="headerTitle">🎾TenniMatch v4.4.1</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
-    <button class="small outline" onclick="copyRoomLink()">🔗共有URL</button>
+    <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
   </div>
 </header>
 
@@ -143,6 +159,8 @@
       <input type="password" id="newRoomPw" placeholder="パスワードを設定 (必須)">
       <button onclick="handleCreateRoom()" style="width:100%;">✨ 部屋を作成</button>
     </div>
+
+    <button class="outline" onclick="shareFromLobby()" style="width:100%; margin-top: 20px;">🔗 URLの共有</button>
   </div>
 </div>
 
@@ -269,6 +287,34 @@
   </div>
 </div>
 
+<datalist id="scoreOptions">
+  <option value="0"></option>
+  <option value="1"></option>
+  <option value="2"></option>
+  <option value="3"></option>
+  <option value="4"></option>
+  <option value="5"></option>
+  <option value="6"></option>
+  <option value="7"></option>
+</datalist>
+
+<div id="shareModal" class="screen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; display:none; justify-content:center; align-items:center; padding: 20px; box-sizing: border-box;">
+  <div class="card" style="width: 100%; max-width: 400px; text-align: center; position:relative; margin:0;">
+    <button onclick="closeShareModal()" style="position:absolute; top:10px; right:15px; background:transparent; color:var(--text-muted); font-size:24px; border:none; padding:0; line-height:1;">×</button>
+    <h3 id="shareModalTitle" style="margin-top:0; color:var(--primary);">🔗 URLの共有</h3>
+    
+    <div id="shareButtons" style="display:flex; flex-direction:column; gap:12px; margin-top:20px;">
+      <button id="btnShareRoom" onclick="executeShare('room')">現在の部屋を共有</button>
+      <button id="btnShareTool" class="secondary" onclick="executeShare('tool')">当ツールのURLのみを共有</button>
+    </div>
+
+    <div id="qrContainer" style="display:none; margin-top:20px; background:#f8f9fa; padding:15px; border-radius:12px; border:1px solid var(--border);">
+      <div id="qrText" style="font-size:13px; color:var(--text-main); font-weight:bold; margin-bottom:10px;"></div>
+      <img id="qrImage" src="" alt="QR Code" style="width:160px; height:160px; margin:0 auto; display:block;">
+    </div>
+  </div>
+</div>
+
 <script>
   let allMembers = [], currentSlots = [], schedule = [], showingRounds = 5;
   let historyData = {}; 
@@ -310,7 +356,6 @@
   async function handleCreateRoom() {
     let rId = document.getElementById("newRoomId").value.trim();
     const pw = document.getElementById("newRoomPw").value;
-    
     if(!pw) { alert("パスワードを設定してください（必須です）"); return; }
     if(!rId) rId = "r-" + Math.random().toString(36).substring(2,8);
 
@@ -325,10 +370,9 @@
   async function handleJoinRoom(isAuto = false) {
     const rId = document.getElementById("joinRoomId").value.trim();
     const pw = document.getElementById("joinRoomPw").value;
-    
     if(!rId || !pw) { 
       if(!isAuto) alert("部屋名とパスワードを入力してください"); 
-      return; 
+      return;
     }
 
     const status = await window.checkRoomAuth(rId, pw);
@@ -418,7 +462,6 @@
     
     allMembers[idx] = newName;
     currentSlots = currentSlots.map(s => s === oldName ? newName : s);
-    
     schedule.forEach(r => {
       if(r.roundParticipants) r.roundParticipants = r.roundParticipants.map(p => p === oldName ? newName : p);
       r.matches.forEach(m => {
@@ -426,14 +469,12 @@
         m.team2.forEach(p => { if(p.name === oldName) p.name = newName; });
       });
     });
-    
     Object.keys(historyData).forEach(date => {
       historyData[date].forEach(m => {
         m.team1.forEach(p => { if(p.name === oldName) p.name = newName; });
         m.team2.forEach(p => { if(p.name === oldName) p.name = newName; });
       });
     });
-    
     renderMemberList();
     if(schedule.length > 0) renderMatches();
     saveData();
@@ -556,6 +597,7 @@
     "2_15": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[1,15],[13,14]]],[[[2,5],[3,6]],[[4,7],[8,9]]],[[[10,11],[13,15]],[[1,14],[5,12]]],[[[2,6],[7,9]],[[3,13],[4,14]]],[[[8,12],[10,15]],[[1,5],[2,11]]],[[[3,7],[9,14]],[[6,10],[11,13]]],[[[4,8],[12,15]],[[1,13],[2,5]]],[[[3,10],[7,11]],[[4,6],[8,14]]],[[[5,15],[9,12]],[[2,3],[6,13]]],[[[1,4],[7,10]],[[8,15],[11,14]]],[[[3,9],[12,13]],[[1,6],[5,8]]],[[[2,10],[14,15]],[[4,9],[5,7]]],[[[3,12],[6,11]],[[1,8],[4,13]]],[[[2,9],[10,14]],[[5,8],[7,15]]]],
     "2_16": [[[[1,2],[3,4]],[[5,6],[7,8]]],[[[9,10],[11,12]],[[13,14],[15,16]]],[[[1,5],[2,6]],[[3,7],[4,8]]],[[[9,13],[10,14]],[[11,15],[12,16]]],[[[1,7],[2,8]],[[3,6],[4,10]]],[[[9,15],[10,16]],[[11,13],[12,14]]],[[[1,9],[7,14]],[[8,10],[2,13]]],[[[3,12],[5,16]],[[4,11],[6,15]]],[[[1,14],[10,13]],[[2,9],[8,11]]],[[[3,15],[6,16]],[[4,12],[7,14]]],[[[1,13],[4,12]],[[5,14],[6,8]]],[[[7,10],[11,16]],[[2,3],[9,15]]],[[[1,8],[5,13]],[[3,11],[4,16]]],[[[2,12],[6,14]],[[7,15],[9,10]]],[[[8,16],[2,11]],[[4,15],[5,10]]]]
   };
+
   function shuffleArray(array) {
     let a = [...array];
     for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));
@@ -567,7 +609,7 @@
     let finalNames = currentSlots.map((n, i) => n || `ゲスト${i+1}`);
     if(mode === 'reset' || schedule.length === 0) { 
       finalNames = shuffleArray(finalNames); 
-      currentSlots = [...finalNames]; 
+      currentSlots = [...finalNames];
       matchDateStr = new Date().toLocaleDateString('ja-JP');
     }
     const count = finalNames.length;
@@ -607,7 +649,7 @@
     const v0 = document.getElementById(`s-${ri}-${mi}-0`).value;
     const v1 = document.getElementById(`s-${ri}-${mi}-1`).value;
     if(v0 !== '' && v1 !== '') { 
-      schedule[ri].matches[mi].score = [parseInt(v0), parseInt(v1)]; 
+      schedule[ri].matches[mi].score = [parseInt(v0), parseInt(v1)];
       window.editMode[`${ri}-${mi}`] = false;
       saveData(); 
       renderMatches(); 
@@ -616,7 +658,8 @@
 
   function renderMatches() {
     const area = document.getElementById('matches');
-    if(!area) return; area.innerHTML = '';
+    if(!area) return;
+    area.innerHTML = '';
     
     if (schedule.length > 0) {
       area.innerHTML += `<div style="text-align:center; font-weight:bold; color:var(--text-muted); margin-bottom:10px; font-size:13px;">📅 生成日: ${matchDateStr || '未設定'}</div>`;
@@ -653,8 +696,7 @@
               <div class="team-box" style="padding-right:5px;">${renderTeam('team1')}</div>
               <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
                   <div class="score-container">
-                  ${!isLocked ?
- `<input type="number" id="s-${ri}-${mi}-0" class="score-input" value="${s0??''}" placeholder="＊" onchange="autoSaveScore(${ri}, ${mi})"><span style="font-weight:bold;">:</span><input type="number" id="s-${ri}-${mi}-1" class="score-input" value="${s1??''}" placeholder="＊" onchange="autoSaveScore(${ri}, ${mi})">` : `<div style="font-size:24px; font-weight:800;">${s0} - ${s1}</div>`}
+                  ${!isLocked ? `<input type="number" id="s-${ri}-${mi}-0" class="score-input" value="${s0??''}" placeholder="＊" list="scoreOptions" autocomplete="off" onchange="autoSaveScore(${ri}, ${mi})"><span style="font-weight:bold;">:</span><input type="number" id="s-${ri}-${mi}-1" class="score-input" value="${s1??''}" placeholder="＊" list="scoreOptions" autocomplete="off" onchange="autoSaveScore(${ri}, ${mi})">` : `<div style="font-size:24px; font-weight:800;">${s0} - ${s1}</div>`}
                   </div>
                   ${!isLocked ? `` : `<button class="small outline" onclick="window.editMode['${ri}-${mi}']=true;renderMatches();">修正</button>`}
               </div>
@@ -718,7 +760,6 @@
       if(sortMode === 'attendanceRate') return b.attendanceRate - a.attendanceRate || b.joinedDays - a.joinedDays;
       return b.avg - a.avg || b.games - a.games;
     });
-
     if(list.length === 0) return "<p style='text-align:center; color:var(--text-muted); padding:10px;'>データがありません。</p>";
     
     let thHtml = "";
@@ -726,7 +767,6 @@
     else if(sortMode === 'winRate') thHtml = "<th>勝</th><th>負</th><th>分</th><th>勝率</th>";
     else if(sortMode === 'attendanceRate') thHtml = "<th>参加日数</th><th>全日数</th><th>参加率(%)</th>";
     else thHtml = "<th>合計G</th><th>平均G</th>";
-
     return `<table class="ranking-table"><tr><th>位</th><th>名前</th>${thHtml}<th>試合</th></tr>
       ${list.map((p, i) => {
         const nameDisplay = isStatsScreen ? `<a href="javascript:void(0)" onclick="showPlayerHistory('${p.name}')" style="color:var(--primary); font-weight:bold; text-decoration:underline;">${p.name}</a>` : p.name;
@@ -775,7 +815,6 @@
     const monthStr = document.getElementById('statsMonth').value;
     const sortMode = document.getElementById('statsSort').value;
     let targetMatches = []; let daysList = [];
-    
     Object.keys(historyData).forEach(date => {
       const [y, m] = date.split('-');
       if (y === yearStr) {
@@ -786,7 +825,6 @@
         }
       }
     });
-    
     const totalDays = daysList.length;
     const list = calcStats(targetMatches, totalDays);
     document.getElementById('statsRanking').innerHTML = generateRankingHTML(list, sortMode, true, totalDays);
@@ -814,7 +852,6 @@
   window.showPlayerHistory = function(name) {
     const yearStr = document.getElementById('statsYear').value;
     const monthStr = document.getElementById('statsMonth').value;
-    
     let targetMatches = [];
     Object.keys(historyData).forEach(date => {
       const [y, m] = date.split('-');
@@ -825,18 +862,15 @@
         }
       }
     });
-
     const playerMatches = targetMatches.filter(m => 
       m.team1.some(p => p.name === name) || m.team2.some(p => p.name === name)
     );
-
     const detailDiv = document.getElementById('playerHistoryDetail');
     const titleEl = document.getElementById('playerHistoryTitle');
     const listEl = document.getElementById('playerHistoryList');
 
     const periodText = monthStr === 'all' ? `${yearStr}年 全体` : `${yearStr}年${monthStr}月`;
     titleEl.innerHTML = `👤 ${name} の戦績 (${periodText})`;
-
     if(playerMatches.length === 0) {
       listEl.innerHTML = "<p style='font-size:12px; color:var(--text-muted);'>この期間の試合データがありません。</p>";
     } else {
@@ -879,7 +913,54 @@
     detailDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  function copyRoomLink(){ navigator.clipboard.writeText(location.href); alert("コピーしました"); }
+  /* URL共有関連の処理 */
+  window.openShareModal = function() {
+    document.getElementById('shareModal').style.display = 'flex';
+    document.getElementById('shareButtons').style.display = 'flex';
+    document.getElementById('qrContainer').style.display = 'none';
+    document.getElementById('shareModalTitle').innerText = '🔗 URLの共有';
+  };
+
+  window.closeShareModal = function() {
+    document.getElementById('shareModal').style.display = 'none';
+  };
+
+  window.executeShare = function(type) {
+    const BASE_URL = "https://mark-labo.github.io/TenniMatch/";
+    let urlToCopy = "";
+    let urlForQR = "";
+
+    const roomUrl = roomId ? (BASE_URL + "?room=" + roomId) : BASE_URL;
+
+    if(type === 'room') {
+      urlToCopy = roomUrl;
+      urlForQR = roomUrl;
+      document.getElementById('qrText').innerText = "【この部屋のQRコード】";
+    } else if (type === 'tool') {
+      urlToCopy = BASE_URL;
+      urlForQR = roomUrl; // 部屋名を含むURLをQR化して表示する
+      document.getElementById('qrText').innerText = roomId ? "【この部屋のQRコード】" : "【当ツールのQRコード】";
+    }
+
+    navigator.clipboard.writeText(urlToCopy).then(() => {
+      alert((type === 'room' ? "部屋の" : "ツールの") + "URLをコピーしました！");
+      document.getElementById('qrImage').src = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" + encodeURIComponent(urlForQR);
+      document.getElementById('shareButtons').style.display = 'none';
+      document.getElementById('qrContainer').style.display = 'block';
+      document.getElementById('shareModalTitle').innerText = '✅ コピー完了';
+    }).catch(err => {
+      alert("コピーに失敗しました。");
+    });
+  };
+
+  window.shareFromLobby = function() {
+    // ロビーからの操作は部屋がないため、直接ツールのURL共有として処理する
+    document.getElementById('shareModal').style.display = 'flex';
+    document.getElementById('shareButtons').style.display = 'none';
+    document.getElementById('qrContainer').style.display = 'none';
+    document.getElementById('shareModalTitle').innerText = '🔗 URLの共有';
+    executeShare('tool');
+  };
   
   function saveData() { 
     if(window.fbSave) window.fbSave({allMembers, schedule, showingRounds, currentSlots, historyData, matchDateStr});
@@ -898,7 +979,6 @@
     
     const isMatchScreen = document.getElementById('screen-match').classList.contains('active');
     const isSetupScreen = document.getElementById('screen-setup').classList.contains('active');
-
     if(schedule.length > 0) {
       if(isMatchScreen) {
         renderMatches();
@@ -927,14 +1007,12 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
   import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
-  
   const firebaseConfig = { apiKey: "AIzaSyBXBOgFKYf5hOJXnxgT7xMwkQREv1tXxWg", authDomain: "tennis-match-ranking-man-58aee.firebaseapp.com", projectId: "tennis-match-ranking-man-58aee", storageBucket: "tennis-match-ranking-man-58aee.firebasestorage.app", messagingSenderId: "452972436558", appId: "1:452972436558:web:68357629ca021a6d6f771f" };
   const app = initializeApp(firebaseConfig); 
   const db = getFirestore(app);
   
   let unsubscribe = null;
   let roomRef = null;
-
   window.checkRoomAuth = async (rId, pw) => {
     const snap = await getDoc(doc(db, "rooms", rId));
     if(!snap.exists()) return "NOT_FOUND";
@@ -951,21 +1029,18 @@
       password: pw, 
       createdAt: new Date().toISOString() 
     }, { merge: true });
-    
     return "OK";
   };
 
   window.startRoomSync = (rId) => {
     roomRef = doc(db, "rooms", rId);
-    
     window.fbSave = (data) => setDoc(roomRef, data, { merge: true });
     
-    if(unsubscribe) unsubscribe(); 
+    if(unsubscribe) unsubscribe();
     unsubscribe = onSnapshot(roomRef, (snap) => { 
       if(snap.exists()) loadData(snap.data()); 
     });
   };
-
   if(window.initApp) window.initApp();
 
 </script>
