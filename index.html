@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.4.4</title>
+  <title>🎾TenniMatch v4.4.2</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -71,24 +71,13 @@
     .member-btn { background: #eef2f7; border: 1px solid var(--border); border-radius: 20px; padding: 10px 16px; font-size: 14px;
       color: #333; font-weight: 500; }
     .member-btn.assigned { background: var(--primary); color: #fff; border-color: var(--primary); }
-    
-    /* 試合カードの新しい構造 v4.4.4 */
-    .match-card { border-radius: 16px; padding: 16px 12px; margin-bottom: 16px; border-left: 6px solid var(--primary); position: relative; }
-    .match-info-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
-    .team-col { flex: 1; display: flex; flex-direction: column; gap: 4px; text-align: center; min-width: 0; }
-    .player-name { font-size: 13px; font-weight: 700; word-break: break-all; white-space: normal; line-height: 1.2; }
-    .score-display { flex: 0 0 80px; text-align: center; font-size: 24px; font-weight: 900; color: var(--text-main); }
-    
-    .button-area { display: flex; gap: 12px; border-top: 1px solid #eee; padding-top: 12px; margin-top: 5px; }
-    .btn-group { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
-    .num-btn { 
-      width: 100%; height: 32px; padding: 0; font-size: 14px; background: #f0f0f0; color: #333; 
-      border: 1px solid #ccc; border-radius: 6px; font-weight: bold; cursor: pointer;
-    }
-    .num-btn:active { background: var(--primary); color: #fff; }
-    
-    .score-input-hidden { position: absolute; opacity: 0; width: 1px; height: 1px; }
-
+    .match-card { border-radius: 16px; padding: 16px 10px; margin-bottom: 16px; border-left: 6px solid var(--primary); position: relative; }
+    .match-flex { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
+    .team-box { flex: 1; text-align: center; font-weight: 600; font-size: 13px; line-height: 1.4; word-break: break-all; }
+    .score-container { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
+    .score-input { width: 50px !important; height: 50px !important; text-align: center; font-size: 22px !important; padding: 0 !important;
+      margin: 0 !important; border-radius: 8px !important; }
+    .score-adjust-btn { padding: 4px 12px; font-size: 12px; min-height: 0; line-height: 1; border-radius: 6px; }
     .rest-info { margin-top: 10px; font-size: 11px; color: var(--text-muted); text-align: center;
       border-top: 1px dashed var(--border); padding-top: 8px; }
     .ranking-table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -126,7 +115,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.4.4 PWA Registered!');
+            console.log('v4.4.2 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -146,7 +135,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.4.4</div>
+  <div id="headerTitle">🎾TenniMatch v4.4.2</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
@@ -646,8 +635,16 @@
      saveData();
   };
 
-  window.setQuickScore = function(ri, mi, teamIdx, val) {
+  window.adjustScore = function(ri, mi, teamIdx, delta) {
     const input = document.getElementById(`s-${ri}-${mi}-${teamIdx}`);
+    let val = parseInt(input.value);
+    if (isNaN(val)) {
+      val = delta > 0 ? 0 : 7;
+    } else {
+      val += delta;
+      if (val > 7) val = 0;
+      if (val < 0) val = 7;
+    }
     input.value = val;
     autoSaveScore(ri, mi);
   };
@@ -670,6 +667,7 @@
     
     if (schedule.length > 0) {
       area.innerHTML += `<div style="text-align:center; font-weight:bold; color:var(--text-muted); margin-bottom:10px; font-size:13px;">📅 生成日: ${matchDateStr || '未設定'}</div>`;
+      
       const latestParticipants = schedule[schedule.length - 1].roundParticipants;
       const mappingHtml = latestParticipants.map((name, i) => `${circledNums[i]} ${name}`).join(' / ');
       area.innerHTML += `<div class="card" style="font-size:11px; margin-bottom:15px; background:#e8f0fe; border:1px solid var(--primary); padding: 10px;">
@@ -678,53 +676,48 @@
     
     schedule.forEach((r, ri) => {
       if(ri >= showingRounds) return;
-      let roundHtml = `<div class="card match-card"><div style="font-weight:700; color:var(--text-muted); font-size:11px; margin-bottom:10px;">ROUND ${ri+1}</div>`;
+      let roundHtml = `<div class="card match-card"><div style="font-weight:700; color:var(--text-muted); font-size:11px; margin-bottom:10px;">MATCH ${ri+1}</div>`;
       
       r.matches.forEach((m, mi) => {
         const isEdit = window.editMode[`${ri}-${mi}`];
         const s0 = m.score[0], s1 = m.score[1], isLocked = !isEdit && s0 !== null;
         
-        // プレイヤー表示部分のレンダリング
-        const renderPlayers = (teamKey) => {
+        const renderTeam = (teamKey) => {
           if (isLocked) {
-             return `<div class="player-name">${circledNums[m[teamKey][0].pIdx-1]} ${m[teamKey][0].name}</div>
-                     <div class="player-name">${circledNums[m[teamKey][1].pIdx-1]} ${m[teamKey][1].name}</div>`;
+             return `${circledNums[m[teamKey][0].pIdx-1]} ${m[teamKey][0].name}<br>${circledNums[m[teamKey][1].pIdx-1]} ${m[teamKey][1].name}`;
           } else {
              const getOpts = (curP) => r.roundParticipants.map((n, idx) => `<option value="${n}" ${curP.name===n?'selected':''}>${circledNums[idx]} ${n}</option>`).join('');
              return `
-               <select onchange="changePlayer(${ri}, ${mi}, '${teamKey}', 0, this.value)" style="margin-bottom:4px; font-size:11px; padding:4px; height:32px;">${getOpts(m[teamKey][0])}</select>
-               <select onchange="changePlayer(${ri}, ${mi}, '${teamKey}', 1, this.value)" style="margin-bottom:0; font-size:11px; padding:4px; height:32px;">${getOpts(m[teamKey][1])}</select>
+               <select onchange="changePlayer(${ri}, ${mi}, '${teamKey}', 0, this.value)" style="width:100%; margin-bottom:4px; font-size:12px; padding:4px;">${getOpts(m[teamKey][0])}</select>
+               <select onchange="changePlayer(${ri}, ${mi}, '${teamKey}', 1, this.value)" style="width:100%; margin-bottom:0; font-size:12px; padding:4px;">${getOpts(m[teamKey][1])}</select>
              `;
           }
         };
 
-        const renderBtns = (teamIdx) => {
-          let btns = '';
-          for(let n=0; n<=7; n++) btns += `<button class="num-btn" onclick="setQuickScore(${ri}, ${mi}, ${teamIdx}, ${n})">${n}</button>`;
-          return `<div class="btn-group">${btns}</div>`;
-        };
-
-        roundHtml += `
-          <div style="margin-bottom:12px; padding:12px 8px; background:#f8f9fa; border-radius:12px; ${isLocked?'border-left:4px solid var(--success);':''}">
-            ${r.matches.length > 1 ? `<div style="font-size:10px; font-weight:bold; color:var(--primary); margin-bottom:5px; text-align:center;">コート ${mi+1}</div>`:''}
-            
-            <div class="match-info-row">
-              <div class="team-col">${renderPlayers('team1')}</div>
-              <div class="score-display">
-                ${isLocked ? `${s0} - ${s1}` : `<span style="color:#ccc;">-</span>`}
-                <div style="margin-top:5px;">${isLocked ? `<button class="small outline" onclick="window.editMode['${ri}-${mi}']=true;renderMatches();">修正</button>` : ''}</div>
+        roundHtml += `<div style="margin-bottom:8px; padding:10px; background:#f8f9fa; border-radius:12px; ${isLocked?'border-left:4px solid var(--success);':''}">
+          ${r.matches.length > 1 ? `<div style="font-size:10px; font-weight:bold; color:var(--primary);">コート ${mi+1}</div>`:''}
+            <div class="match-flex">
+              <div class="team-box" style="padding-right:5px;">${renderTeam('team1')}</div>
+              <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                  <div class="score-container">
+                  ${!isLocked ? `
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+                      <button class="muted score-adjust-btn" onclick="adjustScore(${ri}, ${mi}, 0, 1)">△</button>
+                      <input type="number" id="s-${ri}-${mi}-0" class="score-input" value="${s0??''}" placeholder="＊" autocomplete="off" onchange="autoSaveScore(${ri}, ${mi})">
+                      <button class="muted score-adjust-btn" onclick="adjustScore(${ri}, ${mi}, 0, -1)">▽</button>
+                    </div>
+                    <span style="font-weight:bold; margin: 0 4px;">:</span>
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+                      <button class="muted score-adjust-btn" onclick="adjustScore(${ri}, ${mi}, 1, 1)">△</button>
+                      <input type="number" id="s-${ri}-${mi}-1" class="score-input" value="${s1??''}" placeholder="＊" autocomplete="off" onchange="autoSaveScore(${ri}, ${mi})">
+                      <button class="muted score-adjust-btn" onclick="adjustScore(${ri}, ${mi}, 1, -1)">▽</button>
+                    </div>
+                  ` : `<div style="font-size:24px; font-weight:800;">${s0} - ${s1}</div>`}
+                  </div>
+                  ${!isLocked ? `` : `<button class="small outline" onclick="window.editMode['${ri}-${mi}']=true;renderMatches();">修正</button>`}
               </div>
-              <div class="team-col">${renderPlayers('team2')}</div>
+              <div class="team-box" style="padding-left:5px;">${renderTeam('team2')}</div>
             </div>
-
-            ${!isLocked ? `
-            <div class="button-area">
-              <input type="number" id="s-${ri}-${mi}-0" class="score-input-hidden" value="${s0??''}" onchange="autoSaveScore(${ri}, ${mi})">
-              ${renderBtns(0)}
-              <input type="number" id="s-${ri}-${mi}-1" class="score-input-hidden" value="${s1??''}" onchange="autoSaveScore(${ri}, ${mi})">
-              ${renderBtns(1)}
-            </div>
-            ` : ''}
           </div>`;
       });
       const playing = r.matches.flatMap(m => [...m.team1, ...m.team2].map(p => p.name));
@@ -936,6 +929,7 @@
     detailDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  /* URL共有関連の処理 */
   window.openShareModal = function() {
     document.getElementById('shareModal').style.display = 'flex';
     document.getElementById('shareButtons').style.display = 'flex';
@@ -960,7 +954,7 @@
       document.getElementById('qrText').innerText = "【この部屋のQRコード】";
     } else if (type === 'tool') {
       urlToCopy = BASE_URL;
-      urlForQR = BASE_URL; 
+      urlForQR = BASE_URL; // 部屋名を含まないURLに変更
       document.getElementById('qrText').innerText = "【当ツールのQRコード】";
     }
 
@@ -976,6 +970,7 @@
   };
 
   window.shareFromLobby = function() {
+    // ロビーからの操作は部屋がないため、直接ツールのURL共有として処理する
     document.getElementById('shareModal').style.display = 'flex';
     document.getElementById('shareButtons').style.display = 'none';
     document.getElementById('qrContainer').style.display = 'none';
