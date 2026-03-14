@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.4.2</title>
+  <title>🎾TenniMatch v4.4.3</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -73,11 +73,20 @@
     .member-btn.assigned { background: var(--primary); color: #fff; border-color: var(--primary); }
     .match-card { border-radius: 16px; padding: 16px 10px; margin-bottom: 16px; border-left: 6px solid var(--primary); position: relative; }
     .match-flex { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
-    .team-box { flex: 1; text-align: center; font-weight: 600; font-size: 13px; line-height: 1.4; word-break: break-all; }
-    .score-container { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
-    .score-input { width: 50px !important; height: 50px !important; text-align: center; font-size: 22px !important; padding: 0 !important;
-      margin: 0 !important; border-radius: 8px !important; }
-    .score-adjust-btn { padding: 4px 12px; font-size: 12px; min-height: 0; line-height: 1; border-radius: 6px; }
+    .team-box { flex: 1; text-align: center; font-weight: 600; font-size: 12px; line-height: 1.4; word-break: break-all; }
+    
+    /* スコア入力周りの新スタイル */
+    .score-container { flex: 0 0 auto; display: flex; align-items: flex-start; justify-content: center; gap: 6px; white-space: nowrap; }
+    .score-column { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .score-input { width: 40px !important; height: 40px !important; text-align: center; font-size: 20px !important; padding: 0 !important;
+      margin: 0 !important; border-radius: 8px !important; border: 2px solid var(--primary) !important; background: #fff !important; }
+    .score-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+    .num-btn { 
+      width: 26px; height: 26px; padding: 0; font-size: 12px; background: #f0f0f0; color: #333; 
+      border: 1px solid #ccc; border-radius: 4px; font-weight: bold; 
+    }
+    .num-btn:active { background: var(--primary); color: #fff; }
+
     .rest-info { margin-top: 10px; font-size: 11px; color: var(--text-muted); text-align: center;
       border-top: 1px dashed var(--border); padding-top: 8px; }
     .ranking-table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -115,7 +124,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.4.2 PWA Registered!');
+            console.log('v4.4.3 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -135,7 +144,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.4.2</div>
+  <div id="headerTitle">🎾TenniMatch v4.4.3</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
@@ -635,16 +644,9 @@
      saveData();
   };
 
-  window.adjustScore = function(ri, mi, teamIdx, delta) {
+  // 0-7ボタン押下時のスコアセット関数
+  window.setQuickScore = function(ri, mi, teamIdx, val) {
     const input = document.getElementById(`s-${ri}-${mi}-${teamIdx}`);
-    let val = parseInt(input.value);
-    if (isNaN(val)) {
-      val = delta > 0 ? 0 : 7;
-    } else {
-      val += delta;
-      if (val > 7) val = 0;
-      if (val < 0) val = 7;
-    }
     input.value = val;
     autoSaveScore(ri, mi);
   };
@@ -688,35 +690,41 @@
           } else {
              const getOpts = (curP) => r.roundParticipants.map((n, idx) => `<option value="${n}" ${curP.name===n?'selected':''}>${circledNums[idx]} ${n}</option>`).join('');
              return `
-               <select onchange="changePlayer(${ri}, ${mi}, '${teamKey}', 0, this.value)" style="width:100%; margin-bottom:4px; font-size:12px; padding:4px;">${getOpts(m[teamKey][0])}</select>
-               <select onchange="changePlayer(${ri}, ${mi}, '${teamKey}', 1, this.value)" style="width:100%; margin-bottom:0; font-size:12px; padding:4px;">${getOpts(m[teamKey][1])}</select>
+               <select onchange="changePlayer(${ri}, ${mi}, '${teamKey}', 0, this.value)" style="width:100%; margin-bottom:4px; font-size:11px; padding:4px;">${getOpts(m[teamKey][0])}</select>
+               <select onchange="changePlayer(${ri}, ${mi}, '${teamKey}', 1, this.value)" style="width:100%; margin-bottom:0; font-size:11px; padding:4px;">${getOpts(m[teamKey][1])}</select>
              `;
           }
+        };
+
+        const renderScoreGrid = (teamIdx) => {
+          let btns = '';
+          for(let n=0; n<=7; n++) {
+            btns += `<button class="num-btn" onclick="setQuickScore(${ri}, ${mi}, ${teamIdx}, ${n})">${n}</button>`;
+          }
+          return `<div class="score-grid">${btns}</div>`;
         };
 
         roundHtml += `<div style="margin-bottom:8px; padding:10px; background:#f8f9fa; border-radius:12px; ${isLocked?'border-left:4px solid var(--success);':''}">
           ${r.matches.length > 1 ? `<div style="font-size:10px; font-weight:bold; color:var(--primary);">コート ${mi+1}</div>`:''}
             <div class="match-flex">
-              <div class="team-box" style="padding-right:5px;">${renderTeam('team1')}</div>
+              <div class="team-box" style="padding-right:2px;">${renderTeam('team1')}</div>
               <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
                   <div class="score-container">
                   ${!isLocked ? `
-                    <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
-                      <button class="muted score-adjust-btn" onclick="adjustScore(${ri}, ${mi}, 0, 1)">△</button>
+                    <div class="score-column">
                       <input type="number" id="s-${ri}-${mi}-0" class="score-input" value="${s0??''}" placeholder="＊" autocomplete="off" onchange="autoSaveScore(${ri}, ${mi})">
-                      <button class="muted score-adjust-btn" onclick="adjustScore(${ri}, ${mi}, 0, -1)">▽</button>
+                      ${renderScoreGrid(0)}
                     </div>
-                    <span style="font-weight:bold; margin: 0 4px;">:</span>
-                    <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
-                      <button class="muted score-adjust-btn" onclick="adjustScore(${ri}, ${mi}, 1, 1)">△</button>
+                    <span style="font-weight:bold; margin-top:8px;">:</span>
+                    <div class="score-column">
                       <input type="number" id="s-${ri}-${mi}-1" class="score-input" value="${s1??''}" placeholder="＊" autocomplete="off" onchange="autoSaveScore(${ri}, ${mi})">
-                      <button class="muted score-adjust-btn" onclick="adjustScore(${ri}, ${mi}, 1, -1)">▽</button>
+                      ${renderScoreGrid(1)}
                     </div>
-                  ` : `<div style="font-size:24px; font-weight:800;">${s0} - ${s1}</div>`}
+                  ` : `<div style="font-size:24px; font-weight:800; padding: 10px 0;">${s0} - ${s1}</div>`}
                   </div>
                   ${!isLocked ? `` : `<button class="small outline" onclick="window.editMode['${ri}-${mi}']=true;renderMatches();">修正</button>`}
               </div>
-              <div class="team-box" style="padding-left:5px;">${renderTeam('team2')}</div>
+              <div class="team-box" style="padding-left:2px;">${renderTeam('team2')}</div>
             </div>
           </div>`;
       });
@@ -929,7 +937,6 @@
     detailDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  /* URL共有関連の処理 */
   window.openShareModal = function() {
     document.getElementById('shareModal').style.display = 'flex';
     document.getElementById('shareButtons').style.display = 'flex';
@@ -954,7 +961,7 @@
       document.getElementById('qrText').innerText = "【この部屋のQRコード】";
     } else if (type === 'tool') {
       urlToCopy = BASE_URL;
-      urlForQR = BASE_URL; // 部屋名を含まないURLに変更
+      urlForQR = BASE_URL; 
       document.getElementById('qrText').innerText = "【当ツールのQRコード】";
     }
 
@@ -970,7 +977,6 @@
   };
 
   window.shareFromLobby = function() {
-    // ロビーからの操作は部屋がないため、直接ツールのURL共有として処理する
     document.getElementById('shareModal').style.display = 'flex';
     document.getElementById('shareButtons').style.display = 'none';
     document.getElementById('qrContainer').style.display = 'none';
