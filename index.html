@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.4.1</title>
+  <title>🎾TenniMatch v4.4.2</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -77,6 +77,7 @@
     .score-container { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
     .score-input { width: 50px !important; height: 50px !important; text-align: center; font-size: 22px !important; padding: 0 !important;
       margin: 0 !important; border-radius: 8px !important; }
+    .score-adjust-btn { padding: 4px 12px; font-size: 12px; min-height: 0; line-height: 1; border-radius: 6px; }
     .rest-info { margin-top: 10px; font-size: 11px; color: var(--text-muted); text-align: center;
       border-top: 1px dashed var(--border); padding-top: 8px; }
     .ranking-table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -114,7 +115,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.4.1 PWA Registered!');
+            console.log('v4.4.2 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -134,7 +135,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.4.1</div>
+  <div id="headerTitle">🎾TenniMatch v4.4.2</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
@@ -286,17 +287,6 @@
     <button onclick="showScreen('menu')" class="outline" style="width:100%; margin-top:20px;">🔙 メニューに戻る</button>
   </div>
 </div>
-
-<datalist id="scoreOptions">
-  <option value="0"></option>
-  <option value="1"></option>
-  <option value="2"></option>
-  <option value="3"></option>
-  <option value="4"></option>
-  <option value="5"></option>
-  <option value="6"></option>
-  <option value="7"></option>
-</datalist>
 
 <div id="shareModal" class="screen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; display:none; justify-content:center; align-items:center; padding: 20px; box-sizing: border-box;">
   <div class="card" style="width: 100%; max-width: 400px; text-align: center; position:relative; margin:0;">
@@ -645,6 +635,20 @@
      saveData();
   };
 
+  window.adjustScore = function(ri, mi, teamIdx, delta) {
+    const input = document.getElementById(`s-${ri}-${mi}-${teamIdx}`);
+    let val = parseInt(input.value);
+    if (isNaN(val)) {
+      val = delta > 0 ? 0 : 7;
+    } else {
+      val += delta;
+      if (val > 7) val = 0;
+      if (val < 0) val = 7;
+    }
+    input.value = val;
+    autoSaveScore(ri, mi);
+  };
+
   window.autoSaveScore = function(ri, mi) {
     const v0 = document.getElementById(`s-${ri}-${mi}-0`).value;
     const v1 = document.getElementById(`s-${ri}-${mi}-1`).value;
@@ -696,7 +700,19 @@
               <div class="team-box" style="padding-right:5px;">${renderTeam('team1')}</div>
               <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
                   <div class="score-container">
-                  ${!isLocked ? `<input type="number" id="s-${ri}-${mi}-0" class="score-input" value="${s0??''}" placeholder="＊" list="scoreOptions" autocomplete="off" onchange="autoSaveScore(${ri}, ${mi})"><span style="font-weight:bold;">:</span><input type="number" id="s-${ri}-${mi}-1" class="score-input" value="${s1??''}" placeholder="＊" list="scoreOptions" autocomplete="off" onchange="autoSaveScore(${ri}, ${mi})">` : `<div style="font-size:24px; font-weight:800;">${s0} - ${s1}</div>`}
+                  ${!isLocked ? `
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+                      <button class="muted score-adjust-btn" onclick="adjustScore(${ri}, ${mi}, 0, 1)">△</button>
+                      <input type="number" id="s-${ri}-${mi}-0" class="score-input" value="${s0??''}" placeholder="＊" autocomplete="off" onchange="autoSaveScore(${ri}, ${mi})">
+                      <button class="muted score-adjust-btn" onclick="adjustScore(${ri}, ${mi}, 0, -1)">▽</button>
+                    </div>
+                    <span style="font-weight:bold; margin: 0 4px;">:</span>
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+                      <button class="muted score-adjust-btn" onclick="adjustScore(${ri}, ${mi}, 1, 1)">△</button>
+                      <input type="number" id="s-${ri}-${mi}-1" class="score-input" value="${s1??''}" placeholder="＊" autocomplete="off" onchange="autoSaveScore(${ri}, ${mi})">
+                      <button class="muted score-adjust-btn" onclick="adjustScore(${ri}, ${mi}, 1, -1)">▽</button>
+                    </div>
+                  ` : `<div style="font-size:24px; font-weight:800;">${s0} - ${s1}</div>`}
                   </div>
                   ${!isLocked ? `` : `<button class="small outline" onclick="window.editMode['${ri}-${mi}']=true;renderMatches();">修正</button>`}
               </div>
@@ -938,8 +954,8 @@
       document.getElementById('qrText').innerText = "【この部屋のQRコード】";
     } else if (type === 'tool') {
       urlToCopy = BASE_URL;
-      urlForQR = roomUrl; // 部屋名を含むURLをQR化して表示する
-      document.getElementById('qrText').innerText = roomId ? "【この部屋のQRコード】" : "【当ツールのQRコード】";
+      urlForQR = BASE_URL; // 部屋名を含まないURLに変更
+      document.getElementById('qrText').innerText = "【当ツールのQRコード】";
     }
 
     navigator.clipboard.writeText(urlToCopy).then(() => {
