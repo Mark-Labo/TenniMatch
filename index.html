@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.3.8</title>
+  <title>🎾TenniMatch v4.4.0</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -98,7 +98,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.3.8 PWA Registered!');
+            console.log('v4.4.0 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -118,7 +118,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.3.8</div>
+  <div id="headerTitle">🎾TenniMatch v4.4.0</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="copyRoomLink()">🔗共有URL</button>
@@ -217,8 +217,10 @@
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
       <h3 style="margin:0;">🏆 今日のランキング</h3>
       <select id="rankingSort" onchange="updateRanking()" style="width:auto; margin:0; padding:5px; font-size:12px;">
-        <option value="avgScore" selected>平均ゲーム数順</option>
+        <option value="gameRatio" selected>ゲーム取得率順</option>
         <option value="winRate">勝率順</option>
+        <option value="attendanceRate">参加率順</option>
+        <option value="avgScore">平均ゲーム数順</option>
       </select>
     </div>
     <div id="ranking" style="overflow-x: auto;"></div>
@@ -240,8 +242,10 @@
     </div>
     <div style="text-align:right; margin-bottom:10px;">
       <select id="statsSort" onchange="renderStats()" style="width:auto; padding:5px; font-size:12px; margin-bottom:0;">
-        <option value="avgScore">平均ゲーム数順</option>
+        <option value="gameRatio" selected>ゲーム取得率順</option>
         <option value="winRate">勝率順</option>
+        <option value="attendanceRate">参加率順</option>
+        <option value="avgScore">平均ゲーム数順</option>
       </select>
     </div>
 
@@ -667,35 +671,83 @@
     updateRanking();
   }
 
-  function calcStats(matches) {
+  function calcStats(matches, totalDays = 1) {
     const stats = {};
     matches.forEach(m => {
-      [...m.team1, ...m.team2].forEach(p => { if(!stats[p.name]) stats[p.name]={w:0, l:0, d:0, games:0, m:0}; });
+      [...m.team1, ...m.team2].forEach(p => { 
+        if(!stats[p.name]) stats[p.name]={w:0, l:0, d:0, games:0, lostGames:0, m:0, days: new Set()}; 
+      });
       if(m.score[0] === null) return;
       const s0 = m.score[0], s1 = m.score[1];
-      const update = (names, myS, opS) => { names.forEach(n => { const st = stats[n.name]; st.m++; st.games += myS; if(myS > opS) st.w++; else if(myS < opS) st.l++; else st.d++; }); };
+      const update = (names, myS, opS) => { 
+        names.forEach(n => { 
+          const st = stats[n.name]; 
+          st.m++; 
+          st.games += myS; 
+          st.lostGames += opS; 
+          if(m.dateStr) st.days.add(m.dateStr);
+          if(myS > opS) st.w++; else if(myS < opS) st.l++; else st.d++; 
+        }); 
+      };
       update(m.team1, s0, s1); update(m.team2, s1, s0);
     });
-    return Object.keys(stats).map(name => ({ name, ...stats[name], winRate: stats[name].m ? (stats[name].w / stats[name].m) : 0, avg: stats[name].m ? (stats[name].games / stats[name].m) : 0 }));
+    
+    return Object.keys(stats).map(name => {
+      const st = stats[name];
+      const totalG = st.games + st.lostGames;
+      const gameRatio = totalG > 0 ? (st.games / totalG) : 0;
+      const joinedDays = st.days.size > 0 ? st.days.size : (st.m > 0 ? 1 : 0);
+      const attendanceRate = totalDays > 0 ? (joinedDays / totalDays) : 0;
+      
+      return { 
+        name, ...st, 
+        winRate: st.m ? ((st.w + st.d * 0.5) / st.m) : 0, 
+        avg: st.m ? (st.games / st.m) : 0,
+        totalGames: totalG,
+        gameRatio: gameRatio,
+        joinedDays: joinedDays,
+        attendanceRate: attendanceRate
+      };
+    });
   }
 
-  function generateRankingHTML(list, sortMode, isStatsScreen = false) {
-    list.sort((a,b) => sortMode==='winRate' ? (b.winRate - a.winRate || b.w - a.w) : (b.avg - a.avg || b.games - a.games));
+  function generateRankingHTML(list, sortMode, isStatsScreen = false, totalDays = 1) {
+    list.sort((a,b) => {
+      if(sortMode === 'gameRatio') return b.gameRatio - a.gameRatio || b.games - a.games;
+      if(sortMode === 'winRate') return b.winRate - a.winRate || b.w - a.w;
+      if(sortMode === 'attendanceRate') return b.attendanceRate - a.attendanceRate || b.joinedDays - a.joinedDays;
+      return b.avg - a.avg || b.games - a.games;
+    });
+
     if(list.length === 0) return "<p style='text-align:center; color:var(--text-muted); padding:10px;'>データがありません。</p>";
-    return `<table class="ranking-table"><tr><th>位</th><th>名前</th>${sortMode==='winRate'?'<th>勝</th><th>負</th><th>分</th><th>勝率</th>':'<th>合計G</th><th>平均G</th>'}<th>試合</th></tr>
+    
+    let thHtml = "";
+    if(sortMode === 'gameRatio') thHtml = "<th>獲得G</th><th>合計G</th><th>取得率(%)</th>";
+    else if(sortMode === 'winRate') thHtml = "<th>勝</th><th>負</th><th>分</th><th>勝率</th>";
+    else if(sortMode === 'attendanceRate') thHtml = "<th>参加日数</th><th>全日数</th><th>参加率(%)</th>";
+    else thHtml = "<th>合計G</th><th>平均G</th>";
+
+    return `<table class="ranking-table"><tr><th>位</th><th>名前</th>${thHtml}<th>試合</th></tr>
       ${list.map((p, i) => {
         const nameDisplay = isStatsScreen ? `<a href="javascript:void(0)" onclick="showPlayerHistory('${p.name}')" style="color:var(--primary); font-weight:bold; text-decoration:underline;">${p.name}</a>` : p.name;
-        return `<tr><td>${i+1}</td><td style="text-align:left;">${nameDisplay}</td>${sortMode==='winRate'?`<td>${p.w}</td><td>${p.l}</td><td>${p.d}</td><td>${(p.winRate*100).toFixed(0)}%</td>`:`<td>${p.games}</td><td>${p.avg.toFixed(2)}</td>`}<td>${p.m}</td></tr>`;
+        
+        let tdHtml = "";
+        if(sortMode === 'gameRatio') tdHtml = `<td>${p.games}</td><td>${p.totalGames}</td><td>${(p.gameRatio*100).toFixed(1)}%</td>`;
+        else if(sortMode === 'winRate') tdHtml = `<td>${p.w}</td><td>${p.l}</td><td>${p.d}</td><td>${(p.winRate*100).toFixed(1)}%</td>`;
+        else if(sortMode === 'attendanceRate') tdHtml = `<td>${p.joinedDays}</td><td>${totalDays}</td><td>${(p.attendanceRate*100).toFixed(1)}%</td>`;
+        else tdHtml = `<td>${p.games}</td><td>${p.avg.toFixed(2)}</td>`;
+
+        return `<tr><td>${i+1}</td><td style="text-align:left;">${nameDisplay}</td>${tdHtml}<td>${p.m}</td></tr>`;
       }).join('')}</table>`;
   }
 
   function updateRanking() {
     const scoredMatches = [];
     schedule.forEach(r => r.matches.forEach(m => { if(m.score[0] !== null) scoredMatches.push(m); }));
-    const list = calcStats(scoredMatches);
+    const list = calcStats(scoredMatches, 1);
     const mode = document.getElementById('rankingSort').value;
     const tableEl = document.getElementById('ranking');
-    if(tableEl) tableEl.innerHTML = generateRankingHTML(list, mode, false);
+    if(tableEl) tableEl.innerHTML = generateRankingHTML(list, mode, false, 1);
   }
 
   function initStatsYear() {
@@ -708,9 +760,10 @@
 
   window.toggleDayRanking = function(date) {
     const el = document.getElementById(`day-ranking-${date}`);
+    const sortMode = document.getElementById('statsSort').value;
     if(el.style.display === 'none') {
-      const list = calcStats(historyData[date]);
-      el.innerHTML = generateRankingHTML(list, 'avgScore', false);
+      const list = calcStats(historyData[date].map(m => ({...m, dateStr: date})), 1);
+      el.innerHTML = generateRankingHTML(list, sortMode, false, 1);
       el.style.display = 'block';
     } else {
       el.style.display = 'none';
@@ -722,17 +775,21 @@
     const monthStr = document.getElementById('statsMonth').value;
     const sortMode = document.getElementById('statsSort').value;
     let targetMatches = []; let daysList = [];
+    
     Object.keys(historyData).forEach(date => {
       const [y, m] = date.split('-');
       if (y === yearStr) {
         if (monthStr === 'all' || parseInt(m) === parseInt(monthStr)) {
-          targetMatches = targetMatches.concat(historyData[date]);
+          const matchesWithDate = historyData[date].map(match => ({...match, dateStr: date}));
+          targetMatches = targetMatches.concat(matchesWithDate);
           daysList.push(date);
         }
       }
     });
-    const list = calcStats(targetMatches);
-    document.getElementById('statsRanking').innerHTML = generateRankingHTML(list, sortMode, true);
+    
+    const totalDays = daysList.length;
+    const list = calcStats(targetMatches, totalDays);
+    document.getElementById('statsRanking').innerHTML = generateRankingHTML(list, sortMode, true, totalDays);
     
     const detailDiv = document.getElementById('playerHistoryDetail');
     if (detailDiv) detailDiv.style.display = 'none';
