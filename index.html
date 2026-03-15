@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.4.2</title>
+  <title>🎾TenniMatch v4.4.5</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -77,7 +77,7 @@
     .score-container { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
     .score-input { width: 50px !important; height: 50px !important; text-align: center; font-size: 22px !important; padding: 0 !important;
       margin: 0 !important; border-radius: 8px !important; }
-    .score-adjust-btn { padding: 4px 12px; font-size: 12px; min-height: 0; line-height: 1; border-radius: 6px; }
+    .score-dropdown { width: 50px !important; height: 24px !important; font-size: 11px !important; padding: 0 4px !important; margin: 0 !important; border-radius: 6px !important; background: #fff; text-align: center; text-align-last: center; }
     .rest-info { margin-top: 10px; font-size: 11px; color: var(--text-muted); text-align: center;
       border-top: 1px dashed var(--border); padding-top: 8px; }
     .ranking-table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -115,7 +115,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.4.2 PWA Registered!');
+            console.log('v4.4.5 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -135,7 +135,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.4.2</div>
+  <div id="headerTitle">🎾TenniMatch v4.4.5</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
@@ -635,20 +635,6 @@
      saveData();
   };
 
-  window.adjustScore = function(ri, mi, teamIdx, delta) {
-    const input = document.getElementById(`s-${ri}-${mi}-${teamIdx}`);
-    let val = parseInt(input.value);
-    if (isNaN(val)) {
-      val = delta > 0 ? 0 : 7;
-    } else {
-      val += delta;
-      if (val > 7) val = 0;
-      if (val < 0) val = 7;
-    }
-    input.value = val;
-    autoSaveScore(ri, mi);
-  };
-
   window.autoSaveScore = function(ri, mi) {
     const v0 = document.getElementById(`s-${ri}-${mi}-0`).value;
     const v1 = document.getElementById(`s-${ri}-${mi}-1`).value;
@@ -702,15 +688,23 @@
                   <div class="score-container">
                   ${!isLocked ? `
                     <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
-                      <button class="muted score-adjust-btn" onclick="adjustScore(${ri}, ${mi}, 0, 1)">△</button>
                       <input type="number" id="s-${ri}-${mi}-0" class="score-input" value="${s0??''}" placeholder="＊" autocomplete="off" onchange="autoSaveScore(${ri}, ${mi})">
-                      <button class="muted score-adjust-btn" onclick="adjustScore(${ri}, ${mi}, 0, -1)">▽</button>
+                      <select class="score-dropdown" onchange="document.getElementById('s-${ri}-${mi}-0').value=this.value; autoSaveScore(${ri}, ${mi}); this.value='none';">
+                        <option value="none" selected disabled>選択↕︎</option>
+                        <option value="">＊(クリア)</option>
+                        <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                        <option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
+                      </select>
                     </div>
                     <span style="font-weight:bold; margin: 0 4px;">:</span>
                     <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
-                      <button class="muted score-adjust-btn" onclick="adjustScore(${ri}, ${mi}, 1, 1)">△</button>
                       <input type="number" id="s-${ri}-${mi}-1" class="score-input" value="${s1??''}" placeholder="＊" autocomplete="off" onchange="autoSaveScore(${ri}, ${mi})">
-                      <button class="muted score-adjust-btn" onclick="adjustScore(${ri}, ${mi}, 1, -1)">▽</button>
+                      <select class="score-dropdown" onchange="document.getElementById('s-${ri}-${mi}-1').value=this.value; autoSaveScore(${ri}, ${mi}); this.value='none';">
+                        <option value="none" selected disabled>選択↕︎</option>
+                        <option value="">＊(クリア)</option>
+                        <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                        <option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
+                      </select>
                     </div>
                   ` : `<div style="font-size:24px; font-weight:800;">${s0} - ${s1}</div>`}
                   </div>
