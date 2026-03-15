@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -690,7 +691,7 @@
                     <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
                       <input type="number" id="s-${ri}-${mi}-0" class="score-input" value="${s0??''}" placeholder="＊" autocomplete="off" onchange="autoSaveScore(${ri}, ${mi})">
                       <select class="score-dropdown" onchange="document.getElementById('s-${ri}-${mi}-0').value=this.value; autoSaveScore(${ri}, ${mi}); this.value='none';">
-                        <option value="none" selected disabled>選択↕︎</option>
+                        <option value="none" selected disabled>選択</option>
                         <option value="">＊(クリア)</option>
                         <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
                         <option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
@@ -700,7 +701,7 @@
                     <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
                       <input type="number" id="s-${ri}-${mi}-1" class="score-input" value="${s1??''}" placeholder="＊" autocomplete="off" onchange="autoSaveScore(${ri}, ${mi})">
                       <select class="score-dropdown" onchange="document.getElementById('s-${ri}-${mi}-1').value=this.value; autoSaveScore(${ri}, ${mi}); this.value='none';">
-                        <option value="none" selected disabled>選択↕︎</option>
+                        <option value="none" selected disabled>選択</option>
                         <option value="">＊(クリア)</option>
                         <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
                         <option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
