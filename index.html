@@ -1,9 +1,8 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.4.5</title>
+  <title>🎾TenniMatch v4.4.6</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -116,7 +115,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.4.5 PWA Registered!');
+            console.log('v4.4.6 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -136,7 +135,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.4.5</div>
+  <div id="headerTitle">🎾TenniMatch v4.4.6</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
@@ -247,6 +246,16 @@
   </div>
 </div>
 
+<div id="screen-history-edit" class="screen">
+  <div style="display:flex; gap:8px; margin-bottom:15px;">
+    <button onclick="showScreen('stats')" class="outline" style="flex:1; font-size:11px;">🔙 総合実績へ戻る</button>
+  </div>
+  <div class="card" style="padding: 15px;">
+    <h3 id="history-edit-title" style="margin: 0 0 15px 0; display:flex; align-items:center; gap:8px; color:var(--primary);">📋 過去のスコア</h3>
+    <div id="history-matches"></div>
+  </div>
+</div>
+
 <div id="screen-stats" class="screen">
   <div class="card">
     <h3 style="margin-top:0;">📊 総合実績</h3>
@@ -312,6 +321,10 @@
   window.editMode = {};
   const circledNums = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮","⑯"];
   let matchDateStr = "";
+  
+  // 新しく追加: 過去履歴編集用のステート
+  let currentEditDate = "";
+  window.historyEditMode = {};
 
   let roomId = "";
 
@@ -435,6 +448,7 @@
         document.getElementById('match-control-btns').style.display = (schedule.length === 0) ? 'none' : 'flex';
     }
     if(id === 'stats') { initStatsYear(); renderStats(); }
+    if(id === 'history-edit') { renderHistoryMatches(); }
     window.scrollTo(0,0);
   }
 
@@ -468,6 +482,8 @@
     });
     renderMemberList();
     if(schedule.length > 0) renderMatches();
+    if(document.getElementById('screen-stats').classList.contains('active')) renderStats();
+    if(document.getElementById('screen-history-edit').classList.contains('active')) renderHistoryMatches();
     saveData();
   };
 
@@ -852,13 +868,97 @@
         <div style="padding:10px 0; border-bottom:1px dashed var(--border); font-size:13px;">
           <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleDayRanking('${d}')">
             <span style="font-weight:bold; color:var(--primary);">📅 ${d.replace(/-/g, '/')} (${historyData[d].length} 試合) ▼</span>
-            <button class="small danger" onclick="event.stopPropagation(); deleteHistory('${d}')" style="padding:4px 8px;">🗑 削除</button>
+            <div style="display:flex; gap:6px;">
+              <button class="small outline" onclick="event.stopPropagation(); editHistoryDay('${d}')" style="padding:4px 8px;">✏️ 確認・修正</button>
+              <button class="small danger" onclick="event.stopPropagation(); deleteHistory('${d}')" style="padding:4px 8px;">🗑 削除</button>
+            </div>
           </div>
           <div id="day-ranking-${d}" style="display:none; margin-top:10px; background:#f8f9fa; padding:10px; border-radius:8px;"></div>
         </div>
       `).join('');
     }
   }
+
+  // 新しく追加: 過去の履歴を編集・表示するための関数
+  window.editHistoryDay = function(date) {
+    currentEditDate = date;
+    window.historyEditMode = {};
+    document.getElementById('history-edit-title').innerHTML = `📋 ${date.replace(/-/g, '/')} のスコア`;
+    showScreen('history-edit');
+  };
+
+  window.renderHistoryMatches = function() {
+    const area = document.getElementById('history-matches');
+    if(!area) return;
+    area.innerHTML = '';
+    const matches = historyData[currentEditDate] || [];
+
+    if(matches.length === 0) {
+      area.innerHTML = "<p style='text-align:center; color:var(--text-muted); font-size:14px;'>データがありません。</p>";
+      return;
+    }
+
+    let html = '';
+    matches.forEach((m, mi) => {
+      const isEdit = window.historyEditMode[mi];
+      const s0 = m.score[0], s1 = m.score[1];
+
+      const renderTeam = (teamKey) => {
+        const p1 = m[teamKey][0];
+        const p2 = m[teamKey][1];
+        // pIdxが残っていれば丸数字をつける
+        const n1 = p1.pIdx ? `${circledNums[p1.pIdx-1]||''} ${p1.name}` : p1.name;
+        const n2 = p2.pIdx ? `${circledNums[p2.pIdx-1]||''} ${p2.name}` : p2.name;
+        return `${n1}<br>${n2}`;
+      };
+
+      html += `<div style="margin-bottom:8px; padding:10px; background:#f8f9fa; border-radius:12px; border-left:4px solid var(--success);">
+          <div style="font-size:10px; font-weight:bold; color:var(--text-muted); margin-bottom:4px;">MATCH ${mi+1}</div>
+          <div class="match-flex">
+            <div class="team-box" style="padding-right:5px;">${renderTeam('team1')}</div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                <div class="score-container">
+                ${isEdit ? `
+                  <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+                    <input type="number" id="hs-${mi}-0" class="score-input" value="${s0??''}" placeholder="＊" autocomplete="off" onchange="autoSaveHistoryScore(${mi})">
+                    <select class="score-dropdown" onchange="document.getElementById('hs-${mi}-0').value=this.value; autoSaveHistoryScore(${mi}); this.value='none';">
+                      <option value="none" selected disabled>選択</option>
+                      <option value="">＊(クリア)</option>
+                      <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                      <option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
+                    </select>
+                  </div>
+                  <span style="font-weight:bold; margin: 0 4px;">:</span>
+                  <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+                    <input type="number" id="hs-${mi}-1" class="score-input" value="${s1??''}" placeholder="＊" autocomplete="off" onchange="autoSaveHistoryScore(${mi})">
+                    <select class="score-dropdown" onchange="document.getElementById('hs-${mi}-1').value=this.value; autoSaveHistoryScore(${mi}); this.value='none';">
+                      <option value="none" selected disabled>選択</option>
+                      <option value="">＊(クリア)</option>
+                      <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                      <option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
+                    </select>
+                  </div>
+                ` : `<div style="font-size:24px; font-weight:800;">${s0} - ${s1}</div>`}
+                </div>
+                ${isEdit ? `` : `<button class="small outline" onclick="window.historyEditMode[${mi}]=true;renderHistoryMatches();">修正</button>`}
+            </div>
+            <div class="team-box" style="padding-left:5px;">${renderTeam('team2')}</div>
+          </div>
+        </div>`;
+    });
+    area.innerHTML = html;
+  };
+
+  window.autoSaveHistoryScore = function(mi) {
+    const v0 = document.getElementById(`hs-${mi}-0`).value;
+    const v1 = document.getElementById(`hs-${mi}-1`).value;
+    if(v0 !== '' && v1 !== '') {
+      historyData[currentEditDate][mi].score = [parseInt(v0), parseInt(v1)];
+      window.historyEditMode[mi] = false;
+      saveData();
+      renderHistoryMatches();
+    }
+  };
 
   window.showPlayerHistory = function(name) {
     const yearStr = document.getElementById('statsYear').value;
@@ -949,7 +1049,7 @@
       document.getElementById('qrText').innerText = "【この部屋のQRコード】";
     } else if (type === 'tool') {
       urlToCopy = BASE_URL;
-      urlForQR = BASE_URL; // 部屋名を含まないURLに変更
+      urlForQR = BASE_URL; 
       document.getElementById('qrText').innerText = "【当ツールのQRコード】";
     }
 
@@ -965,7 +1065,6 @@
   };
 
   window.shareFromLobby = function() {
-    // ロビーからの操作は部屋がないため、直接ツールのURL共有として処理する
     document.getElementById('shareModal').style.display = 'flex';
     document.getElementById('shareButtons').style.display = 'none';
     document.getElementById('qrContainer').style.display = 'none';
@@ -1012,6 +1111,7 @@
     }
     
     if(document.getElementById('screen-stats').classList.contains('active')) renderStats();
+    if(document.getElementById('screen-history-edit').classList.contains('active')) renderHistoryMatches();
   }
 </script>
 
