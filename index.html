@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.4.6</title>
+  <title>🎾TenniMatch v4.4.7</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -115,7 +115,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.4.6 PWA Registered!');
+            console.log('v4.4.7 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -135,7 +135,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.4.6</div>
+  <div id="headerTitle">🎾TenniMatch v4.4.7</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
@@ -193,8 +193,8 @@
   <div class="card">
     <h3>参加メンバー選択</h3>
     <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-      <div style="flex:1;"><label>コート</label><select id="courtCount" onchange="updateCourtLimit()"><option value="1">1面</option><option value="2">2面</option></select></div>
-      <div style="flex:1.5;"><label>人数</label><select id="playerCount" onchange="initSetup()"></select></div>
+      <div style="flex:1;"><label>コート</label><select id="courtCount" onchange="updateCourtLimit(true)"><option value="1">1面</option><option value="2">2面</option></select></div>
+      <div style="flex:1.5;"><label>人数</label><select id="playerCount" onchange="initSetup(true)"></select></div>
     </div>
     <div id="guestArea" class="slot-list"></div>
     <p style="font-size:12px; color:var(--text-muted); font-weight:bold; margin-top:15px;">登録メンバー（タップで移動）:</p>
@@ -322,7 +322,6 @@
   const circledNums = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮","⑯"];
   let matchDateStr = "";
   
-  // 新しく追加: 過去履歴編集用のステート
   let currentEditDate = "";
   window.historyEditMode = {};
 
@@ -423,7 +422,7 @@
     else { showScreen('setup'); }
   }
 
-  function updateCourtLimit() {
+  function updateCourtLimit(isUserAction = false) {
     const courts = document.getElementById('courtCount').value;
     const pc = document.getElementById('playerCount');
     const oldVal = pc.value;
@@ -431,7 +430,7 @@
     if(courts === "1") { for(let i=4; i<=11; i++) pc.innerHTML += `<option value="${i}">${i}人</option>`; }
     else { for(let i=8; i<=16; i++) pc.innerHTML += `<option value="${i}">${i}人</option>`; }
     if(oldVal) pc.value = oldVal;
-    initSetup();
+    initSetup(isUserAction);
   }
 
   function showScreen(id) {
@@ -439,7 +438,7 @@
     document.getElementById('screen-' + id).classList.add('active');
     
     if(id === 'setup') { 
-      if(!document.getElementById('playerCount').options.length) updateCourtLimit();
+      if(!document.getElementById('playerCount').options.length) updateCourtLimit(false);
       document.getElementById('btnContinueGenerate').style.display = (schedule.length > 0) ? 'block' : 'none';
     }
     if(id === 'match') {
@@ -501,12 +500,58 @@
     renderMemberButtons();
   }
 
-  function initSetup() {
-    const count = parseInt(document.getElementById('playerCount').value || 0);
-    if(currentSlots.length !== count) {
-        let newSlots = [];
-        for(let i=0; i<count; i++) newSlots.push(currentSlots[i] || null);
-        currentSlots = newSlots;
+  function initSetup(isUserAction = false) {
+    const selectEl = document.getElementById('playerCount');
+    const newCount = parseInt(selectEl.value || 0);
+    const oldCount = currentSlots.length;
+
+    if (!isUserAction) {
+      if (oldCount > 0) {
+          if (oldCount > 11) {
+              document.getElementById('courtCount').value = "2";
+              selectEl.innerHTML = '';
+              for(let i=8; i<=16; i++) selectEl.innerHTML += `<option value="${i}">${i}人</option>`;
+          } else if (oldCount < 8 && document.getElementById('courtCount').value === "2") {
+              document.getElementById('courtCount').value = "1";
+              selectEl.innerHTML = '';
+              for(let i=4; i<=11; i++) selectEl.innerHTML += `<option value="${i}">${i}人</option>`;
+          }
+          selectEl.value = oldCount;
+      } else {
+          let newSlots = [];
+          for(let i=0; i<newCount; i++) {
+              newSlots.push(null);
+          }
+          currentSlots = newSlots;
+      }
+      renderSlots();
+      return;
+    }
+
+    if (newCount === oldCount) return;
+
+    if (newCount < oldCount) {
+      const actualPlayers = currentSlots.filter(p => p !== null);
+      if (actualPlayers.length > newCount) {
+        const droppedPlayers = actualPlayers.slice(newCount);
+        const msg = `変更により ${droppedPlayers.join('、')} さんが退出扱いになります。\nよろしいですか？`;
+        if (!confirm(msg)) {
+          selectEl.value = oldCount;
+          return;
+        }
+      }
+      
+      let newSlots = [];
+      for(let i=0; i<newCount; i++) {
+        newSlots.push(actualPlayers[i] || null);
+      }
+      currentSlots = newSlots;
+    } else {
+      let newSlots = [...currentSlots];
+      for(let i=oldCount; i<newCount; i++) {
+        newSlots.push(null);
+      }
+      currentSlots = newSlots;
     }
     renderSlots();
   }
@@ -549,7 +594,7 @@
   function resetAllMatches() {
     if(confirm("【注意】この日のスコアは実績に保存されずに消去されます。\n本当にリセットしますか？")) { 
       schedule=[]; showingRounds=5; window.editMode={}; matchDateStr="";
-      currentSlots = []; initSetup(); saveData(); 
+      currentSlots = []; initSetup(false); saveData(); 
       document.getElementById('post-reset-nav').style.display = 'block';
       document.getElementById('match-control-btns').style.display = 'none';
       renderMatches();
@@ -568,7 +613,7 @@
       historyData[dateKey] = historyData[dateKey].concat(scoredMatches);
       
       schedule=[]; showingRounds=5; window.editMode={}; matchDateStr="";
-      currentSlots = []; initSetup(); saveData();
+      currentSlots = []; initSetup(false); saveData();
       alert("実績を保存しました！お疲れ様でした🎾");
       
       document.getElementById('post-reset-nav').style.display = 'block';
@@ -879,7 +924,6 @@
     }
   }
 
-  // 新しく追加: 過去の履歴を編集・表示するための関数
   window.editHistoryDay = function(date) {
     currentEditDate = date;
     window.historyEditMode = {};
@@ -906,7 +950,6 @@
       const renderTeam = (teamKey) => {
         const p1 = m[teamKey][0];
         const p2 = m[teamKey][1];
-        // pIdxが残っていれば丸数字をつける
         const n1 = p1.pIdx ? `${circledNums[p1.pIdx-1]||''} ${p1.name}` : p1.name;
         const n2 = p2.pIdx ? `${circledNums[p2.pIdx-1]||''} ${p2.name}` : p2.name;
         return `${n1}<br>${n2}`;
@@ -1024,7 +1067,6 @@
     detailDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  /* URL共有関連の処理 */
   window.openShareModal = function() {
     document.getElementById('shareModal').style.display = 'flex';
     document.getElementById('shareButtons').style.display = 'flex';
@@ -1099,7 +1141,7 @@
         document.getElementById('btnContinueGenerate').style.display = 'block';
       }
     } else { 
-      initSetup();
+      initSetup(false);
       if(isMatchScreen) {
         renderMatches();
         document.getElementById('post-reset-nav').style.display = 'block';
