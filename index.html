@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.4.7</title>
+  <title>🎾TenniMatch v4.4.8</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -115,7 +115,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.4.7 PWA Registered!');
+            console.log('v4.4.8 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -135,7 +135,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.4.7</div>
+  <div id="headerTitle">🎾TenniMatch v4.4.8</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
@@ -202,6 +202,7 @@
     <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 25px;">
       <button onclick="generate('reset')">🚀 組合せを最初から生成</button>
       <button id="btnContinueGenerate" onclick="generate('continue')" class="secondary" style="display:none;">🔄 続きから再生成(途中参加/退出)</button>
+      <button id="btnCancelSetup" onclick="cancelSetupChanges()" class="muted" style="display:none;">↩️ 変更せずに戻る</button>
       <button onclick="showScreen('menu')" class="outline">🔙 メニューに戻る</button>
     </div>
   </div>
@@ -209,7 +210,7 @@
 
 <div id="screen-match" class="screen">
   <div style="display:flex; gap:8px; margin-bottom:15px;">
-    <button onclick="showScreen('setup')" class="outline secondary" style="flex:1; font-size:11px;">👥 途中参加/退出</button>
+    <button onclick="enterSetupFromMatch()" class="outline secondary" style="flex:1; font-size:11px;">👥 途中参加/退出</button>
     <button onclick="showScreen('menu')" class="outline" style="flex:1; font-size:11px;">🔙 メニューへ戻る</button>
   </div>
 
@@ -326,6 +327,7 @@
   window.historyEditMode = {};
 
   let roomId = "";
+  window.backupSetupState = null;
 
   window.initApp = async function() {
     const params = new URLSearchParams(window.location.search);
@@ -422,6 +424,32 @@
     else { showScreen('setup'); }
   }
 
+  window.enterSetupFromMatch = function() {
+      window.backupSetupState = {
+          slots: [...currentSlots],
+          courtCount: document.getElementById('courtCount').value,
+          playerCount: document.getElementById('playerCount').value
+      };
+      showScreen('setup');
+  };
+
+  window.cancelSetupChanges = function() {
+      if(window.backupSetupState) {
+          currentSlots = [...window.backupSetupState.slots];
+          document.getElementById('courtCount').value = window.backupSetupState.courtCount;
+          const selectEl = document.getElementById('playerCount');
+          selectEl.innerHTML = '';
+          if(window.backupSetupState.courtCount === "1") {
+              for(let i=4; i<=11; i++) selectEl.innerHTML += `<option value="${i}">${i}人</option>`;
+          } else {
+              for(let i=8; i<=16; i++) selectEl.innerHTML += `<option value="${i}">${i}人</option>`;
+          }
+          selectEl.value = window.backupSetupState.playerCount;
+          window.backupSetupState = null;
+      }
+      showScreen('match');
+  };
+
   function updateCourtLimit(isUserAction = false) {
     const courts = document.getElementById('courtCount').value;
     const pc = document.getElementById('playerCount');
@@ -434,12 +462,29 @@
   }
 
   function showScreen(id) {
+    if (id !== 'setup' && window.backupSetupState && document.getElementById('screen-setup').classList.contains('active')) {
+        currentSlots = [...window.backupSetupState.slots];
+        document.getElementById('courtCount').value = window.backupSetupState.courtCount;
+        const selectEl = document.getElementById('playerCount');
+        selectEl.innerHTML = '';
+        if(window.backupSetupState.courtCount === "1") {
+            for(let i=4; i<=11; i++) selectEl.innerHTML += `<option value="${i}">${i}人</option>`;
+        } else {
+            for(let i=8; i<=16; i++) selectEl.innerHTML += `<option value="${i}">${i}人</option>`;
+        }
+        selectEl.value = window.backupSetupState.playerCount;
+        window.backupSetupState = null;
+    }
+
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('screen-' + id).classList.add('active');
     
     if(id === 'setup') { 
       if(!document.getElementById('playerCount').options.length) updateCourtLimit(false);
-      document.getElementById('btnContinueGenerate').style.display = (schedule.length > 0) ? 'block' : 'none';
+      const hasSchedule = schedule.length > 0;
+      document.getElementById('btnContinueGenerate').style.display = hasSchedule ? 'block' : 'none';
+      document.getElementById('btnCancelSetup').style.display = hasSchedule ? 'block' : 'none';
+      renderSlots();
     }
     if(id === 'match') {
         renderMatches();
@@ -658,6 +703,8 @@
   }
 
   function generate(mode) {
+    window.backupSetupState = null;
+    
     let finalNames = currentSlots.map((n, i) => n || `ゲスト${i+1}`);
     if(mode === 'reset' || schedule.length === 0) { 
       finalNames = shuffleArray(finalNames); 
