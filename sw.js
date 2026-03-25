@@ -1,5 +1,5 @@
 // キャッシュのバージョン名（アップデートの際はこの名前を変更します）
-const CACHE_NAME = 'app-cache-v4.4.7';
+const CACHE_NAME = 'app-cache-v4.4.8';
 
 // キャッシュするファイルのリスト
 const urlsToCache = [
