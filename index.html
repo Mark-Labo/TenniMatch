@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.4.9</title>
+  <title>🎾TenniMatch v4.4.10</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -115,7 +115,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.4.9 PWA Registered!');
+            console.log('v4.4.10 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -135,7 +135,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.4.9</div>
+  <div id="headerTitle">🎾TenniMatch v4.4.10</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
@@ -158,6 +158,7 @@
       <h3 style="margin-top:0; font-size:15px;">🆕 新しく部屋を作る</h3>
       <input type="text" id="newRoomId" placeholder="希望の部屋名 (空欄で自動生成)">
       <input type="password" id="newRoomPw" placeholder="パスワードを設定 (必須)">
+      <p style="font-size: 11px; color: var(--danger-text); font-weight: bold; margin-top: -8px; margin-bottom: 12px;">※部屋毎に共通です。メンバーに共有できるパスワードにして下さい。</p>
       <button onclick="handleCreateRoom()" style="width:100%;">✨ 部屋を作成</button>
     </div>
 
@@ -415,7 +416,8 @@
   function logoutRoom() {
     if(confirm("部屋から退出してロビーに戻りますか？")) {
       localStorage.removeItem("lastTenniMatchRoom");
-      location.href = window.location.origin + window.location.pathname;
+      // キャッシュ対策: URLの末尾にタイムスタンプを付与してリロード
+      window.location.href = window.location.origin + window.location.pathname + "?t=" + new Date().getTime();
     }
   }
 
