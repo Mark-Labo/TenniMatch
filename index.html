@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.4.8</title>
+  <title>🎾TenniMatch v4.4.9</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -115,7 +115,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.4.8 PWA Registered!');
+            console.log('v4.4.9 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -135,7 +135,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.4.8</div>
+  <div id="headerTitle">🎾TenniMatch v4.4.9</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
@@ -705,7 +705,9 @@
   function generate(mode) {
     window.backupSetupState = null;
     
-    let finalNames = currentSlots.map((n, i) => n || `ゲスト${i+1}`);
+    let guestCounter = 1;
+    let finalNames = currentSlots.map((n, i) => n || `ゲスト${guestCounter++}`);
+    
     if(mode === 'reset' || schedule.length === 0) { 
       finalNames = shuffleArray(finalNames); 
       currentSlots = [...finalNames];
@@ -886,8 +888,24 @@
     else if(sortMode === 'winRate') thHtml = "<th>勝</th><th>負</th><th>分</th><th>勝率</th>";
     else if(sortMode === 'attendanceRate') thHtml = "<th>参加日数</th><th>全日数</th><th>参加率(%)</th>";
     else thHtml = "<th>合計G</th><th>平均G</th>";
+
+    let currentRank = 1;
+
     return `<table class="ranking-table"><tr><th>位</th><th>名前</th>${thHtml}<th>試合</th></tr>
       ${list.map((p, i) => {
+        if (i > 0) {
+          let prev = list[i-1];
+          let tie = false;
+          if(sortMode === 'gameRatio') tie = (prev.gameRatio === p.gameRatio && prev.games === p.games);
+          else if(sortMode === 'winRate') tie = (prev.winRate === p.winRate && prev.w === p.w);
+          else if(sortMode === 'attendanceRate') tie = (prev.attendanceRate === p.attendanceRate && prev.joinedDays === p.joinedDays);
+          else tie = (prev.avg === p.avg && prev.games === p.games);
+          
+          if (!tie) {
+            currentRank = i + 1;
+          }
+        }
+
         const nameDisplay = isStatsScreen ? `<a href="javascript:void(0)" onclick="showPlayerHistory('${p.name}')" style="color:var(--primary); font-weight:bold; text-decoration:underline;">${p.name}</a>` : p.name;
         
         let tdHtml = "";
@@ -896,7 +914,7 @@
         else if(sortMode === 'attendanceRate') tdHtml = `<td>${p.joinedDays}</td><td>${totalDays}</td><td>${(p.attendanceRate*100).toFixed(1)}%</td>`;
         else tdHtml = `<td>${p.games}</td><td>${p.avg.toFixed(2)}</td>`;
 
-        return `<tr><td>${i+1}</td><td style="text-align:left;">${nameDisplay}</td>${tdHtml}<td>${p.m}</td></tr>`;
+        return `<tr><td>${currentRank}</td><td style="text-align:left;">${nameDisplay}</td>${tdHtml}<td>${p.m}</td></tr>`;
       }).join('')}</table>`;
   }
 
