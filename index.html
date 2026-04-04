@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.4.10</title>
+  <title>🎾TenniMatch v4.4.11</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -115,7 +115,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.4.10 PWA Registered!');
+            console.log('v4.4.11 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -135,7 +135,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.4.10</div>
+  <div id="headerTitle">🎾TenniMatch v4.4.11</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
@@ -416,7 +416,6 @@
   function logoutRoom() {
     if(confirm("部屋から退出してロビーに戻りますか？")) {
       localStorage.removeItem("lastTenniMatchRoom");
-      // キャッシュ対策: URLの末尾にタイムスタンプを付与してリロード
       window.location.href = window.location.origin + window.location.pathname + "?t=" + new Date().getTime();
     }
   }
@@ -478,6 +477,8 @@
         window.backupSetupState = null;
     }
 
+    const isFromMenu = document.getElementById('screen-menu').classList.contains('active');
+
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('screen-' + id).classList.add('active');
     
@@ -493,7 +494,13 @@
         document.getElementById('post-reset-nav').style.display = (schedule.length === 0) ? 'block' : 'none';
         document.getElementById('match-control-btns').style.display = (schedule.length === 0) ? 'none' : 'flex';
     }
-    if(id === 'stats') { initStatsYear(); renderStats(); }
+    if(id === 'stats') { 
+        initStatsYear(); 
+        if (isFromMenu) {
+            initStatsMonth();
+        }
+        renderStats(); 
+    }
     if(id === 'history-edit') { renderHistoryMatches(); }
     window.scrollTo(0,0);
   }
@@ -935,6 +942,29 @@
     Object.keys(historyData).forEach(d => years.add(d.split('-')[0]));
     if(years.size === 0) years.add(new Date().getFullYear().toString());
     yearSelect.innerHTML = Array.from(years).sort().reverse().map(y => `<option value="${y}">${y}年</option>`).join('');
+  }
+
+  function initStatsMonth() {
+    const yearStr = document.getElementById('statsYear').value;
+    const monthSelect = document.getElementById('statsMonth');
+    if(!yearStr) return;
+    
+    let latestMonth = 0;
+    Object.keys(historyData).forEach(date => {
+      const [y, m] = date.split('-');
+      if (y === yearStr) {
+        const monthInt = parseInt(m, 10);
+        if (monthInt > latestMonth) {
+          latestMonth = monthInt;
+        }
+      }
+    });
+    
+    if (latestMonth > 0) {
+      monthSelect.value = latestMonth.toString();
+    } else {
+      monthSelect.value = "all";
+    }
   }
 
   window.toggleDayRanking = function(date) {
