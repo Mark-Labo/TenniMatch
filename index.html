@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.4.12</title>
+  <title>🎾TenniMatch v4.5.00</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -115,7 +115,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.4.11 PWA Registered!');
+            console.log('v4.5.00 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -135,7 +135,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.4.12</div>
+  <div id="headerTitle">🎾TenniMatch v4.5.00</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
@@ -847,17 +847,24 @@
     const stats = {};
     matches.forEach(m => {
       [...m.team1, ...m.team2].forEach(p => { 
-        if(!stats[p.name]) stats[p.name]={w:0, l:0, d:0, games:0, lostGames:0, m:0, days: new Set()}; 
+        if(!stats[p.name]) stats[p.name]={w:0, l:0, d:0, games:0, lostGames:0, m:0, attendanceM:0, days: new Set()}; 
       });
       if(m.score[0] === null) return;
       const s0 = m.score[0], s1 = m.score[1];
       const update = (names, myS, opS) => { 
         names.forEach(n => { 
           const st = stats[n.name]; 
+          st.attendanceM++; // 参加実績としてはカウント
+          if(m.dateStr) st.days.add(m.dateStr);
+          
+          // 0-0の場合は勝敗や平均ゲーム数のための試合数(m)にカウントしない
+          if(myS === 0 && opS === 0) {
+            return;
+          }
+          
           st.m++; 
           st.games += myS; 
           st.lostGames += opS; 
-          if(m.dateStr) st.days.add(m.dateStr);
           if(myS > opS) st.w++; else if(myS < opS) st.l++; else st.d++; 
         }); 
       };
@@ -868,7 +875,9 @@
       const st = stats[name];
       const totalG = st.games + st.lostGames;
       const gameRatio = totalG > 0 ? (st.games / totalG) : 0;
-      const joinedDays = st.days.size > 0 ? st.days.size : (st.m > 0 ? 1 : 0);
+      
+      // 参加日数は attendanceM (0-0含む全試合) をベースに判定する
+      const joinedDays = st.days.size > 0 ? st.days.size : (st.attendanceM > 0 ? 1 : 0);
       const attendanceRate = totalDays > 0 ? (joinedDays / totalDays) : 0;
       
       return { 
@@ -1105,7 +1114,7 @@
     const monthStr = document.getElementById('statsMonth').value;
     let targetMatches = [];
     Object.keys(historyData).forEach(date => {
-      const [y, m] = date.split('-');
+      const [y, m] = split('-');
       if (y === yearStr) {
         if (monthStr === 'all' || parseInt(m) === parseInt(monthStr)) {
           const datedMatches = historyData[date].map(match => ({...match, dateStr: date}));
