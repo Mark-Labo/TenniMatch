@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.5.00</title>
+  <title>🎾TenniMatch v4.6.00</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -115,7 +115,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.5.00 PWA Registered!');
+            console.log('v4.6.00 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -135,7 +135,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.5.00</div>
+  <div id="headerTitle">🎾TenniMatch v4.6.00</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
@@ -223,8 +223,8 @@
       <button onclick="resetAllMatches()" class="danger-zone" style="flex:1; font-size:12px;">🗑️ 保存せず破棄</button>
     </div>
 
-    <a href="https://amzn.to/3OZGDtd" target="_blank" class="ad-btn">
-      【Amazon広告】休憩時間にチェック！<br>🎾ボール・ガット・グリップの売筋🎾
+    <a href="https://room.rakuten.co.jp/mark_lab/1800012623831224" target="_blank" style="display:block; text-align:center; margin-bottom:15px; text-decoration:none;">
+      <img src="楽天ROOMバナー画像.png" alt="テニスギア集" style="width:100%; height:auto; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
     </a>
 
     <div id="matches"></div>
@@ -280,8 +280,8 @@
       </select>
     </div>
 
-    <a href="https://amzn.to/3OZGDtd" target="_blank" class="ad-btn" style="margin-top: 10px;">
-      【Amazon広告】次の試合に向けて！<br>🎾ボール・ラケットの売筋チェック🎾
+    <a href="https://room.rakuten.co.jp/mark_lab/1800012623831224" target="_blank" style="display:block; text-align:center; margin-top:10px; margin-bottom:15px; text-decoration:none;">
+      <img src="楽天ROOMバナー画像.png" alt="テニスギア集" style="width:100%; height:auto; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
     </a>
 
     <div id="statsRanking" style="overflow-x: auto;"></div>
