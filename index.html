@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.6.01</title>
+  <title>🎾TenniMatch v4.6.02</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -115,7 +115,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.6.01 PWA Registered!');
+            console.log('v4.6.02 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -135,7 +135,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.6.01</div>
+  <div id="headerTitle">🎾TenniMatch v4.6.02</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
@@ -1114,7 +1114,7 @@
     const monthStr = document.getElementById('statsMonth').value;
     let targetMatches = [];
     Object.keys(historyData).forEach(date => {
-      const [y, m] = split('-');
+      const [y, m] = date.split('-');
       if (y === yearStr) {
         if (monthStr === 'all' || parseInt(m) === parseInt(monthStr)) {
           const datedMatches = historyData[date].map(match => ({...match, dateStr: date}));
