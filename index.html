@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.6.02</title>
+  <title>🎾TenniMatch v4.7.00</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -81,7 +81,7 @@
     .rest-info { margin-top: 10px; font-size: 11px; color: var(--text-muted); text-align: center;
       border-top: 1px dashed var(--border); padding-top: 8px; }
     .ranking-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    .ranking-table th { background: #5f6368; color: #fff; padding: 8px 4px; }
+    .ranking-table th { background: #5f6368; color: #fff; padding: 8px 4px; white-space: nowrap; }
     .ranking-table td { border-bottom: 1px solid var(--border); padding: 12px 4px; text-align: center; }
   </style>
   <script>
@@ -115,7 +115,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.6.02 PWA Registered!');
+            console.log('v4.7.00 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -135,7 +135,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.6.02</div>
+  <div id="headerTitle">🎾TenniMatch v4.7.00</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
@@ -288,7 +288,9 @@
 
     <div id="playerHistoryDetail" style="display:none; margin-top:15px; background:#fff; padding:15px; border-radius:12px; border:1px solid var(--border);">
       <h4 id="playerHistoryTitle" style="margin-top:0; color:var(--primary); font-size:15px;"></h4>
-      <div id="playerHistoryList" style="display:flex; flex-direction:column; gap:8px; max-height: 350px; overflow-y: auto;"></div>
+      <div id="playerAffinity" style="margin-bottom:15px; max-height: 250px; overflow-y: auto;"></div>
+      <h5 style="margin:0 0 8px 0; color:var(--text-main); font-size:13px;">📝 試合履歴</h5>
+      <div id="playerHistoryList" style="display:flex; flex-direction:column; gap:8px; max-height: 250px; overflow-y: auto;"></div>
       <button onclick="document.getElementById('playerHistoryDetail').style.display='none'" class="outline" style="width:100%; margin-top:15px;">閉じる</button>
     </div>
     
@@ -808,8 +810,8 @@
                   <div class="score-container">
                   ${!isLocked ? `
                     <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
-                      <input type="number" id="s-${ri}-${mi}-0" class="score-input" value="${s0??''}" placeholder="＊" autocomplete="off" onchange="autoSaveScore(${ri}, ${mi})">
-                      <select class="score-dropdown" onchange="document.getElementById('s-${ri}-${mi}-0').value=this.value; autoSaveScore(${ri}, ${mi}); this.value='none';">
+                      <input type="number" id="s-${ri}-${mi}-0" class="score-input" value="${s0??''}" placeholder="＊" autocomplete="off" onchange="autoSaveScore(${ri},${mi})">
+                      <select class="score-dropdown" onchange="document.getElementById('s-${ri}-${mi}-0').value=this.value; autoSaveScore(${ri},${mi}); this.value='none';">
                         <option value="none" selected disabled>選択</option>
                         <option value="">＊(クリア)</option>
                         <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
@@ -818,15 +820,15 @@
                     </div>
                     <span style="font-weight:bold; margin: 0 4px;">:</span>
                     <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
-                      <input type="number" id="s-${ri}-${mi}-1" class="score-input" value="${s1??''}" placeholder="＊" autocomplete="off" onchange="autoSaveScore(${ri}, ${mi})">
-                      <select class="score-dropdown" onchange="document.getElementById('s-${ri}-${mi}-1').value=this.value; autoSaveScore(${ri}, ${mi}); this.value='none';">
+                      <input type="number" id="s-${ri}-${mi}-1" class="score-input" value="${s1??''}" placeholder="＊" autocomplete="off" onchange="autoSaveScore(${ri},${mi})">
+                      <select class="score-dropdown" onchange="document.getElementById('s-${ri}-${mi}-1').value=this.value; autoSaveScore(${ri},${mi}); this.value='none';">
                         <option value="none" selected disabled>選択</option>
                         <option value="">＊(クリア)</option>
                         <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
                         <option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
                       </select>
                     </div>
-                  ` : `<div style="font-size:24px; font-weight:800;">${s0} - ${s1}</div>`}
+                  ` : `<div style="font-size:24px; font-weight:800;">${s0} -${s1}</div>`}
                   </div>
                   ${!isLocked ? `` : `<button class="small outline" onclick="window.editMode['${ri}-${mi}']=true;renderMatches();">修正</button>`}
               </div>
@@ -1087,7 +1089,7 @@
                       <option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
                     </select>
                   </div>
-                ` : `<div style="font-size:24px; font-weight:800;">${s0} - ${s1}</div>`}
+                ` : `<div style="font-size:24px; font-weight:800;">${s0} -${s1}</div>`}
                 </div>
                 ${isEdit ? `` : `<button class="small outline" onclick="window.historyEditMode[${mi}]=true;renderHistoryMatches();">修正</button>`}
             </div>
@@ -1127,13 +1129,95 @@
     );
     const detailDiv = document.getElementById('playerHistoryDetail');
     const titleEl = document.getElementById('playerHistoryTitle');
+    const affinityEl = document.getElementById('playerAffinity');
     const listEl = document.getElementById('playerHistoryList');
 
     const periodText = monthStr === 'all' ? `${yearStr}年 全体` : `${yearStr}年${monthStr}月`;
     titleEl.innerHTML = `👤 ${name} の戦績 (${periodText})`;
+    
     if(playerMatches.length === 0) {
+      affinityEl.innerHTML = "";
       listEl.innerHTML = "<p style='font-size:12px; color:var(--text-muted);'>この期間の試合データがありません。</p>";
     } else {
+      // 1. 相性分析の集計
+      const pairStats = {};
+      const oppStats = {};
+      
+      playerMatches.forEach(m => {
+        const isTeam1 = m.team1.some(p => p.name === name);
+        const myTeam = isTeam1 ? m.team1 : m.team2;
+        const opTeam = isTeam1 ? m.team2 : m.team1;
+        const myScore = isTeam1 ? m.score[0] : m.score[1];
+        const opScore = isTeam1 ? m.score[1] : m.score[0];
+        
+        // 味方集計
+        const partner = myTeam.find(p => p.name !== name);
+        if (partner) {
+          const pName = partner.name;
+          if(!pairStats[pName]) pairStats[pName] = { w:0, l:0, d:0, m:0 };
+          if(myScore !== 0 || opScore !== 0) {
+            pairStats[pName].m++;
+            if(myScore > opScore) pairStats[pName].w++;
+            else if(myScore < opScore) pairStats[pName].l++;
+            else pairStats[pName].d++;
+          }
+        }
+        
+        // 相手集計
+        opTeam.forEach(opp => {
+          const oName = opp.name;
+          if(!oppStats[oName]) oppStats[oName] = { w:0, l:0, d:0, m:0, myGames:0, opGames:0 };
+          if(myScore !== 0 || opScore !== 0) {
+            oppStats[oName].m++;
+            oppStats[oName].myGames += myScore;
+            oppStats[oName].opGames += opScore;
+            if(myScore > opScore) oppStats[oName].w++;
+            else if(myScore < opScore) oppStats[oName].l++;
+            else oppStats[oName].d++;
+          }
+        });
+      });
+
+      const pairArr = Object.keys(pairStats).map(pName => {
+        const st = pairStats[pName];
+        const winRate = st.m ? ((st.w + st.d * 0.5) / st.m) : 0;
+        return { name: pName, winRate, m: st.m };
+      }).filter(p => p.m > 0).sort((a,b) => b.winRate - a.winRate || b.m - a.m);
+
+      const oppArr = Object.keys(oppStats).map(oName => {
+        const st = oppStats[oName];
+        const totalGames = st.myGames + st.opGames;
+        const gameRatio = totalGames > 0 ? st.myGames / totalGames : 0;
+        return { name: oName, gameRatio, m: st.m, myGames: st.myGames, opGames: st.opGames };
+      }).filter(o => o.m > 0).sort((a,b) => b.gameRatio - a.gameRatio || b.m - a.m);
+      
+      let affinityHtml = `<div style="background:#f8f9fa; padding:10px; border-radius:8px; font-size:12px; border:1px solid var(--border);">
+        <h5 style="margin:0 0 10px 0; color:var(--primary);">🤝 相性分析</h5>
+        <div style="margin-bottom:15px;">
+          <strong style="color:var(--text-main);">味方（ペアとしての勝率ランキング）</strong>
+          ${pairArr.length > 0 ? `
+          <div style="overflow-x:auto;">
+            <table class="ranking-table" style="margin-top:5px;">
+              <tr><th>位</th><th>名前</th><th>勝率</th><th>試合</th></tr>
+              ${pairArr.map((p, i) => `<tr><td>${i+1}</td><td>${p.name}</td><td>${(p.winRate*100).toFixed(1)}%</td><td>${p.m}</td></tr>`).join('')}
+            </table>
+          </div>` : '<div style="color:var(--text-muted); margin-top:5px;">データがありません。</div>'}
+        </div>
+        <div>
+          <strong style="color:var(--text-main);">相手（対戦相手としてのゲーム取得率）</strong>
+          ${oppArr.length > 0 ? `
+          <div style="overflow-x:auto;">
+            <table class="ranking-table" style="margin-top:5px;">
+              <tr><th>位</th><th>名前</th><th>取得率</th><th>取得/喪失G</th><th>試合</th></tr>
+              ${oppArr.map((o, i) => `<tr><td>${i+1}</td><td>${o.name}</td><td>${(o.gameRatio*100).toFixed(1)}%</td><td>${o.myGames} / ${o.opGames}</td><td>${o.m}</td></tr>`).join('')}
+            </table>
+          </div>` : '<div style="color:var(--text-muted); margin-top:5px;">データがありません。</div>'}
+        </div>
+      </div>`;
+      
+      affinityEl.innerHTML = affinityHtml;
+
+      // 2. 履歴リストの描画
       playerMatches.sort((a,b) => b.dateStr.localeCompare(a.dateStr));
       listEl.innerHTML = playerMatches.map(m => {
         const isTeam1 = m.team1.some(p => p.name === name);
