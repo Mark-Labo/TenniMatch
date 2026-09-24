@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.7.00</title>
+  <title>🎾TenniMatch v4.7.01</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -115,7 +115,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.7.00 PWA Registered!');
+            console.log('v4.7.01 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -135,7 +135,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.7.00</div>
+  <div id="headerTitle">🎾TenniMatch v4.7.01</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
@@ -288,6 +288,7 @@
 
     <div id="playerHistoryDetail" style="display:none; margin-top:15px; background:#fff; padding:15px; border-radius:12px; border:1px solid var(--border);">
       <h4 id="playerHistoryTitle" style="margin-top:0; color:var(--primary); font-size:15px;"></h4>
+      <h5 style="margin:0 0 8px 0; color:var(--text-main); font-size:13px;">🤝 相性分析</h5>
       <div id="playerAffinity" style="margin-bottom:15px; max-height: 250px; overflow-y: auto;"></div>
       <h5 style="margin:0 0 8px 0; color:var(--text-main); font-size:13px;">📝 試合履歴</h5>
       <div id="playerHistoryList" style="display:flex; flex-direction:column; gap:8px; max-height: 250px; overflow-y: auto;"></div>
@@ -1114,6 +1115,7 @@
   window.showPlayerHistory = function(name) {
     const yearStr = document.getElementById('statsYear').value;
     const monthStr = document.getElementById('statsMonth').value;
+    const sortMode = document.getElementById('statsSort').value;
     let targetMatches = [];
     Object.keys(historyData).forEach(date => {
       const [y, m] = date.split('-');
@@ -1136,7 +1138,7 @@
     titleEl.innerHTML = `👤 ${name} の戦績 (${periodText})`;
     
     if(playerMatches.length === 0) {
-      affinityEl.innerHTML = "";
+      affinityEl.innerHTML = "<p style='font-size:12px; color:var(--text-muted); padding:10px;'>この期間の試合データがありません。</p>";
       listEl.innerHTML = "<p style='font-size:12px; color:var(--text-muted);'>この期間の試合データがありません。</p>";
     } else {
       // 1. 相性分析の集計
@@ -1154,9 +1156,11 @@
         const partner = myTeam.find(p => p.name !== name);
         if (partner) {
           const pName = partner.name;
-          if(!pairStats[pName]) pairStats[pName] = { w:0, l:0, d:0, m:0 };
+          if(!pairStats[pName]) pairStats[pName] = { w:0, l:0, d:0, m:0, games:0, lostGames:0 };
           if(myScore !== 0 || opScore !== 0) {
             pairStats[pName].m++;
+            pairStats[pName].games += myScore;
+            pairStats[pName].lostGames += opScore;
             if(myScore > opScore) pairStats[pName].w++;
             else if(myScore < opScore) pairStats[pName].l++;
             else pairStats[pName].d++;
@@ -1180,36 +1184,93 @@
 
       const pairArr = Object.keys(pairStats).map(pName => {
         const st = pairStats[pName];
+        const totalG = st.games + st.lostGames;
         const winRate = st.m ? ((st.w + st.d * 0.5) / st.m) : 0;
-        return { name: pName, winRate, m: st.m };
-      }).filter(p => p.m > 0).sort((a,b) => b.winRate - a.winRate || b.m - a.m);
+        const gameRatio = totalG > 0 ? (st.games / totalG) : 0;
+        const avg = st.m ? (st.games / st.m) : 0;
+        return { name: pName, winRate, gameRatio, avg, games: st.games, totalGames: totalG, ...st };
+      }).filter(p => p.m > 0);
+
+      pairArr.sort((a,b) => {
+        if(sortMode === 'gameRatio') return b.gameRatio - a.gameRatio || b.games - a.games;
+        if(sortMode === 'winRate') return b.winRate - a.winRate || b.w - a.w;
+        if(sortMode === 'attendanceRate') return b.m - a.m || b.winRate - a.winRate;
+        return b.avg - a.avg || b.games - a.games;
+      });
 
       const oppArr = Object.keys(oppStats).map(oName => {
         const st = oppStats[oName];
-        const totalGames = st.myGames + st.opGames;
-        const gameRatio = totalGames > 0 ? st.myGames / totalGames : 0;
-        return { name: oName, gameRatio, m: st.m, myGames: st.myGames, opGames: st.opGames };
-      }).filter(o => o.m > 0).sort((a,b) => b.gameRatio - a.gameRatio || b.m - a.m);
-      
+        const totalG = st.myGames + st.opGames;
+        const winRate = st.m ? ((st.w + st.d * 0.5) / st.m) : 0;
+        const gameRatio = totalG > 0 ? (st.myGames / totalG) : 0;
+        const avg = st.m ? (st.myGames / st.m) : 0;
+        return { name: oName, winRate, gameRatio, avg, ...st };
+      }).filter(o => o.m > 0);
+
+      oppArr.sort((a,b) => {
+        if(sortMode === 'gameRatio') return b.gameRatio - a.gameRatio || b.myGames - a.myGames;
+        if(sortMode === 'winRate') return b.winRate - a.winRate || b.w - a.w;
+        if(sortMode === 'attendanceRate') return b.m - a.m || b.winRate - a.winRate;
+        return b.avg - a.avg || b.myGames - a.myGames;
+      });
+
+      let sortLabel = "ゲーム取得率";
+      if (sortMode === 'winRate') sortLabel = "勝率";
+      else if (sortMode === 'attendanceRate') sortLabel = "ペア/対戦率";
+      else if (sortMode === 'avgScore') sortLabel = "平均ゲーム数";
+
+      // ペア用ヘッダー & TD生成
+      let pairTh = "<th>位</th><th>名前</th>";
+      if(sortMode === 'gameRatio') pairTh += "<th>獲得G</th><th>合計G</th><th>取得率(%)</th>";
+      else if(sortMode === 'winRate') pairTh += "<th>勝</th><th>負</th><th>分</th><th>勝率</th>";
+      else if(sortMode === 'attendanceRate') pairTh += "<th>ペア数</th><th>ペア率(%)</th>";
+      else pairTh += "<th>獲得G</th><th>平均G</th>";
+      pairTh += "<th>試合</th>";
+
+      const renderPairTd = (p, i) => {
+        let td = `<td>${i+1}</td><td style="text-align:left;">${p.name}</td>`;
+        if(sortMode === 'gameRatio') td += `<td>${p.games}</td><td>${p.totalGames}</td><td>${(p.gameRatio*100).toFixed(1)}%</td>`;
+        else if(sortMode === 'winRate') td += `<td>${p.w}</td><td>${p.l}</td><td>${p.d}</td><td>${(p.winRate*100).toFixed(1)}%</td>`;
+        else if(sortMode === 'attendanceRate') td += `<td>${p.m}</td><td>${(p.m/playerMatches.length*100).toFixed(1)}%</td>`;
+        else td += `<td>${p.games}</td><td>${p.avg.toFixed(2)}</td>`;
+        td += `<td>${p.m}</td>`;
+        return td;
+      };
+
+      // 相手用ヘッダー & TD生成
+      let oppTh = "<th>位</th><th>名前</th>";
+      if(sortMode === 'gameRatio') oppTh += "<th>獲得G</th><th>喪失G</th><th>取得率(%)</th>";
+      else if(sortMode === 'winRate') oppTh += "<th>勝</th><th>負</th><th>分</th><th>勝率</th>";
+      else if(sortMode === 'attendanceRate') oppTh += "<th>対戦数</th><th>対戦率(%)</th>";
+      else oppTh += "<th>獲得G</th><th>平均G</th>";
+      oppTh += "<th>試合</th>";
+
+      const renderOppTd = (o, i) => {
+        let td = `<td>${i+1}</td><td style="text-align:left;">${o.name}</td>`;
+        if(sortMode === 'gameRatio') td += `<td>${o.myGames}</td><td>${o.opGames}</td><td>${(o.gameRatio*100).toFixed(1)}%</td>`;
+        else if(sortMode === 'winRate') td += `<td>${o.w}</td><td>${o.l}</td><td>${o.d}</td><td>${(o.winRate*100).toFixed(1)}%</td>`;
+        else if(sortMode === 'attendanceRate') td += `<td>${o.m}</td><td>${(o.m/playerMatches.length*100).toFixed(1)}%</td>`;
+        else td += `<td>${o.myGames}</td><td>${o.avg.toFixed(2)}</td>`;
+        td += `<td>${o.m}</td>`;
+        return td;
+      };
+
       let affinityHtml = `<div style="background:#f8f9fa; padding:10px; border-radius:8px; font-size:12px; border:1px solid var(--border);">
-        <h5 style="margin:0 0 10px 0; color:var(--primary);">🤝 相性分析</h5>
         <div style="margin-bottom:15px;">
-          <strong style="color:var(--text-main);">味方（ペアとしての勝率ランキング）</strong>
+          <strong style="color:var(--text-main);">味方（ペアとしての${sortLabel}順）</strong>
           ${pairArr.length > 0 ? `
           <div style="overflow-x:auto;">
             <table class="ranking-table" style="margin-top:5px;">
-              <tr><th>位</th><th>名前</th><th>勝率</th><th>試合</th></tr>
-              ${pairArr.map((p, i) => `<tr><td>${i+1}</td><td>${p.name}</td><td>${(p.winRate*100).toFixed(1)}%</td><td>${p.m}</td></tr>`).join('')}
+              <tr>${pairTh}</tr>${pairArr.map((p, i) => `<tr>${renderPairTd(p, i)}</tr>`).join('')}
             </table>
           </div>` : '<div style="color:var(--text-muted); margin-top:5px;">データがありません。</div>'}
         </div>
         <div>
-          <strong style="color:var(--text-main);">相手（対戦相手としてのゲーム取得率）</strong>
+          <strong style="color:var(--text-main);">相手（対戦相手としての${sortLabel}順）</strong>
           ${oppArr.length > 0 ? `
           <div style="overflow-x:auto;">
             <table class="ranking-table" style="margin-top:5px;">
-              <tr><th>位</th><th>名前</th><th>取得率</th><th>取得/喪失G</th><th>試合</th></tr>
-              ${oppArr.map((o, i) => `<tr><td>${i+1}</td><td>${o.name}</td><td>${(o.gameRatio*100).toFixed(1)}%</td><td>${o.myGames} / ${o.opGames}</td><td>${o.m}</td></tr>`).join('')}
+              <tr>${oppTh}</tr>${oppArr.map((o, i) => `<tr>${renderOppTd(o, i)}</tr>`).join('')}
             </table>
           </div>` : '<div style="color:var(--text-muted); margin-top:5px;">データがありません。</div>'}
         </div>
