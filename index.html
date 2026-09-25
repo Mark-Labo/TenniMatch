@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.8.01 (お絵描き機能追加版)</title>
+  <title>🎾TenniMatch v4.8.02 (お絵描き機能追加版)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -86,8 +86,21 @@
     
     /* お絵描きゲーム用CSS */
     .drawing-container { margin-bottom: 15px; padding: 10px; }
-    .drawing-toggle { width: 100%; background: #fff; color: var(--primary); border: 2px solid var(--primary); padding: 12px; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-    .drawing-toggle:active { transform: scale(0.98); background: var(--bg); }
+    .drawing-toggle { 
+      width: 100%; 
+      background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%); 
+      color: #fff; 
+      border: none; 
+      padding: 14px; 
+      border-radius: 16px; 
+      font-weight: bold; 
+      font-size: 16px;
+      cursor: pointer; 
+      transition: all 0.2s ease; 
+      box-shadow: 0 4px 12px rgba(255, 107, 107, 0.35);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    }
+    .drawing-toggle:active { transform: scale(0.98); box-shadow: 0 2px 6px rgba(255, 107, 107, 0.3); }
     .drawing-area { display: none; background: #fff; padding: 15px; border-radius: 12px; border: 1px solid var(--border); margin-top: 8px; animation: fadeIn 0.3s ease; }
     .drawing-area.active { display: block; }
     #drawingCanvas { border: 2px solid var(--border); background: #fff; cursor: crosshair; touch-action: none; width: 100%; max-width: 300px; height: 300px; margin: 0 auto; display: block; border-radius: 8px; }
@@ -102,6 +115,7 @@
       text-align: center; padding: 10px; border-radius: 12px; margin-bottom: 15px; cursor: pointer; transition: 0.2s;
     }
     #drawing-score-banner:active { transform: scale(0.98); }
+    .drawing-link { color: var(--primary); text-decoration: underline; font-size: 13px; margin-left: 6px; }
   </style>
   <script>
     let refreshing = false;
@@ -134,7 +148,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.8.01 PWA Registered!');
+            console.log('v4.8.02 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -154,7 +168,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.8.01</div>
+  <div id="headerTitle">🎾TenniMatch v4.8.02</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
@@ -235,14 +249,13 @@
     <button onclick="showScreen('menu')" class="outline" style="flex:1; font-size:11px;">🔙 メニューへ戻る</button>
   </div>
 
-  <div id="drawing-score-banner" onclick="openDrawingRanking()" style="display:none;">
-    🏆 チーム正解数 ＊0問＊
-  </div>
-
   <!-- ★お絵描きミニゲーム★ -->
   <div class="card drawing-container">
     <button class="drawing-toggle" onclick="toggleDrawingGame()">🎨 お絵描きミニゲーム開始</button>
     <div id="drawing-area" class="drawing-area">
+      <div id="drawing-score-banner" onclick="openDrawingRanking()" style="display:none;">
+        🏆 今月の正解数 0問 <span class="drawing-link">個人戦績を確認</span>
+      </div>
       <div id="drawing-content"></div>
     </div>
   </div>
@@ -368,7 +381,6 @@
   window.backupSetupState = null;
 
   // --- お絵描きミニゲーム用の状態と関数群 ---
-  // テニス関連50個 ＋ 一般50個 のお題リスト
   const drawingThemes = [
     { theme: "ラケット", hint: "カタカナ4文字" }, { theme: "テニスボール", hint: "カタカナ6文字" },
     { theme: "ネット", hint: "カタカナ3文字" }, { theme: "コート", hint: "カタカナ3文字" },
@@ -422,7 +434,7 @@
     { theme: "山", hint: "漢字1文字" }, { theme: "川", hint: "漢字1文字" }
   ];
   let drawingState = { status: 'idle', drawer: '', theme: '', hint: '', imageData: '', guesses: [] };
-  let drawingScores = {}; // 月毎の正解蓄積データ
+  let drawingScores = {};
   let isDrawingUIVisible = false;
   let canvasCtx = null;
   let isDrawing = false;
@@ -459,7 +471,8 @@
             <h4 style="margin:5px 0 10px; color:var(--primary);">お題: ${drawingState.theme}</h4>
             <p style="font-size:12px; color:var(--text-muted); margin-top:-5px;">(ヒント: ${drawingState.hint})</p>
             <canvas id="drawingCanvas" width="300" height="300"></canvas>
-            <div style="margin-top:15px; display:flex; gap:8px; justify-content:center;">
+            <div style="margin-top:15px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+              <button class="outline small" onclick="changeDrawingTheme()">🎲 お題変更</button>
               <button class="outline small" onclick="clearCanvas()">🧹 クリア</button>
               <button class="small" onclick="finishDrawing()">✅ 完了(出題)</button>
             </div>
@@ -503,6 +516,14 @@
         </div>
       `;
     }
+  };
+
+  window.changeDrawingTheme = function() {
+    const randomItem = drawingThemes[Math.floor(Math.random() * drawingThemes.length)];
+    drawingState.theme = randomItem.theme;
+    drawingState.hint = randomItem.hint;
+    saveData();
+    renderDrawingUI();
   };
 
   window.startDrawingSelectName = function() {
@@ -650,7 +671,6 @@
 
   window.updateDrawingScoreBanner = function() {
     const d = new Date();
-    const m = d.getMonth() + 1;
     const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
     
     let totalCorrect = 0;
@@ -661,7 +681,7 @@
     const banner = document.getElementById('drawing-score-banner');
     if(banner) {
       banner.style.display = 'block';
-      banner.innerHTML = `🏆 ${m}月チーム正解数 ＊${totalCorrect}問＊`;
+      banner.innerHTML = `🏆 今月の正解数 ${totalCorrect}問 <span class="drawing-link">個人戦績を確認</span>`;
     }
   };
 
@@ -1633,174 +1653,42 @@
         let resultStr = "引分";
         let resultColor = "#fbbc04"; 
         let bgColor = "#fefbf3";
-        if (myScore > opScore) { resultStr = "勝利"; resultColor = "var(--success)"; bgColor = "#f0fdf4"; }
-        else if (myScore < opScore) { resultStr = "敗北"; resultColor = "var(--danger)"; bgColor = "#fef2f2"; }
+        if (myScore > opScore) {
+          resultStr = "勝利";
+          resultColor = "var(--success)";
+          bgColor = "#e6f4ea";
+        } else if (myScore < opScore) {
+          resultStr = "敗北";
+          resultColor = "var(--danger-text)";
+          bgColor = "var(--danger-bg)";
+        }
 
-        const partner = myTeam.find(p => p.name !== name)?.name || "なし";
-        const opponents = opTeam.map(p => p.name).join(" & ");
+        const myNames = myTeam.map(p => p.name).join('・');
+        const opNames = opTeam.map(p => p.name).join('・');
 
-        return `
-          <div style="background:${bgColor}; border-left:4px solid ${resultColor}; padding:10px; border-radius:8px; font-size:12px; border: 1px solid #eee;">
-            <div style="color:var(--text-muted); font-size:11px; margin-bottom:6px;">${m.dateStr.replace(/-/g,'/')}</div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <div style="font-size: 14px; font-weight: bold;">
-                <span style="color:${resultColor}; margin-right:8px;">${resultStr}</span>
-                ${myScore} - ${opScore}
-              </div>
-              <div style="text-align:right; font-size:11px; color:var(--text-muted);">
-                味方: ${partner}<br>
-                相手: ${opponents}
-              </div>
-            </div>
+        return `<div style="background:${bgColor}; padding:8px 12px; border-radius:8px; border-left:4px solid ${resultColor}; font-size:12px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-weight:bold;">
+            <span>📅 ${m.dateStr.replace(/-/g, '/')}</span>
+            <span style="color:${resultColor};">${resultStr} (${myScore} - ${opScore})</span>
           </div>
-        `;
+          <div>味方: ${myNames} VS 相手: ${opNames}</div>
+        </div>`;
       }).join('');
     }
-    
     detailDiv.style.display = 'block';
-    detailDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  window.openShareModal = function() {
-    document.getElementById('shareModal').style.display = 'flex';
-    document.getElementById('shareButtons').style.display = 'flex';
-    document.getElementById('qrContainer').style.display = 'none';
-    document.getElementById('shareModalTitle').innerText = '🔗 URLの共有';
-  };
-
-  window.closeShareModal = function() {
-    document.getElementById('shareModal').style.display = 'none';
-  };
-
-  window.executeShare = function(type) {
-    const BASE_URL = "https://mark-labo.github.io/TenniMatch/";
-    let urlToCopy = "";
-    let urlForQR = "";
-
-    const roomUrl = roomId ? (BASE_URL + "?room=" + roomId) : BASE_URL;
-
-    if(type === 'room') {
-      urlToCopy = roomUrl;
-      urlForQR = roomUrl;
-      document.getElementById('qrText').innerText = "【この部屋のQRコード】";
-    } else if (type === 'tool') {
-      urlToCopy = BASE_URL;
-      urlForQR = BASE_URL; 
-      document.getElementById('qrText').innerText = "【当ツールのQRコード】";
+  function saveData() {
+    if(window.saveRoomData) {
+      window.saveRoomData({
+        allMembers, currentSlots, schedule, historyData, drawingState, drawingScores
+      });
     }
-
-    navigator.clipboard.writeText(urlToCopy).then(() => {
-      alert((type === 'room' ? "部屋の" : "ツールの") + "URLをコピーしました！");
-      document.getElementById('qrImage').src = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" + encodeURIComponent(urlForQR);
-      document.getElementById('shareButtons').style.display = 'none';
-      document.getElementById('qrContainer').style.display = 'block';
-      document.getElementById('qrImage').style.display = 'block';
-      document.getElementById('qrText').style.display = 'block';
-      document.getElementById('rankingContainer').style.display = 'none';
-      document.getElementById('shareModalTitle').innerText = '✅ コピー完了';
-    }).catch(err => {
-      alert("コピーに失敗しました。");
-    });
-  };
-
-  window.shareFromLobby = function() {
-    document.getElementById('shareModal').style.display = 'flex';
-    document.getElementById('shareButtons').style.display = 'none';
-    document.getElementById('qrContainer').style.display = 'none';
-    document.getElementById('shareModalTitle').innerText = '🔗 URLの共有';
-    executeShare('tool');
-  };
-  
-  function saveData() { 
-    if(window.fbSave) window.fbSave({allMembers, schedule, showingRounds, currentSlots, historyData, matchDateStr, drawingState, drawingScores});
   }
-  
-  function loadData(data) {
-    if(!data) return;
-    allMembers = data.allMembers || []; 
-    schedule = data.schedule || [];
-    showingRounds = data.showingRounds || 5; 
-    currentSlots = data.currentSlots || [];
-    historyData = data.historyData || {};
-    matchDateStr = data.matchDateStr || "";
-    drawingState = data.drawingState || { status: 'idle', drawer: '', theme: '', hint: '', imageData: '', guesses: [] };
-    drawingScores = data.drawingScores || {};
 
-    renderMemberList();
-    
-    if (isDrawingUIVisible) {
-      renderDrawingUI();
-    }
-    
-    const isMatchScreen = document.getElementById('screen-match').classList.contains('active');
-    const isSetupScreen = document.getElementById('screen-setup').classList.contains('active');
-    if(schedule.length > 0) {
-      if(isMatchScreen) {
-        renderMatches();
-        document.getElementById('post-reset-nav').style.display = 'none';
-        document.getElementById('match-control-btns').style.display = 'flex';
-      }
-      if(isSetupScreen) {
-        document.getElementById('btnContinueGenerate').style.display = 'block';
-      }
-    } else { 
-      initSetup(false);
-      if(isMatchScreen) {
-        renderMatches();
-        document.getElementById('post-reset-nav').style.display = 'block';
-        document.getElementById('match-control-btns').style.display = 'none';
-      }
-      if(isSetupScreen) {
-        document.getElementById('btnContinueGenerate').style.display = 'none';
-      }
-    }
-    
-    updateDrawingScoreBanner();
-
-    if(document.getElementById('screen-stats').classList.contains('active')) renderStats();
-    if(document.getElementById('screen-history-edit').classList.contains('active')) renderHistoryMatches();
-  }
-</script>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
-  const firebaseConfig = { apiKey: "AIzaSyBXBOgFKYf5hOJXnxgT7xMwkQREv1tXxWg", authDomain: "tennis-match-ranking-man-58aee.firebaseapp.com", projectId: "tennis-match-ranking-man-58aee", storageBucket: "tennis-match-ranking-man-58aee.firebasestorage.app", messagingSenderId: "452972436558", appId: "1:452972436558:web:68357629ca021a6d6f771f" };
-  const app = initializeApp(firebaseConfig); 
-  const db = getFirestore(app);
-  
-  let unsubscribe = null;
-  let roomRef = null;
-  window.checkRoomAuth = async (rId, pw) => {
-    const snap = await getDoc(doc(db, "rooms", rId));
-    if(!snap.exists()) return "NOT_FOUND";
-    if(snap.data().password !== pw) return "WRONG_PW";
-    return "OK";
-  };
-
-  window.createNewRoomAuth = async (rId, pw) => {
-    const snap = await getDoc(doc(db, "rooms", rId));
-    if (snap.exists() && snap.data().password) {
-      return "EXISTS";
-    }
-    await setDoc(doc(db, "rooms", rId), { 
-      password: pw, 
-      createdAt: new Date().toISOString() 
-    }, { merge: true });
-    return "OK";
-  };
-
-  window.startRoomSync = (rId) => {
-    roomRef = doc(db, "rooms", rId);
-    window.fbSave = (data) => setDoc(roomRef, data, { merge: true });
-    
-    if(unsubscribe) unsubscribe();
-    unsubscribe = onSnapshot(roomRef, (snap) => { 
-      if(snap.exists()) loadData(snap.data()); 
-    });
-  };
-  if(window.initApp) window.initApp();
-
+  window.addEventListener('DOMContentLoaded', () => {
+    if (typeof initApp === 'function') initApp();
+  });
 </script>
 </body>
 </html>
