@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.8.00 (お絵描き機能追加版)</title>
+  <title>🎾TenniMatch v4.8.01 (お絵描き機能追加版)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -96,6 +96,12 @@
     .guess-item:last-child { border-bottom: none; }
     .guess-item.wrong { color: var(--danger-text); }
     .guess-item.correct { color: var(--success); font-weight: bold; }
+    
+    #drawing-score-banner {
+      background: #fff; border: 2px solid var(--secondary); color: var(--text-main); font-weight: bold;
+      text-align: center; padding: 10px; border-radius: 12px; margin-bottom: 15px; cursor: pointer; transition: 0.2s;
+    }
+    #drawing-score-banner:active { transform: scale(0.98); }
   </style>
   <script>
     let refreshing = false;
@@ -128,7 +134,7 @@
 
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
-            console.log('v4.7.01 PWA Registered!');
+            console.log('v4.8.01 PWA Registered!');
             reg.addEventListener('updatefound', () => {
               const installingWorker = reg.installing;
               installingWorker.addEventListener('statechange', () => {
@@ -148,14 +154,14 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.8.00</div>
+  <div id="headerTitle">🎾TenniMatch v4.8.01</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
   </div>
 </header>
 
-<!-- 各種画面はそのまま維持 -->
+<!-- 各種画面 -->
 <div id="screen-lobby" class="screen active">
   <div class="card" style="text-align: center;">
     <h2 style="color: var(--primary); margin-top: 0;">🎾 TenniMatch ロビー</h2>
@@ -227,6 +233,10 @@
   <div style="display:flex; gap:8px; margin-bottom:15px;">
     <button onclick="enterSetupFromMatch()" class="outline secondary" style="flex:1; font-size:11px;">👥 途中参加/退出</button>
     <button onclick="showScreen('menu')" class="outline" style="flex:1; font-size:11px;">🔙 メニューへ戻る</button>
+  </div>
+
+  <div id="drawing-score-banner" onclick="openDrawingRanking()" style="display:none;">
+    🏆 チーム正解数 ＊0問＊
   </div>
 
   <!-- ★お絵描きミニゲーム★ -->
@@ -325,6 +335,7 @@
   </div>
 </div>
 
+<!-- 共有/ランキング用 モーダル -->
 <div id="shareModal" class="screen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; display:none; justify-content:center; align-items:center; padding: 20px; box-sizing: border-box;">
   <div class="card" style="width: 100%; max-width: 400px; text-align: center; position:relative; margin:0;">
     <button onclick="closeShareModal()" style="position:absolute; top:10px; right:15px; background:transparent; color:var(--text-muted); font-size:24px; border:none; padding:0; line-height:1;">×</button>
@@ -337,7 +348,8 @@
 
     <div id="qrContainer" style="display:none; margin-top:20px; background:#f8f9fa; padding:15px; border-radius:12px; border:1px solid var(--border);">
       <div id="qrText" style="font-size:13px; color:var(--text-main); font-weight:bold; margin-bottom:10px;"></div>
-      <img id="qrImage" src="" alt="QR Code" style="width:160px; height:160px; margin:0 auto; display:block;">
+      <img id="qrImage" src="" alt="QR Code" style="width:160px; height:160px; margin:0 auto; display:none;">
+      <div id="rankingContainer" style="display:none; margin-top:10px; max-height:300px; overflow-y:auto;"></div>
     </div>
   </div>
 </div>
@@ -356,8 +368,61 @@
   window.backupSetupState = null;
 
   // --- お絵描きミニゲーム用の状態と関数群 ---
-  const drawingThemes = ["テニスラケット","テニスボール","太陽","時計","家","自転車","猫","犬","りんご","バナナ","車","飛行機","靴","スマートフォン","パソコン","おにぎり","山","メガネ","傘","帽子"];
-  let drawingState = { status: 'idle', drawer: '', theme: '', imageData: '', guesses: [] };
+  // テニス関連50個 ＋ 一般50個 のお題リスト
+  const drawingThemes = [
+    { theme: "ラケット", hint: "カタカナ4文字" }, { theme: "テニスボール", hint: "カタカナ6文字" },
+    { theme: "ネット", hint: "カタカナ3文字" }, { theme: "コート", hint: "カタカナ3文字" },
+    { theme: "審判台", hint: "漢字3文字" }, { theme: "シューズ", hint: "カタカナ4文字" },
+    { theme: "ウェア", hint: "カタカナ3文字" }, { theme: "サンバイザー", hint: "カタカナ6文字" },
+    { theme: "リストバンド", hint: "カタカナ6文字" }, { theme: "グリップテープ", hint: "カタカナ7文字" },
+    { theme: "ガット", hint: "カタカナ3文字" }, { theme: "振動止め", hint: "漢字3文字" },
+    { theme: "ラケットバッグ", hint: "カタカナ7文字" }, { theme: "スコアボード", hint: "カタカナ6文字" },
+    { theme: "シングルスポール", hint: "カタカナ8文字" }, { theme: "ベースライン", hint: "カタカナ6文字" },
+    { theme: "サービスライン", hint: "カタカナ7文字" }, { theme: "センターマーク", hint: "カタカナ7文字" },
+    { theme: "アレーコート", hint: "カタカナ6文字" }, { theme: "アンパイア", hint: "カタカナ5文字" },
+    { theme: "線審", hint: "漢字2文字" }, { theme: "ボールボーイ", hint: "カタカナ6文字" },
+    { theme: "サーブ", hint: "カタカナ3文字" }, { theme: "フォアハンド", hint: "カタカナ6文字" },
+    { theme: "バックハンド", hint: "カタカナ6文字" }, { theme: "ボレー", hint: "カタカナ3文字" },
+    { theme: "スマッシュ", hint: "カタカナ5文字" }, { theme: "ロブ", hint: "カタカナ2文字" },
+    { theme: "ドロップショット", hint: "カタカナ8文字" }, { theme: "スライス", hint: "カタカナ4文字" },
+    { theme: "スピン", hint: "カタカナ3文字" }, { theme: "フラット", hint: "カタカナ4文字" },
+    { theme: "エース", hint: "カタカナ3文字" }, { theme: "フォルト", hint: "カタカナ4文字" },
+    { theme: "ダブルフォルト", hint: "カタカナ7文字" }, { theme: "レット", hint: "カタカナ3文字" },
+    { theme: "アウト", hint: "カタカナ3文字" }, { theme: "デュース", hint: "カタカナ4文字" },
+    { theme: "アドバンテージ", hint: "カタカナ7文字" }, { theme: "タイブレーク", hint: "カタカナ6文字" },
+    { theme: "マッチポイント", hint: "カタカナ7文字" }, { theme: "ブレークポイント", hint: "カタカナ8文字" },
+    { theme: "ゲームポイント", hint: "カタカナ7文字" }, { theme: "セットポイント", hint: "カタカナ7文字" },
+    { theme: "ラブゲーム", hint: "カタカナ5文字" }, { theme: "キープ", hint: "カタカナ3文字" },
+    { theme: "ブレーク", hint: "カタカナ4文字" }, { theme: "ラリー", hint: "カタカナ3文字" },
+    { theme: "素振り", hint: "漢字2文字" }, { theme: "球出し", hint: "漢字2文字" },
+    { theme: "りんご", hint: "ひらがな3文字" }, { theme: "みかん", hint: "ひらがな3文字" },
+    { theme: "バナナ", hint: "カタカナ3文字" }, { theme: "ぶどう", hint: "ひらがな3文字" },
+    { theme: "スイカ", hint: "カタカナ3文字" }, { theme: "メロン", hint: "カタカナ3文字" },
+    { theme: "いちご", hint: "ひらがな3文字" }, { theme: "犬", hint: "漢字1文字" },
+    { theme: "猫", hint: "漢字1文字" }, { theme: "うさぎ", hint: "ひらがな3文字" },
+    { theme: "ライオン", hint: "カタカナ4文字" }, { theme: "ゾウ", hint: "カタカナ2文字" },
+    { theme: "キリン", hint: "カタカナ3文字" }, { theme: "パンダ", hint: "カタカナ3文字" },
+    { theme: "コアラ", hint: "カタカナ3文字" }, { theme: "ペンギン", hint: "カタカナ4文字" },
+    { theme: "車", hint: "漢字1文字" }, { theme: "飛行機", hint: "漢字3文字" },
+    { theme: "自転車", hint: "漢字3文字" }, { theme: "電車", hint: "漢字2文字" },
+    { theme: "船", hint: "漢字1文字" }, { theme: "ヘリコプター", hint: "カタカナ6文字" },
+    { theme: "時計", hint: "漢字2文字" }, { theme: "テレビ", hint: "カタカナ3文字" },
+    { theme: "冷蔵庫", hint: "漢字3文字" }, { theme: "洗濯機", hint: "漢字3文字" },
+    { theme: "掃除機", hint: "漢字3文字" }, { theme: "パソコン", hint: "カタカナ4文字" },
+    { theme: "スマートフォン", hint: "カタカナ7文字" }, { theme: "カメラ", hint: "カタカナ3文字" },
+    { theme: "メガネ", hint: "カタカナ3文字" }, { theme: "帽子", hint: "漢字2文字" },
+    { theme: "靴", hint: "漢字1文字" }, { theme: "傘", hint: "漢字1文字" },
+    { theme: "カバン", hint: "カタカナ3文字" }, { theme: "鉛筆", hint: "漢字2文字" },
+    { theme: "消しゴム", hint: "ひらがな4文字" }, { theme: "ハサミ", hint: "カタカナ3文字" },
+    { theme: "本", hint: "漢字1文字" }, { theme: "ノート", hint: "カタカナ3文字" },
+    { theme: "机", hint: "漢字1文字" }, { theme: "椅子", hint: "漢字2文字" },
+    { theme: "太陽", hint: "漢字2文字" }, { theme: "月", hint: "漢字1文字" },
+    { theme: "星", hint: "漢字1文字" }, { theme: "雲", hint: "漢字1文字" },
+    { theme: "雨", hint: "漢字1文字" }, { theme: "雪", hint: "漢字1文字" },
+    { theme: "山", hint: "漢字1文字" }, { theme: "川", hint: "漢字1文字" }
+  ];
+  let drawingState = { status: 'idle', drawer: '', theme: '', hint: '', imageData: '', guesses: [] };
+  let drawingScores = {}; // 月毎の正解蓄積データ
   let isDrawingUIVisible = false;
   let canvasCtx = null;
   let isDrawing = false;
@@ -392,6 +457,7 @@
         content.innerHTML = `
           <div style="text-align:center;">
             <h4 style="margin:5px 0 10px; color:var(--primary);">お題: ${drawingState.theme}</h4>
+            <p style="font-size:12px; color:var(--text-muted); margin-top:-5px;">(ヒント: ${drawingState.hint})</p>
             <canvas id="drawingCanvas" width="300" height="300"></canvas>
             <div style="margin-top:15px; display:flex; gap:8px; justify-content:center;">
               <button class="outline small" onclick="clearCanvas()">🧹 クリア</button>
@@ -422,6 +488,7 @@
       content.innerHTML = `
         <div style="text-align:center;">
           <h4 style="margin:5px 0 10px;">出題者: ${drawingState.drawer}</h4>
+          ${!hasCorrect ? `<p style="font-weight:bold; color:var(--primary); font-size:16px; margin-bottom:10px;">💡 ヒント: ${drawingState.hint}</p>` : ''}
           <img src="${drawingState.imageData}" style="width:100%; max-width:300px; border:2px solid var(--border); border-radius:8px; margin-bottom:15px;" />
           ${hasCorrect ? `
             <h3 style="color:var(--success); margin-bottom:15px;">🎉 正解が出ました！<br><span style="font-size:14px; color:#555;">(お題: ${drawingState.theme})</span></h3>
@@ -453,11 +520,12 @@
 
   window.becomeDrawer = function(name) {
     localStorage.setItem('myTenniMatchName_drawing', name);
-    const randomTheme = drawingThemes[Math.floor(Math.random() * drawingThemes.length)];
+    const randomItem = drawingThemes[Math.floor(Math.random() * drawingThemes.length)];
     drawingState = {
       status: 'drawing',
       drawer: name,
-      theme: randomTheme,
+      theme: randomItem.theme,
+      hint: randomItem.hint,
       imageData: '',
       guesses: []
     };
@@ -486,13 +554,25 @@
     }
     const isCorrect = (ans.trim() === drawingState.theme);
     drawingState.guesses.push({ guesser: guesserName, answer: ans.trim(), isCorrect: isCorrect });
-    saveData();
     
     if(isCorrect) {
       alert("🎉 正解！！！");
+      
+      const d = new Date();
+      const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      if(!drawingScores[ym]) drawingScores[ym] = {};
+      if(!drawingScores[ym][drawingState.drawer]) drawingScores[ym][drawingState.drawer] = { drawerPt: 0, guesserPt: 0 };
+      if(!drawingScores[ym][guesserName]) drawingScores[ym][guesserName] = { drawerPt: 0, guesserPt: 0 };
+      
+      drawingScores[ym][drawingState.drawer].drawerPt += 1;
+      drawingScores[ym][guesserName].guesserPt += 1;
+      
+      updateDrawingScoreBanner();
     } else {
       alert("❌ ざんねん、不正解...");
     }
+    
+    saveData();
     renderDrawingUI();
   };
 
@@ -562,10 +642,56 @@
 
   window.resetDrawingGame = function() {
     if(confirm("お絵描きゲームをリセットして最初からにしますか？")) {
-      drawingState = { status: 'idle', drawer: '', theme: '', imageData: '', guesses: [] };
+      drawingState = { status: 'idle', drawer: '', theme: '', hint: '', imageData: '', guesses: [] };
       saveData();
       renderDrawingUI();
     }
+  };
+
+  window.updateDrawingScoreBanner = function() {
+    const d = new Date();
+    const m = d.getMonth() + 1;
+    const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    
+    let totalCorrect = 0;
+    if(drawingScores[ym]) {
+      Object.values(drawingScores[ym]).forEach(s => totalCorrect += s.drawerPt);
+    }
+    
+    const banner = document.getElementById('drawing-score-banner');
+    if(banner) {
+      banner.style.display = 'block';
+      banner.innerHTML = `🏆 ${m}月チーム正解数 ＊${totalCorrect}問＊`;
+    }
+  };
+
+  window.openDrawingRanking = function() {
+    const d = new Date();
+    const m = d.getMonth() + 1;
+    const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const data = drawingScores[ym] || {};
+    
+    let list = Object.keys(data).map(name => {
+      return { name, drawerPt: data[name].drawerPt, guesserPt: data[name].guesserPt, total: data[name].drawerPt + data[name].guesserPt };
+    });
+    list.sort((a,b) => b.total - a.total);
+    
+    let html = `<table class="ranking-table"><tr><th>名前</th><th>画伯pt</th><th>名探偵pt</th><th>合計</th></tr>`;
+    list.forEach(item => {
+      html += `<tr><td style="text-align:left;">${item.name}</td><td>${item.drawerPt}</td><td>${item.guesserPt}</td><td><strong>${item.total}</strong></td></tr>`;
+    });
+    html += `</table>`;
+    
+    document.getElementById('shareModalTitle').innerText = `🎨 ${m}月 お絵描きランキング`;
+    document.getElementById('shareButtons').style.display = 'none';
+    document.getElementById('qrContainer').style.display = 'block';
+    document.getElementById('qrImage').style.display = 'none';
+    document.getElementById('qrText').style.display = 'none';
+    const rc = document.getElementById('rankingContainer');
+    rc.style.display = 'block';
+    rc.innerHTML = html;
+    
+    document.getElementById('shareModal').style.display = 'flex';
   };
   // --- お絵描きミニゲームここまで ---
 
@@ -732,6 +858,7 @@
         renderMatches();
         document.getElementById('post-reset-nav').style.display = (schedule.length === 0) ? 'block' : 'none';
         document.getElementById('match-control-btns').style.display = (schedule.length === 0) ? 'none' : 'flex';
+        updateDrawingScoreBanner();
     }
     if(id === 'stats') { 
         initStatsYear(); 
@@ -1567,6 +1694,9 @@
       document.getElementById('qrImage').src = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" + encodeURIComponent(urlForQR);
       document.getElementById('shareButtons').style.display = 'none';
       document.getElementById('qrContainer').style.display = 'block';
+      document.getElementById('qrImage').style.display = 'block';
+      document.getElementById('qrText').style.display = 'block';
+      document.getElementById('rankingContainer').style.display = 'none';
       document.getElementById('shareModalTitle').innerText = '✅ コピー完了';
     }).catch(err => {
       alert("コピーに失敗しました。");
@@ -1582,7 +1712,7 @@
   };
   
   function saveData() { 
-    if(window.fbSave) window.fbSave({allMembers, schedule, showingRounds, currentSlots, historyData, matchDateStr, drawingState});
+    if(window.fbSave) window.fbSave({allMembers, schedule, showingRounds, currentSlots, historyData, matchDateStr, drawingState, drawingScores});
   }
   
   function loadData(data) {
@@ -1593,7 +1723,8 @@
     currentSlots = data.currentSlots || [];
     historyData = data.historyData || {};
     matchDateStr = data.matchDateStr || "";
-    drawingState = data.drawingState || { status: 'idle', drawer: '', theme: '', imageData: '', guesses: [] };
+    drawingState = data.drawingState || { status: 'idle', drawer: '', theme: '', hint: '', imageData: '', guesses: [] };
+    drawingScores = data.drawingScores || {};
 
     renderMemberList();
     
@@ -1624,6 +1755,8 @@
       }
     }
     
+    updateDrawingScoreBanner();
+
     if(document.getElementById('screen-stats').classList.contains('active')) renderStats();
     if(document.getElementById('screen-history-edit').classList.contains('active')) renderHistoryMatches();
   }
