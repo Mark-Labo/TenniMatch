@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.8.04 (お絵描き機能追加版)</title>
+  <title>🎾TenniMatch v4.8.05 (お絵描き機能追加版)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -90,18 +90,18 @@
       width: 100%; 
       background: linear-gradient(45deg, #FF9800, #FFC107); 
       color: #fff; 
-      border: none; 
-      padding: 14px; 
-      border-radius: 24px; 
+      border: 2px solid #E65100; 
+      padding: 12px; 
+      border-radius: 12px; 
       font-weight: bold; 
-      font-size: 16px;
+      font-size: 16px; 
       cursor: pointer; 
-      box-shadow: 0 4px 0 #E65100;
-      transition: 0.1s;
+      transition: 0.2s; 
+      box-shadow: 0 4px 0px #E65100; 
     }
     .drawing-toggle:active { 
       transform: translateY(4px); 
-      box-shadow: none; 
+      box-shadow: 0 0px 0px #E65100; 
     }
     .drawing-area { display: none; background: #fff; padding: 15px; border-radius: 12px; border: 1px solid var(--border); margin-top: 8px; animation: fadeIn 0.3s ease; }
     .drawing-area.active { display: block; }
@@ -111,11 +111,6 @@
     .guess-item:last-child { border-bottom: none; }
     .guess-item.wrong { color: var(--danger-text); }
     .guess-item.correct { color: var(--success); font-weight: bold; }
-    
-    #drawing-score-banner {
-      background: #fff; border: 2px solid var(--secondary); color: var(--text-main); font-weight: bold;
-      text-align: center; padding: 10px; border-radius: 12px; margin-bottom: 15px;
-    }
   </style>
   <script>
     let refreshing = false;
@@ -168,7 +163,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.8.04</div>
+  <div id="headerTitle">🎾TenniMatch v4.8.05</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
@@ -251,9 +246,12 @@
 
   <!-- ★お絵描きミニゲーム★ -->
   <div class="card drawing-container">
-    <button class="drawing-toggle" onclick="toggleDrawingGame()">🎨 お絵描きミニゲーム開始</button>
+    <button class="drawing-toggle" onclick="toggleDrawingGame()">🎮 お絵描きミニゲーム開始</button>
     <div id="drawing-area" class="drawing-area">
-      <div id="drawing-score-banner" style="display:none;"></div>
+      <!-- 今月の正解数バナー（開いた時だけ表示） -->
+      <div id="drawing-score-banner" style="display:none; text-align: center; margin-bottom: 15px; font-weight: bold; background: #fff; border: 2px solid var(--secondary); padding: 10px; border-radius: 12px;">
+        🏆 今月の正解数 0問 🏆 <a href="javascript:void(0)" onclick="openDrawingRanking()" style="color: blue; text-decoration: underline;">個人戦績へ</a>
+      </div>
       <div id="drawing-content"></div>
     </div>
   </div>
@@ -379,7 +377,6 @@
   window.backupSetupState = null;
 
   // --- お絵描きミニゲーム用の状態と関数群 ---
-  // テニス関連50個 ＋ 一般50個 のお題リスト
   const drawingThemes = [
     { theme: "ラケット", hint: "カタカナ4文字" }, { theme: "テニスボール", hint: "カタカナ6文字" },
     { theme: "ネット", hint: "カタカナ3文字" }, { theme: "コート", hint: "カタカナ3文字" },
@@ -433,7 +430,7 @@
     { theme: "山", hint: "漢字1文字" }, { theme: "川", hint: "漢字1文字" }
   ];
   let drawingState = { status: 'idle', drawer: '', theme: '', hint: '', imageData: '', guesses: [] };
-  let drawingScores = {}; // 月毎の正解蓄積データ
+  let drawingScores = {}; 
   let isDrawingUIVisible = false;
   let canvasCtx = null;
   let isDrawing = false;
@@ -448,8 +445,16 @@
       renderDrawingUI();
     } else {
       area.classList.remove('active');
-      btn.innerHTML = "🎨 お絵描きミニゲーム開始";
+      btn.innerHTML = "🎮 お絵描きミニゲーム開始";
     }
+  };
+
+  window.changeDrawingTheme = function() {
+    const randomItem = drawingThemes[Math.floor(Math.random() * drawingThemes.length)];
+    drawingState.theme = randomItem.theme;
+    drawingState.hint = randomItem.hint;
+    saveData();
+    renderDrawingUI();
   };
 
   window.renderDrawingUI = function() {
@@ -468,8 +473,8 @@
         content.innerHTML = `
           <div style="text-align:center;">
             <h4 style="margin:5px 0 10px; color:var(--primary);">お題: ${drawingState.theme}</h4>
+            <button class="outline small" onclick="changeDrawingTheme()" style="margin-bottom:10px; font-size:11px;">🔄 お題を変更する</button>
             <p style="font-size:12px; color:var(--text-muted); margin-top:-5px;">(ヒント: ${drawingState.hint})</p>
-            <button class="outline small" style="margin-bottom:10px;" onclick="changeTheme()">🔄 お題変更</button>
             <canvas id="drawingCanvas" width="300" height="300"></canvas>
             <div style="margin-top:15px; display:flex; gap:8px; justify-content:center;">
               <button class="outline small" onclick="clearCanvas()">🧹 クリア</button>
@@ -541,15 +546,7 @@
       imageData: '',
       guesses: []
     };
-    if (typeof saveData === 'function') saveData();
-    renderDrawingUI();
-  };
-
-  window.changeTheme = function() {
-    const randomItem = drawingThemes[Math.floor(Math.random() * drawingThemes.length)];
-    drawingState.theme = randomItem.theme;
-    drawingState.hint = randomItem.hint;
-    if (typeof saveData === 'function') saveData();
+    saveData();
     renderDrawingUI();
   };
 
@@ -592,7 +589,7 @@
       alert("❌ ざんねん、不正解...");
     }
     
-    if (typeof saveData === 'function') saveData();
+    saveData();
     renderDrawingUI();
   };
 
@@ -655,7 +652,7 @@
       const dataUrl = canvas.toDataURL('image/png');
       drawingState.imageData = dataUrl;
       drawingState.status = 'guessing';
-      if (typeof saveData === 'function') saveData();
+      saveData();
       renderDrawingUI();
     }
   };
@@ -663,7 +660,7 @@
   window.resetDrawingGame = function() {
     if(confirm("お絵描きゲームをリセットして最初からにしますか？")) {
       drawingState = { status: 'idle', drawer: '', theme: '', hint: '', imageData: '', guesses: [] };
-      if (typeof saveData === 'function') saveData();
+      saveData();
       renderDrawingUI();
     }
   };
@@ -680,7 +677,7 @@
     const banner = document.getElementById('drawing-score-banner');
     if(banner) {
       banner.style.display = 'block';
-      banner.innerHTML = `🏆今月の正解数 ${totalCorrect}問🏆 <span onclick="openDrawingRanking()" style="color: blue; text-decoration: underline; cursor: pointer;">個人戦績へ</span>`;
+      banner.innerHTML = `🏆 今月の正解数 ${totalCorrect}問 🏆 <a href="javascript:void(0)" onclick="openDrawingRanking()" style="color: blue; text-decoration: underline;">個人戦績へ</a>`;
     }
   };
 
@@ -894,7 +891,7 @@
     const val = document.getElementById('newMember').value.trim();
     if(val && !allMembers.includes(val)) {
       allMembers.push(val); document.getElementById('newMember').value = "";
-      renderMemberList(); if (typeof saveData === 'function') saveData();
+      renderMemberList(); saveData();
     }
   }
 
@@ -922,7 +919,7 @@
     if(schedule.length > 0) renderMatches();
     if(document.getElementById('screen-stats').classList.contains('active')) renderStats();
     if(document.getElementById('screen-history-edit').classList.contains('active')) renderHistoryMatches();
-    if (typeof saveData === 'function') saveData();
+    saveData();
   };
 
   function renderMemberList() {
@@ -933,7 +930,7 @@
         <span style="font-weight:bold;">${m}</span>
         <div style="display:flex; gap:5px;">
           <button class="small outline" onclick="editMemberName(${i})">修正</button>
-          <button class="small danger" onclick="if(confirm('${m}を削除?')){allMembers.splice(${i},1);renderMemberList();if(typeof saveData==='function')saveData();}">削除</button>
+          <button class="small danger" onclick="if(confirm('${m}を削除?')){allMembers.splice(${i},1);renderMemberList();saveData();}">削除</button>
         </div>
       </div>`).join('');
     renderMemberButtons();
@@ -1033,7 +1030,7 @@
   function resetAllMatches() {
     if(confirm("【注意】この日のスコアは実績に保存されずに消去されます。\n本当にリセットしますか？")) { 
       schedule=[]; showingRounds=5; window.editMode={}; matchDateStr="";
-      currentSlots = []; initSetup(false); if (typeof saveData === 'function') saveData(); 
+      currentSlots = []; initSetup(false); saveData(); 
       document.getElementById('post-reset-nav').style.display = 'block';
       document.getElementById('match-control-btns').style.display = 'none';
       renderMatches();
@@ -1052,7 +1049,7 @@
       historyData[dateKey] = historyData[dateKey].concat(scoredMatches);
       
       schedule=[]; showingRounds=5; window.editMode={}; matchDateStr="";
-      currentSlots = []; initSetup(false); if (typeof saveData === 'function') saveData();
+      currentSlots = []; initSetup(false); saveData();
       alert("実績を保存しました！お疲れ様でした🎾");
       
       document.getElementById('post-reset-nav').style.display = 'block';
@@ -1064,7 +1061,7 @@
   function deleteHistory(dateKey) {
     if(confirm(`${dateKey.replace(/-/g,'/')} の実績データをすべて削除しますか？\n（この操作は取り消せません）`)) {
       delete historyData[dateKey];
-      if (typeof saveData === 'function') saveData();
+      saveData();
       renderStats();
     }
   }
@@ -1131,13 +1128,13 @@
     }
     schedule = oldSchedule.concat(newPart);
     showingRounds = nextRoundStart + 5;
-    if (typeof saveData === 'function') saveData(); showScreen('match');
+    saveData(); showScreen('match');
   }
 
   window.changePlayer = function(ri, mi, team, pIndex, newName) {
      const newPIdx = schedule[ri].roundParticipants.indexOf(newName) + 1;
      schedule[ri].matches[mi][team][pIndex] = { pIdx: newPIdx, name: newName };
-     if (typeof saveData === 'function') saveData();
+     saveData();
   };
 
   window.autoSaveScore = function(ri, mi) {
@@ -1146,7 +1143,7 @@
     if(v0 !== '' && v1 !== '') { 
       schedule[ri].matches[mi].score = [parseInt(v0), parseInt(v1)];
       window.editMode[`${ri}-${mi}`] = false;
-      if (typeof saveData === 'function') saveData(); 
+      saveData(); 
       renderMatches(); 
     }
   };
@@ -1224,7 +1221,7 @@
       if(resting.length > 0) roundHtml += `<div class="rest-info">休み: ${resting.join(', ')}</div>`;
       area.innerHTML += roundHtml + `</div>`;
     });
-    if(showingRounds < schedule.length) area.innerHTML += `<button class="outline" style="width:100%; margin-bottom:15px;" onclick="showingRounds+=5;if(typeof saveData==='function')saveData();renderMatches();">もっと見る (+5)</button>`;
+    if(showingRounds < schedule.length) area.innerHTML += `<button class="outline" style="width:100%; margin-bottom:15px;" onclick="showingRounds+=5;saveData();renderMatches();">もっと見る (+5)</button>`;
     updateRanking();
   }
 
@@ -1475,7 +1472,7 @@
     if(v0 !== '' && v1 !== '') {
       historyData[currentEditDate][mi].score = [parseInt(v0), parseInt(v1)];
       window.historyEditMode[mi] = false;
-      if (typeof saveData === 'function') saveData();
+      saveData();
       renderHistoryMatches();
     }
   };
@@ -1608,54 +1605,129 @@
       else oppTh += "<th>獲得G</th><th>平均G</th>";
       oppTh += "<th>試合</th>";
 
+      // ★前回途切れていた部分の復元★
       const renderOppTd = (o, i) => {
         let td = `<td>${i+1}</td><td style="text-align:left;">${o.name}</td>`;
         if(sortMode === 'gameRatio') td += `<td>${o.myGames}</td><td>${o.opGames}</td><td>${(o.gameRatio*100).toFixed(1)}%</td>`;
         else if(sortMode === 'winRate') td += `<td>${o.w}</td><td>${o.l}</td><td>${o.d}</td><td>${(o.winRate*100).toFixed(1)}%</td>`;
-        else if(sortMode === 'attendanceRate') td += `<td>${o.m}</td><td>${(o.m/(playerMatches.length*2)*100).toFixed(1)}%</td>`;
+        else if(sortMode === 'attendanceRate') td += `<td>${o.m}</td><td>${(o.m/playerMatches.length*100).toFixed(1)}%</td>`;
         else td += `<td>${o.myGames}</td><td>${o.avg.toFixed(2)}</td>`;
         td += `<td>${o.m}</td>`;
         return td;
       };
 
-      affinityEl.innerHTML = `
-        <h6 style="margin:0 0 5px 0; color:var(--primary);">▼ よく組んだペア (${sortLabel}順)</h6>
-        ${pairArr.length > 0 ? `<table class="ranking-table" style="margin-bottom:15px;"><tr>${pairTh}</tr>${pairArr.map((p,i) => `<tr>${renderPairTd(p,i)}</tr>`).join('')}</table>` : '<p style="font-size:11px; color:#999;">データなし</p>'}
-        <h6 style="margin:0 0 5px 0; color:var(--danger);">▼ よく対戦した相手 (${sortLabel}順)</h6>
-        ${oppArr.length > 0 ? `<table class="ranking-table"><tr>${oppTh}</tr>${oppArr.map((o,i) => `<tr>${renderOppTd(o,i)}</tr>`).join('')}</table>` : '<p style="font-size:11px; color:#999;">データなし</p>'}
-      `;
-      
-      listEl.innerHTML = playerMatches.reverse().map(m => {
+      let affHtml = "";
+      if(pairArr.length > 0) {
+        affHtml += `<div style="font-weight:bold; color:var(--text-muted); margin-bottom:5px; font-size:12px;">【ペア実績】（${sortLabel}順）</div>`;
+        affHtml += `<table class="ranking-table" style="margin-bottom:15px;"><tr>${pairTh}</tr>`;
+        pairArr.forEach((p, i) => affHtml += `<tr>${renderPairTd(p, i)}</tr>`);
+        affHtml += `</table>`;
+      }
+      if(oppArr.length > 0) {
+        affHtml += `<div style="font-weight:bold; color:var(--text-muted); margin-bottom:5px; font-size:12px;">【対戦実績】（${sortLabel}順）</div>`;
+        affHtml += `<table class="ranking-table"><tr>${oppTh}</tr>`;
+        oppArr.forEach((o, i) => affHtml += `<tr>${renderOppTd(o, i)}</tr>`);
+        affHtml += `</table>`;
+      }
+      affinityEl.innerHTML = affHtml || "<p style='font-size:12px; color:var(--text-muted);'>ペア・対戦のデータがありません。</p>";
+
+      playerMatches.sort((a,b) => b.dateStr.localeCompare(a.dateStr));
+      listEl.innerHTML = playerMatches.map(m => {
         const isTeam1 = m.team1.some(p => p.name === name);
         const myTeam = isTeam1 ? m.team1 : m.team2;
         const opTeam = isTeam1 ? m.team2 : m.team1;
         const myScore = isTeam1 ? m.score[0] : m.score[1];
         const opScore = isTeam1 ? m.score[1] : m.score[0];
         
-        let resultLabel = `<span style="color:var(--text-muted);">分</span>`;
-        if (myScore > opScore) resultLabel = `<span style="color:var(--success); font-weight:bold;">勝</span>`;
-        if (myScore < opScore) resultLabel = `<span style="color:var(--danger); font-weight:bold;">負</span>`;
-        if (myScore === 0 && opScore === 0) resultLabel = `<span style="color:#ccc;">-</span>`;
+        let resultColor = 'var(--text-main)';
+        if(myScore > opScore) resultColor = 'var(--success)';
+        else if(myScore < opScore) resultColor = 'var(--danger-text)';
 
-        return `
-          <div style="background:#f8f9fa; padding:10px; border-radius:8px; font-size:12px; border-left:4px solid ${myScore>opScore?'var(--success)':(myScore<opScore?'var(--danger)':'#ccc')};">
-            <div style="color:var(--text-muted); font-size:10px; margin-bottom:4px;">${m.dateStr.replace(/-/g, '/')}</div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <div style="flex:1; text-align:right; font-weight:bold;">${myTeam.map(p=>p.name).join('<br>')}</div>
-              <div style="flex:0 0 60px; text-align:center; font-size:14px; font-weight:800; margin:0 10px;">
-                ${myScore} - ${opScore}<br><div style="font-size:11px; margin-top:2px;">${resultLabel}</div>
-              </div>
-              <div style="flex:1; text-align:left; color:var(--text-muted);">${opTeam.map(p=>p.name).join('<br>')}</div>
-            </div>
+        const partner = myTeam.find(p => p.name !== name)?.name || 'なし';
+        const oppNames = opTeam.map(p => p.name).join(', ');
+
+        return `<div style="background:#f8f9fa; padding:8px 12px; border-radius:8px; border-left:4px solid ${resultColor}; font-size:12px;">
+          <div style="color:var(--text-muted); font-size:10px; margin-bottom:4px;">${m.dateStr.replace(/-/g, '/')}</div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>ペア: ${partner}<br>相手: ${oppNames}</div>
+            <div style="font-size:16px; font-weight:bold; color:${resultColor};">${myScore} - ${opScore}</div>
           </div>
-        `;
+        </div>`;
       }).join('');
     }
     
     detailDiv.style.display = 'block';
-    setTimeout(() => { detailDiv.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+    setTimeout(() => detailDiv.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   };
-</script>
 
+  // -----------------------------------------------------------
+  // ▼▼▼ 欠落していた同期・保存・モーダル等の機能（復元・補完） ▼▼▼
+  // -----------------------------------------------------------
+
+  window.saveData = function() {
+    if (!roomId) return;
+    const data = { schedule, currentSlots, allMembers, historyData, drawingScores, drawingState };
+    localStorage.setItem(`tennimatch_data_${roomId}`, JSON.stringify(data));
+  };
+
+  window.createNewRoomAuth = async function(rId, pw) {
+    const existing = localStorage.getItem(`room_pw_${rId}`);
+    if (existing) return "EXISTS";
+    localStorage.setItem(`room_pw_${rId}`, pw);
+    return "OK";
+  };
+
+  window.checkRoomAuth = async function(rId, pw) {
+    const existingPw = localStorage.getItem(`room_pw_${rId}`);
+    if (!existingPw) return "NOT_FOUND";
+    if (existingPw !== pw) return "WRONG_PW";
+    return "OK";
+  };
+
+  window.startRoomSync = function(rId) {
+    const saved = localStorage.getItem(`tennimatch_data_${rId}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        schedule = parsed.schedule || [];
+        currentSlots = parsed.currentSlots || [];
+        allMembers = parsed.allMembers || [];
+        historyData = parsed.historyData || {};
+        drawingScores = parsed.drawingScores || {};
+        drawingState = parsed.drawingState || { status: 'idle', drawer: '', theme: '', hint: '', imageData: '', guesses: [] };
+      } catch (e) {
+        console.error("データの読み込みエラー", e);
+      }
+    }
+  };
+
+  window.openShareModal = function() {
+    document.getElementById('shareModalTitle').innerText = '🔗 URLの共有';
+    document.getElementById('shareButtons').style.display = 'flex';
+    document.getElementById('qrContainer').style.display = 'none';
+    document.getElementById('rankingContainer').style.display = 'none';
+    document.getElementById('shareModal').style.display = 'flex';
+  };
+  
+  window.closeShareModal = function() {
+    document.getElementById('shareModal').style.display = 'none';
+  };
+  
+  window.executeShare = function(type) {
+    let url = window.location.origin + window.location.pathname;
+    if (type === 'room' && roomId) url += '?room=' + roomId;
+    if (navigator.share) {
+      navigator.share({ title: 'TenniMatch', url: url });
+    } else {
+      alert('共有用URL:\n' + url);
+    }
+  };
+
+  window.shareFromLobby = function() {
+    openShareModal();
+  };
+
+  window.addEventListener('DOMContentLoaded', initApp);
+</script>
 </body>
 </html>
