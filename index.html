@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.7.01</title>
+  <title>🎾TenniMatch v4.8.00 (お絵描き機能追加版)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -83,6 +83,19 @@
     .ranking-table { width: 100%; border-collapse: collapse; font-size: 12px; }
     .ranking-table th { background: #5f6368; color: #fff; padding: 8px 4px; white-space: nowrap; }
     .ranking-table td { border-bottom: 1px solid var(--border); padding: 12px 4px; text-align: center; }
+    
+    /* お絵描きゲーム用CSS */
+    .drawing-container { margin-bottom: 15px; padding: 10px; }
+    .drawing-toggle { width: 100%; background: #fff; color: var(--primary); border: 2px solid var(--primary); padding: 12px; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .drawing-toggle:active { transform: scale(0.98); background: var(--bg); }
+    .drawing-area { display: none; background: #fff; padding: 15px; border-radius: 12px; border: 1px solid var(--border); margin-top: 8px; animation: fadeIn 0.3s ease; }
+    .drawing-area.active { display: block; }
+    #drawingCanvas { border: 2px solid var(--border); background: #fff; cursor: crosshair; touch-action: none; width: 100%; max-width: 300px; height: 300px; margin: 0 auto; display: block; border-radius: 8px; }
+    .guess-history { margin-top: 10px; font-size: 13px; text-align: left; background: #f8f9fa; padding: 10px; border-radius: 8px; max-height: 150px; overflow-y: auto; }
+    .guess-item { padding: 6px 0; border-bottom: 1px dashed var(--border); }
+    .guess-item:last-child { border-bottom: none; }
+    .guess-item.wrong { color: var(--danger-text); }
+    .guess-item.correct { color: var(--success); font-weight: bold; }
   </style>
   <script>
     let refreshing = false;
@@ -135,13 +148,14 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.7.01</div>
+  <div id="headerTitle">🎾TenniMatch v4.8.00</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
   </div>
 </header>
 
+<!-- 各種画面はそのまま維持 -->
 <div id="screen-lobby" class="screen active">
   <div class="card" style="text-align: center;">
     <h2 style="color: var(--primary); margin-top: 0;">🎾 TenniMatch ロビー</h2>
@@ -213,6 +227,14 @@
   <div style="display:flex; gap:8px; margin-bottom:15px;">
     <button onclick="enterSetupFromMatch()" class="outline secondary" style="flex:1; font-size:11px;">👥 途中参加/退出</button>
     <button onclick="showScreen('menu')" class="outline" style="flex:1; font-size:11px;">🔙 メニューへ戻る</button>
+  </div>
+
+  <!-- ★お絵描きミニゲーム★ -->
+  <div class="card drawing-container">
+    <button class="drawing-toggle" onclick="toggleDrawingGame()">🎨 お絵描きミニゲーム開始</button>
+    <div id="drawing-area" class="drawing-area">
+      <div id="drawing-content"></div>
+    </div>
   </div>
 
   <div class="card" style="padding: 15px;">
@@ -332,6 +354,220 @@
 
   let roomId = "";
   window.backupSetupState = null;
+
+  // --- お絵描きミニゲーム用の状態と関数群 ---
+  const drawingThemes = ["テニスラケット","テニスボール","太陽","時計","家","自転車","猫","犬","りんご","バナナ","車","飛行機","靴","スマートフォン","パソコン","おにぎり","山","メガネ","傘","帽子"];
+  let drawingState = { status: 'idle', drawer: '', theme: '', imageData: '', guesses: [] };
+  let isDrawingUIVisible = false;
+  let canvasCtx = null;
+  let isDrawing = false;
+
+  window.toggleDrawingGame = function() {
+    isDrawingUIVisible = !isDrawingUIVisible;
+    const area = document.getElementById('drawing-area');
+    const btn = document.querySelector('.drawing-toggle');
+    if(isDrawingUIVisible) {
+      area.classList.add('active');
+      btn.innerHTML = "▲ お絵描きミニゲームを閉じる";
+      renderDrawingUI();
+    } else {
+      area.classList.remove('active');
+      btn.innerHTML = "🎨 お絵描きミニゲーム開始";
+    }
+  };
+
+  window.renderDrawingUI = function() {
+    const content = document.getElementById('drawing-content');
+    if(!content) return;
+    
+    if (drawingState.status === 'idle') {
+      content.innerHTML = `
+        <div style="text-align:center;">
+          <p style="font-size:12px; color:var(--text-muted); margin-bottom: 15px;">お絵描きミニゲーム待機中</p>
+          <button onclick="startDrawingSelectName()">🖌 お題を見て絵描き開始</button>
+        </div>
+      `;
+    } else if (drawingState.status === 'drawing') {
+      if (drawingState.drawer === localStorage.getItem('myTenniMatchName_drawing')) {
+        content.innerHTML = `
+          <div style="text-align:center;">
+            <h4 style="margin:5px 0 10px; color:var(--primary);">お題: ${drawingState.theme}</h4>
+            <canvas id="drawingCanvas" width="300" height="300"></canvas>
+            <div style="margin-top:15px; display:flex; gap:8px; justify-content:center;">
+              <button class="outline small" onclick="clearCanvas()">🧹 クリア</button>
+              <button class="small" onclick="finishDrawing()">✅ 完了(出題)</button>
+            </div>
+          </div>
+        `;
+        initCanvas();
+      } else {
+        content.innerHTML = `
+          <div style="text-align:center; padding: 20px;">
+            <p style="font-weight:bold; color:var(--primary); font-size:16px;">🧑‍🎨 ${drawingState.drawer} さんがお絵描き中...</p>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:15px;">完成するまでお待ちください</p>
+            <button class="outline danger-zone" onclick="resetDrawingGame()">リセット</button>
+          </div>
+        `;
+      }
+    } else if (drawingState.status === 'guessing') {
+      let guessesHtml = '';
+      drawingState.guesses.forEach(g => {
+        guessesHtml += `<div class="guess-item ${g.isCorrect ? 'correct' : 'wrong'}">
+          👤 ${g.guesser} : 「${g.answer}」 - ${g.isCorrect ? '✅ 正解！' : '❌ 不正解'}
+        </div>`;
+      });
+
+      const hasCorrect = drawingState.guesses.some(g => g.isCorrect);
+
+      content.innerHTML = `
+        <div style="text-align:center;">
+          <h4 style="margin:5px 0 10px;">出題者: ${drawingState.drawer}</h4>
+          <img src="${drawingState.imageData}" style="width:100%; max-width:300px; border:2px solid var(--border); border-radius:8px; margin-bottom:15px;" />
+          ${hasCorrect ? `
+            <h3 style="color:var(--success); margin-bottom:15px;">🎉 正解が出ました！<br><span style="font-size:14px; color:#555;">(お題: ${drawingState.theme})</span></h3>
+            <button class="outline" onclick="resetDrawingGame()">🔄 新しいゲームを始める</button>
+          ` : `
+            <button onclick="startGuessSelectName()">💡 回答する</button>
+          `}
+          <div class="guess-history">
+            ${guessesHtml || '<div style="color:#aaa; text-align:center;">まだ回答がありません</div>'}
+          </div>
+          ${!hasCorrect ? `<button class="outline danger-zone" style="margin-top:15px;" onclick="resetDrawingGame()">やめる (強制終了)</button>` : ''}
+        </div>
+      `;
+    }
+  };
+
+  window.startDrawingSelectName = function() {
+    const content = document.getElementById('drawing-content');
+    content.innerHTML = `
+      <div style="text-align:center;">
+        <h4 style="margin-bottom:15px;">あなたは誰ですか？</h4>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center;">
+          ${allMembers.map(m => `<button class="outline small" onclick="becomeDrawer('${m}')">${m}</button>`).join('')}
+        </div>
+        <button class="muted small" style="margin-top:20px;" onclick="renderDrawingUI()">キャンセル</button>
+      </div>
+    `;
+  };
+
+  window.becomeDrawer = function(name) {
+    localStorage.setItem('myTenniMatchName_drawing', name);
+    const randomTheme = drawingThemes[Math.floor(Math.random() * drawingThemes.length)];
+    drawingState = {
+      status: 'drawing',
+      drawer: name,
+      theme: randomTheme,
+      imageData: '',
+      guesses: []
+    };
+    saveData();
+    renderDrawingUI();
+  };
+
+  window.startGuessSelectName = function() {
+    const content = document.getElementById('drawing-content');
+    content.innerHTML = `
+      <div style="text-align:center;">
+        <h4 style="margin-bottom:15px;">回答する人を選んでください</h4>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center;">
+          ${allMembers.map(m => `<button class="outline small" onclick="submitGuess('${m}')">${m}</button>`).join('')}
+        </div>
+        <button class="muted small" style="margin-top:20px;" onclick="renderDrawingUI()">キャンセル</button>
+      </div>
+    `;
+  };
+
+  window.submitGuess = function(guesserName) {
+    const ans = prompt(`${guesserName}さんの回答を入力してください:`);
+    if (!ans) {
+      renderDrawingUI();
+      return;
+    }
+    const isCorrect = (ans.trim() === drawingState.theme);
+    drawingState.guesses.push({ guesser: guesserName, answer: ans.trim(), isCorrect: isCorrect });
+    saveData();
+    
+    if(isCorrect) {
+      alert("🎉 正解！！！");
+    } else {
+      alert("❌ ざんねん、不正解...");
+    }
+    renderDrawingUI();
+  };
+
+  window.initCanvas = function() {
+    const canvas = document.getElementById('drawingCanvas');
+    if(!canvas) return;
+    canvasCtx = canvas.getContext('2d');
+    canvasCtx.lineCap = 'round';
+    canvasCtx.lineJoin = 'round';
+    canvasCtx.lineWidth = 4;
+    canvasCtx.strokeStyle = '#000';
+    
+    canvasCtx.fillStyle = '#fff';
+    canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+    let pos = { x: 0, y: 0 };
+    
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    function startDraw(e) { e.preventDefault(); isDrawing = true; pos = getPos(e); }
+    function draw(e) {
+      e.preventDefault();
+      if (!isDrawing) return;
+      const newPos = getPos(e);
+      canvasCtx.beginPath();
+      canvasCtx.moveTo(pos.x, pos.y);
+      canvasCtx.lineTo(newPos.x, newPos.y);
+      canvasCtx.stroke();
+      pos = newPos;
+    }
+    function stopDraw(e) { if(e) e.preventDefault(); isDrawing = false; }
+
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDraw);
+    canvas.addEventListener('mouseout', stopDraw);
+    
+    canvas.addEventListener('touchstart', startDraw, {passive: false});
+    canvas.addEventListener('touchmove', draw, {passive: false});
+    canvas.addEventListener('touchend', stopDraw, {passive: false});
+    canvas.addEventListener('touchcancel', stopDraw, {passive: false});
+  };
+
+  window.clearCanvas = function() {
+    const canvas = document.getElementById('drawingCanvas');
+    if(canvas && canvasCtx) {
+      canvasCtx.fillStyle = '#fff';
+      canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+  };
+
+  window.finishDrawing = function() {
+    const canvas = document.getElementById('drawingCanvas');
+    if(canvas) {
+      const dataUrl = canvas.toDataURL('image/png');
+      drawingState.imageData = dataUrl;
+      drawingState.status = 'guessing';
+      saveData();
+      renderDrawingUI();
+    }
+  };
+
+  window.resetDrawingGame = function() {
+    if(confirm("お絵描きゲームをリセットして最初からにしますか？")) {
+      drawingState = { status: 'idle', drawer: '', theme: '', imageData: '', guesses: [] };
+      saveData();
+      renderDrawingUI();
+    }
+  };
+  // --- お絵描きミニゲームここまで ---
 
   window.initApp = async function() {
     const params = new URLSearchParams(window.location.search);
@@ -857,14 +1093,9 @@
       const update = (names, myS, opS) => { 
         names.forEach(n => { 
           const st = stats[n.name]; 
-          st.attendanceM++; // 参加実績としてはカウント
+          st.attendanceM++;
           if(m.dateStr) st.days.add(m.dateStr);
-          
-          // 0-0の場合は勝敗や平均ゲーム数のための試合数(m)にカウントしない
-          if(myS === 0 && opS === 0) {
-            return;
-          }
-          
+          if(myS === 0 && opS === 0) return;
           st.m++; 
           st.games += myS; 
           st.lostGames += opS; 
@@ -878,11 +1109,8 @@
       const st = stats[name];
       const totalG = st.games + st.lostGames;
       const gameRatio = totalG > 0 ? (st.games / totalG) : 0;
-      
-      // 参加日数は attendanceM (0-0含む全試合) をベースに判定する
       const joinedDays = st.days.size > 0 ? st.days.size : (st.attendanceM > 0 ? 1 : 0);
       const attendanceRate = totalDays > 0 ? (joinedDays / totalDays) : 0;
-      
       return { 
         name, ...st, 
         winRate: st.m ? ((st.w + st.d * 0.5) / st.m) : 0, 
@@ -921,10 +1149,7 @@
           else if(sortMode === 'winRate') tie = (prev.winRate === p.winRate && prev.w === p.w);
           else if(sortMode === 'attendanceRate') tie = (prev.attendanceRate === p.attendanceRate && prev.joinedDays === p.joinedDays);
           else tie = (prev.avg === p.avg && prev.games === p.games);
-          
-          if (!tie) {
-            currentRank = i + 1;
-          }
+          if (!tie) currentRank = i + 1;
         }
 
         const nameDisplay = isStatsScreen ? `<a href="javascript:void(0)" onclick="showPlayerHistory('${p.name}')" style="color:var(--primary); font-weight:bold; text-decoration:underline;">${p.name}</a>` : p.name;
@@ -972,11 +1197,8 @@
       }
     });
     
-    if (latestMonth > 0) {
-      monthSelect.value = latestMonth.toString();
-    } else {
-      monthSelect.value = "all";
-    }
+    if (latestMonth > 0) monthSelect.value = latestMonth.toString();
+    else monthSelect.value = "all";
   }
 
   window.toggleDayRanking = function(date) {
@@ -1141,7 +1363,6 @@
       affinityEl.innerHTML = "<p style='font-size:12px; color:var(--text-muted); padding:10px;'>この期間の試合データがありません。</p>";
       listEl.innerHTML = "<p style='font-size:12px; color:var(--text-muted);'>この期間の試合データがありません。</p>";
     } else {
-      // 1. 相性分析の集計
       const pairStats = {};
       const oppStats = {};
       
@@ -1152,7 +1373,6 @@
         const myScore = isTeam1 ? m.score[0] : m.score[1];
         const opScore = isTeam1 ? m.score[1] : m.score[0];
         
-        // 味方集計
         const partner = myTeam.find(p => p.name !== name);
         if (partner) {
           const pName = partner.name;
@@ -1167,7 +1387,6 @@
           }
         }
         
-        // 相手集計
         opTeam.forEach(opp => {
           const oName = opp.name;
           if(!oppStats[oName]) oppStats[oName] = { w:0, l:0, d:0, m:0, myGames:0, opGames:0 };
@@ -1219,7 +1438,6 @@
       else if (sortMode === 'attendanceRate') sortLabel = "ペア/対戦率";
       else if (sortMode === 'avgScore') sortLabel = "平均ゲーム数";
 
-      // ペア用ヘッダー & TD生成
       let pairTh = "<th>位</th><th>名前</th>";
       if(sortMode === 'gameRatio') pairTh += "<th>獲得G</th><th>合計G</th><th>取得率(%)</th>";
       else if(sortMode === 'winRate') pairTh += "<th>勝</th><th>負</th><th>分</th><th>勝率</th>";
@@ -1237,7 +1455,6 @@
         return td;
       };
 
-      // 相手用ヘッダー & TD生成
       let oppTh = "<th>位</th><th>名前</th>";
       if(sortMode === 'gameRatio') oppTh += "<th>獲得G</th><th>喪失G</th><th>取得率(%)</th>";
       else if(sortMode === 'winRate') oppTh += "<th>勝</th><th>負</th><th>分</th><th>勝率</th>";
@@ -1278,7 +1495,6 @@
       
       affinityEl.innerHTML = affinityHtml;
 
-      // 2. 履歴リストの描画
       playerMatches.sort((a,b) => b.dateStr.localeCompare(a.dateStr));
       listEl.innerHTML = playerMatches.map(m => {
         const isTeam1 = m.team1.some(p => p.name === name);
@@ -1366,7 +1582,7 @@
   };
   
   function saveData() { 
-    if(window.fbSave) window.fbSave({allMembers, schedule, showingRounds, currentSlots, historyData, matchDateStr});
+    if(window.fbSave) window.fbSave({allMembers, schedule, showingRounds, currentSlots, historyData, matchDateStr, drawingState});
   }
   
   function loadData(data) {
@@ -1377,8 +1593,13 @@
     currentSlots = data.currentSlots || [];
     historyData = data.historyData || {};
     matchDateStr = data.matchDateStr || "";
+    drawingState = data.drawingState || { status: 'idle', drawer: '', theme: '', imageData: '', guesses: [] };
 
     renderMemberList();
+    
+    if (isDrawingUIVisible) {
+      renderDrawingUI();
+    }
     
     const isMatchScreen = document.getElementById('screen-match').classList.contains('active');
     const isSetupScreen = document.getElementById('screen-setup').classList.contains('active');
