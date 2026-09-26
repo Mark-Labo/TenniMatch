@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>🎾TenniMatch v4.8.06 (お絵描き機能追加版)</title>
+  <title>🎾TenniMatch v4.8.07 (お絵描き機能追加版)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 
   <link rel="manifest" href="manifest.json">
@@ -86,8 +86,8 @@
     
     /* お絵描きゲーム用CSS */
     .drawing-container { margin-bottom: 15px; padding: 10px; }
-    .drawing-toggle { width: 100%; background: #fff; color: var(--primary); border: 2px solid var(--primary); padding: 12px; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-    .drawing-toggle:active { transform: scale(0.98); background: var(--bg); }
+    .drawing-toggle { width: 100%; background: linear-gradient(135deg, #fff7d6, #ffe69a); color: #7a5200; border: 2px solid #fbbc04; padding: 13px 12px; border-radius: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: 0 3px 0 #d99a00, 0 4px 8px rgba(0,0,0,0.08); }
+    .drawing-toggle:active { transform: translateY(2px); box-shadow: 0 1px 0 #d99a00; }
     .drawing-area { display: none; background: #fff; padding: 15px; border-radius: 12px; border: 1px solid var(--border); margin-top: 8px; animation: fadeIn 0.3s ease; }
     .drawing-area.active { display: block; }
     #drawingCanvas { border: 2px solid var(--border); background: #fff; cursor: crosshair; touch-action: none; width: 100%; max-width: 300px; height: 300px; margin: 0 auto; display: block; border-radius: 8px; }
@@ -154,7 +154,7 @@
 <body>
 
 <header>
-  <div id="headerTitle">🎾TenniMatch v4.8.06</div>
+  <div id="headerTitle">🎾TenniMatch v4.8.07</div>
   <div id="roomInfo" style="display:none;">
     <span>部屋: <strong id="roomIdDisplay">---</strong></span>
     <button class="small outline" onclick="openShareModal()">🔗URLの共有</button>
@@ -233,10 +233,6 @@
   <div style="display:flex; gap:8px; margin-bottom:15px;">
     <button onclick="enterSetupFromMatch()" class="outline secondary" style="flex:1; font-size:11px;">👥 途中参加/退出</button>
     <button onclick="showScreen('menu')" class="outline" style="flex:1; font-size:11px;">🔙 メニューへ戻る</button>
-  </div>
-
-  <div id="drawing-score-banner" onclick="openDrawingRanking()" style="display:none;">
-    🏆 チーム正解数 ＊0問＊
   </div>
 
   <!-- ★お絵描きミニゲーム★ -->
@@ -445,8 +441,22 @@
     const content = document.getElementById('drawing-content');
     if(!content) return;
     
+    const d = new Date();
+    const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    let totalCorrect = 0;
+    if(drawingScores[ym]) {
+      Object.values(drawingScores[ym]).forEach(s => totalCorrect += s.drawerPt);
+    }
+    const scoreHtml = `
+      <div style="text-align:center; margin-bottom:15px; padding:8px 6px; background:#fffdf0; border:1px solid var(--secondary); border-radius:10px; font-size:14px; font-weight:bold;">
+        🏆今月の正解数 ${totalCorrect}問
+        <a href="javascript:void(0)" onclick="openDrawingRanking(); return false;" style="color:#1a73e8; text-decoration:underline; margin-left:6px; font-weight:bold;">個人戦績へ</a>
+      </div>
+    `;
+
     if (drawingState.status === 'idle') {
       content.innerHTML = `
+        ${scoreHtml}
         <div style="text-align:center;">
           <p style="font-size:12px; color:var(--text-muted); margin-bottom: 15px;">お絵描きミニゲーム待機中</p>
           <button onclick="startDrawingSelectName()">🖌 お題を見て絵描き開始</button>
@@ -455,19 +465,22 @@
     } else if (drawingState.status === 'drawing') {
       if (drawingState.drawer === localStorage.getItem('myTenniMatchName_drawing')) {
         content.innerHTML = `
+          ${scoreHtml}
           <div style="text-align:center;">
             <h4 style="margin:5px 0 10px; color:var(--primary);">お題: ${drawingState.theme}</h4>
             <p style="font-size:12px; color:var(--text-muted); margin-top:-5px;">(ヒント: ${drawingState.hint})</p>
             <canvas id="drawingCanvas" width="300" height="300"></canvas>
-            <div style="margin-top:15px; display:flex; gap:8px; justify-content:center;">
+            <div style="margin-top:15px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
               <button class="outline small" onclick="clearCanvas()">🧹 クリア</button>
               <button class="small" onclick="finishDrawing()">✅ 完了(出題)</button>
+              <button class="secondary small" onclick="changeDrawingTheme()">🎲 お題変更</button>
             </div>
           </div>
         `;
         initCanvas();
       } else {
         content.innerHTML = `
+          ${scoreHtml}
           <div style="text-align:center; padding: 20px;">
             <p style="font-weight:bold; color:var(--primary); font-size:16px;">🧑‍🎨 ${drawingState.drawer} さんがお絵描き中...</p>
             <p style="font-size:12px; color:var(--text-muted); margin-bottom:15px;">完成するまでお待ちください</p>
@@ -486,6 +499,7 @@
       const hasCorrect = drawingState.guesses.some(g => g.isCorrect);
 
       content.innerHTML = `
+        ${scoreHtml}
         <div style="text-align:center;">
           <h4 style="margin:5px 0 10px;">出題者: ${drawingState.drawer}</h4>
           ${!hasCorrect ? `<p style="font-weight:bold; color:var(--primary); font-size:16px; margin-bottom:10px;">💡 ヒント: ${drawingState.hint}</p>` : ''}
@@ -529,6 +543,28 @@
       imageData: '',
       guesses: []
     };
+    saveData();
+    renderDrawingUI();
+  };
+
+  window.changeDrawingTheme = function() {
+    if (drawingState.status !== 'drawing') return;
+
+    const currentTheme = drawingState.theme;
+    let randomItem;
+    if (drawingThemes.length > 1) {
+      do {
+        randomItem = drawingThemes[Math.floor(Math.random() * drawingThemes.length)];
+      } while (randomItem.theme === currentTheme);
+    } else {
+      randomItem = drawingThemes[0];
+    }
+
+    drawingState.theme = randomItem.theme;
+    drawingState.hint = randomItem.hint;
+    drawingState.imageData = '';
+    drawingState.guesses = [];
+
     saveData();
     renderDrawingUI();
   };
@@ -649,20 +685,7 @@
   };
 
   window.updateDrawingScoreBanner = function() {
-    const d = new Date();
-    const m = d.getMonth() + 1;
-    const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    
-    let totalCorrect = 0;
-    if(drawingScores[ym]) {
-      Object.values(drawingScores[ym]).forEach(s => totalCorrect += s.drawerPt);
-    }
-    
-    const banner = document.getElementById('drawing-score-banner');
-    if(banner) {
-      banner.style.display = 'block';
-      banner.innerHTML = `🏆 ${m}月チーム正解数 ＊${totalCorrect}問＊`;
-    }
+    // スコア表示はお絵描きミニゲームを開いたときに renderDrawingUI() 内で更新します。
   };
 
   window.openDrawingRanking = function() {
